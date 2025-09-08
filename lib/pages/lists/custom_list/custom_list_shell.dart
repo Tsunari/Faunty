@@ -1,3 +1,5 @@
+import 'package:faunty/components/role_gate.dart';
+import 'package:faunty/models/user_roles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:faunty/models/custom_list.dart';
@@ -40,26 +42,32 @@ class CustomListShell extends ConsumerWidget {
                     },
                     icon: const Icon(Icons.add),
                   ),
-                  IconButton(
-                    onPressed: () {
-                      final current = ref.read(editModeProvider(list.id));
-                      ref.read(editModeProvider(list.id).notifier).state = !current;
-                    },
-                    icon: const Icon(Icons.edit),
+                  RoleGate(
+                    minRole: UserRole.baskan,
+                    child: IconButton(
+                      onPressed: () {
+                        final current = ref.read(editModeProvider(list.id));
+                        ref.read(editModeProvider(list.id).notifier).state = !current;
+                      },
+                      icon: const Icon(Icons.edit),
+                    ),
                   ),
-                  IconButton(
-                    onPressed: onEditList ?? () async {
-                      final ctrl = TextEditingController(text: list.title);
-                      final res = await showDialog<String?>(context: context, builder: (ctx) => AlertDialog(
-                        title: const Text('Edit list'),
-                        content: TextField(controller: ctrl),
-                        actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.of(ctx).pop(ctrl.text.trim()), child: const Text('Save'))],
-                      ));
-                      if (res != null && res.isNotEmpty) {
-                        await svc.updateList(placeId, list.id, {'title': res});
-                      }
-                    },
-                    icon: const Icon(Icons.more_vert),
+                  RoleGate(
+                    minRole: UserRole.baskan,
+                    child: IconButton(
+                      onPressed: onEditList ?? () async {
+                        final ctrl = TextEditingController(text: list.title);
+                        final res = await showDialog<String?>(context: context, builder: (ctx) => AlertDialog(
+                          title: const Text('Edit list'),
+                          content: TextField(controller: ctrl),
+                          actions: [TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.of(ctx).pop(ctrl.text.trim()), child: const Text('Save'))],
+                        ));
+                        if (res != null && res.isNotEmpty) {
+                          await svc.updateList(placeId, list.id, {'title': res});
+                        }
+                      },
+                      icon: const Icon(Icons.more_vert),
+                    ),
                   ),
                 ],
               ),

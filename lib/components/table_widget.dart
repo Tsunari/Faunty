@@ -28,6 +28,9 @@ class TableWidget extends ConsumerStatefulWidget {
   final bool editMode;
   final Future<void> Function(int index)? onDeleteAssignment;
   final Future<void> Function(int subsectionIndex)? onDeleteSubsection;
+  final Future<void> Function(int subsectionIndex, String newTitle)? onSaveSubsection;
+  final VoidCallback? onAddAssignment;
+  final VoidCallback? onAddSubsection;
 
   const TableWidget({
     super.key,
@@ -39,6 +42,9 @@ class TableWidget extends ConsumerStatefulWidget {
     this.editMode = false,
     this.onDeleteAssignment,
     this.onDeleteSubsection,
+    this.onSaveSubsection,
+    this.onAddAssignment,
+    this.onAddSubsection,
   });
 
   @override
@@ -67,6 +73,79 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
     final theme = Theme.of(context);
     final containerColor = theme.cardColor;
     final primary = theme.colorScheme.primary;
+
+    // Check if items is empty and show empty state
+    if (widget.items.isEmpty) {
+      return Container(
+        alignment: Alignment.topCenter,
+        constraints: const BoxConstraints(minWidth: 400, minHeight: 200),
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: containerColor,
+          border: Border.all(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.table_chart_outlined,
+                size: 64,
+                color: Colors.grey.shade400,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No items yet',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Get started by adding your first assignment or subsection',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey.shade500,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              if (widget.editMode) ...[
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (widget.onAddAssignment != null) ...[
+                      ElevatedButton.icon(
+                        onPressed: widget.onAddAssignment,
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add Assignment'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primary,
+                          foregroundColor: theme.colorScheme.onPrimary,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                    ],
+                    if (widget.onAddSubsection != null) ...[
+                      OutlinedButton.icon(
+                        onPressed: widget.onAddSubsection,
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add Subsection'),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: primary),
+                          foregroundColor: primary,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
+    }
 
     // Build blocks: either Tables of assignments or subsection header + table
     final blocks = <Widget>[];
@@ -171,6 +250,8 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
     flushPending();
 
     return Container(
+      alignment: Alignment.topCenter,
+      constraints: const BoxConstraints(minWidth: 400), // Minimum width
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: containerColor,
@@ -178,25 +259,27 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
         borderRadius: BorderRadius.circular(10),
       ),
       clipBehavior: Clip.hardEdge,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (widget.showColumnHeaders) ...[
-            Table(
-              columnWidths: const {0: FlexColumnWidth(1), 1: FlexColumnWidth(1)},
-              children: [
-                TableRow(children: [
-                  Container(padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12), child: Text(widget.leftHeader ?? 'Left', style: headerStyle)),
-                  Container(padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12), child: Text(widget.rightHeader ?? 'Right', style: headerStyle)),
-                ]),
-              ],
-            ),
-            const SizedBox(height: 6),
-          ],
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (widget.showColumnHeaders) ...[
+              Table(
+                columnWidths: const {0: FlexColumnWidth(1), 1: FlexColumnWidth(1)},
+                children: [
+                  TableRow(children: [
+                    Container(padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12), child: Text(widget.leftHeader ?? 'Left', style: headerStyle)),
+                    Container(padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12), child: Text(widget.rightHeader ?? 'Right', style: headerStyle)),
+                  ]),
+                ],
+              ),
+              const SizedBox(height: 6),
+            ],
 
-          // render blocks sequentially with separators between them so borders remain visible
-          ..._interleaveWithSeparators(blocks, Theme.of(context).dividerColor),
-        ],
+            // render blocks sequentially with separators between them so borders remain visible
+            ..._interleaveWithSeparators(blocks, Theme.of(context).dividerColor),
+          ],
+        ),
       ),
     );
   }
@@ -571,6 +654,9 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
           widget.items[i] = updated;
           editingSubsectionItemIndex = null;
         });
+        if (widget.onSaveSubsection != null) {
+          widget.onSaveSubsection!(itemIndex, newTitle);
+        }
         return;
       }
     }
