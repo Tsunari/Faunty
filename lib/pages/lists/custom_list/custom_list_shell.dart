@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:faunty/models/custom_list.dart';
 import 'package:faunty/state_management/custom_list_provider.dart';
 import 'package:faunty/helper/icon_registry.dart';
+import 'assignment_list_widget.dart';
 
 class CustomListShell extends ConsumerWidget {
   final String placeId;
@@ -10,8 +11,9 @@ class CustomListShell extends ConsumerWidget {
   final Widget child;
   final VoidCallback? onAddItem;
   final VoidCallback? onEditList;
+  final ValueChanged<bool>? onEditModeChanged;
 
-  const CustomListShell({super.key, required this.placeId, required this.list, required this.child, this.onAddItem, this.onEditList});
+  const CustomListShell({super.key, required this.placeId, required this.list, required this.child, this.onAddItem, this.onEditList, this.onEditModeChanged});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -37,6 +39,13 @@ class CustomListShell extends ConsumerWidget {
                       await svc.addItem(placeId, list.id, payload);
                     },
                     icon: const Icon(Icons.add),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      final current = ref.read(editModeProvider(list.id));
+                      ref.read(editModeProvider(list.id).notifier).state = !current;
+                    },
+                    icon: const Icon(Icons.edit),
                   ),
                   IconButton(
                     onPressed: onEditList ?? () async {

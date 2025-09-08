@@ -25,14 +25,20 @@ class TableWidget extends ConsumerStatefulWidget {
   final String? leftHeader;
   final String? rightHeader;
   final Future<void> Function(int index, bool left, String newValue)? onSave;
+  final bool editMode;
+  final Future<void> Function(int index)? onDeleteAssignment;
+  final Future<void> Function(int subsectionIndex)? onDeleteSubsection;
 
-  TableWidget({
+  const TableWidget({
     super.key,
     required this.items,
     this.showColumnHeaders = true,
     this.leftHeader,
     this.rightHeader,
     this.onSave,
+    this.editMode = false,
+    this.onDeleteAssignment,
+    this.onDeleteSubsection,
   });
 
   @override
@@ -98,13 +104,28 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: SizedBox(
               height: headerHeight,
-              child: Center(
-                child: TextField(
-                  controller: _subsectionController,
-                  textAlign: TextAlign.center,
-                  decoration: InputDecoration(border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)), isDense: true, contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12)),
-                  onSubmitted: (val) => _saveSubsectionTitle(itemIndex, val),
-                ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Center(
+                      child: TextField(
+                        controller: _subsectionController,
+                        textAlign: TextAlign.center,
+                        decoration: InputDecoration(border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)), isDense: true, contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12)),
+                        onSubmitted: (val) => _saveSubsectionTitle(itemIndex, val),
+                      ),
+                    ),
+                  ),
+                  if (widget.editMode && widget.onDeleteSubsection != null) ...[
+                    const SizedBox(width: 8),
+                    IconButton(
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      icon: Icon(Icons.delete, size: 20, color: Colors.red),
+                      onPressed: () => widget.onDeleteSubsection!(itemIndex),
+                    ),
+                  ],
+                ],
               ),
             ),
           ));
@@ -115,7 +136,21 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
               height: headerHeight,
               color: primary.withOpacity(0.12),
               alignment: Alignment.center,
-              child: Text(item.title, style: headerStyle?.copyWith(color: primary)),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(item.title, style: headerStyle?.copyWith(color: primary)),
+                  if (widget.editMode && widget.onDeleteSubsection != null) ...[
+                    const SizedBox(width: 8),
+                    IconButton(
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      icon: Icon(Icons.delete, size: 20, color: Colors.red),
+                      onPressed: () => widget.onDeleteSubsection!(itemIndex),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ));
         }
@@ -245,6 +280,15 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
           ),
           const SizedBox(width: 8),
           ...buildTrailingButtons(),
+          if (widget.editMode && widget.onDeleteAssignment != null) ...[
+            const SizedBox(width: 8),
+            IconButton(
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              icon: Icon(Icons.delete, size: iconSize, color: Colors.red),
+              onPressed: () => widget.onDeleteAssignment!(index),
+            ),
+          ],
         ]),
       );
     } else {
@@ -296,6 +340,15 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
           ),
           const SizedBox(width: 8),
           ...buildTrailingButtons(),
+          if (widget.editMode && widget.onDeleteAssignment != null) ...[
+            const SizedBox(width: 8),
+            IconButton(
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              icon: Icon(Icons.delete, size: iconSize, color: Colors.red),
+              onPressed: () => widget.onDeleteAssignment!(index),
+            ),
+          ],
         ]),
       );
     } else {
@@ -322,6 +375,15 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
               ),
             ),
           ),
+          if (widget.editMode && widget.onDeleteAssignment != null) ...[
+            const SizedBox(width: 8),
+            IconButton(
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              icon: Icon(Icons.delete, size: iconSize, color: Colors.red),
+              onPressed: () => widget.onDeleteAssignment!(index),
+            ),
+          ],
         ]),
       );
     }
