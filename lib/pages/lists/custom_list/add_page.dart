@@ -115,19 +115,31 @@ class _AddPageState extends ConsumerState<AddPage> {
                   ),
                   const SizedBox(height: 12),
                   const Text('Type'),
+                  const SizedBox(height: 6),
                   Wrap(
                     spacing: 8,
-                    children: CustomListType.values.map((t) {
-                      return ChoiceChip(
-                        label: Text(t.toString().split('.').last),
-                        selected: _type == t,
-                        onSelected: (s) => setState(() => _type = t),
-                      );
-                    }).toList(),
+                    children: [
+                      ChoiceChip(
+                        label: const Text('assignment'),
+                        selected: _type == CustomListType.assignment,
+                        onSelected: (s) => setState(() => _type = CustomListType.assignment),
+                      ),
+                      // Temporarily disabled other types
+                      ChoiceChip(
+                        label: const Text('attendance (coming)'),
+                        selected: false,
+                        onSelected: null, // Disabled
+                      ),
+                      ChoiceChip(
+                        label: const Text('schedule (coming)'),
+                        selected: false,
+                        onSelected: null, // Disabled
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 12),
                   const Text('Icon'),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   IconPicker(selected: _icon, onSelected: (ic) => setState(() => _icon = ic)),
                   const SizedBox(height: 12),
                   Row(
