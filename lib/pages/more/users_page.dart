@@ -54,31 +54,32 @@ class UsersPage extends ConsumerWidget {
                 children: [
                   for (final role in sortedRoles)
                     if (grouped[role]?.isNotEmpty ?? false)
-                      if (role != UserRole.superuser || user.role == UserRole.superuser)
+                      if ((role != UserRole.superuser || user.role == UserRole.superuser) &&
+                          (role != UserRole.user || user.role.index <= UserRole.hoca.index))
                         Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: Text(
-                          role.name[0].toUpperCase() + role.name.substring(1),
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: colorScheme.primary,
-                          ),
-                        ),
-                      ),
-                      Card(
-                        color: colorScheme.surface,
-                        child: UserListWithScrollbar(
-                          users: grouped[role]!,
-                          colorScheme: colorScheme,
-                          currentUser: user,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8.0),
+                              child: Text(
+                                role.name[0].toUpperCase() + role.name.substring(1),
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: colorScheme.primary,
+                                ),
+                              ),
+                            ),
+                            Card(
+                              color: colorScheme.surface,
+                              child: UserListWithScrollbar(
+                                users: grouped[role]!,
+                                colorScheme: colorScheme,
+                                currentUser: user,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
                   ),
                 ],
               );
@@ -88,9 +89,6 @@ class UsersPage extends ConsumerWidget {
       },
     );
   }
-
-
-
 }
 
 

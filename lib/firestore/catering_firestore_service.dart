@@ -6,6 +6,8 @@ class CateringFirestoreService {
   final UserEntity user;
   CateringFirestoreService(this.user);
 
+  FirebaseFirestore get _db => FirebaseFirestore.instance;
+
   DocumentReference get _docRef {
     final placeId = user.placeId;
     return FirebaseFirestore.instance
@@ -48,5 +50,85 @@ class CateringFirestoreService {
       }
     }
     await _docRef.set({'weekPlan': flat});
+  }
+
+  String _slotKey(int day, int meal) => '${day}_$meal';
+
+  /// Watch a single slot as a stream of user ids
+  Stream<List<String>> watchSlot(int day, int meal) {
+    final key = _slotKey(day, meal);
+    return _docRef.snapshots().map((snapshot) {
+      final data = snapshot.data() as Map<String, dynamic>?;
+      final raw = data == null ? null : data['weekPlan'] as Map<String, dynamic>?;
+      final users = raw == null ? null : raw[key];
+      if (users is List) return users.map((u) => u.toString()).toList();
+      return <String>[];
+    });
+  }
+
+  /// Read current users for a slot (one-off)
+  Future<List<String>> getSlotUsers(int day, int meal) async {
+    final snap = await _docRef.get();
+    final data = snap.data() as Map<String, dynamic>?;
+    final raw = data == null ? null : data['weekPlan'] as Map<String, dynamic>?;
+    final users = raw == null ? null : raw[_slotKey(day, meal)];
+    if (users is List) return users.map((u) => u.toString()).toList();
+    return <String>[];
+  }
+
+  /// Replace users for a slot
+  Future<void> setSlotUsers(int day, int meal, List<String> users) async {
+    await _db.runTransaction((tx) async {
+      final snap = await tx.get(_docRef);
+      final data = snap.data() as Map<String, dynamic>? ?? {};
+      final weekPlan = Map<String, dynamic>.from(data['weekPlan'] ?? {});
+      weekPlan[_slotKey(day, meal)] = users;
+      tx.set(_docRef, {'weekPlan': weekPlan}, SetOptions(merge: true));
+    });
+  }
+
+  /// Add a user to the slot (idempotent)
+  Future<void> addUserToSlot(int day, int meal, String uid) async {
+    await _db.runTransaction((tx) async {
+      final snap = await tx.get(_docRef);
+      final data = snap.data() as Map<String, dynamic>? ?? {};
+      final weekPlan = Map<String, dynamic>.from(data['weekPlan'] ?? {});
+      final key = _slotKey(day, meal);
+      final list = List<String>.from((weekPlan[key] as List<dynamic>?)?.map((e) => e.toString()) ?? []);
+      if (!list.contains(uid)) list.add(uid);
+      weekPlan[key] = list;
+      tx.set(_docRef, {'weekPlan': weekPlan}, SetOptions(merge: true));
+    });
+  }
+
+  /// Remove a user from the slot
+  Future<void> removeUserFromSlot(int day, int meal, String uid) async {
+    await _db.runTransaction((tx) async {
+      final snap = await tx.get(_docRef);
+      final data = snap.data() as Map<String, dynamic>? ?? {};
+      final weekPlan = Map<String, dynamic>.from(data['weekPlan'] ?? {});
+      final key = _slotKey(day, meal);
+      final list = List<String>.from((weekPlan[key] as List<dynamic>?)?.map((e) => e.toString()) ?? []);
+      list.removeWhere((x) => x == uid);
+      weekPlan[key] = list;
+      tx.set(_docRef, {'weekPlan': weekPlan}, SetOptions(merge: true));
+    });
+  }
+
+  /// Toggle user membership in slot (add if missing, remove if present)
+  Future<void> toggleUserInSlot(int day, int meal, String uid) async {
+    await _db.runTransaction((tx) async {
+      final snap = await tx.get(_docRef);
+      final data = snap.data() as Map<String, dynamic>? ?? {};
+      final weekPlan = Map<String, dynamic>.from(data['weekPlan'] ?? {});
+      final key = _slotKey(day, meal);
+      final list = List<String>.from((weekPlan[key] as List<dynamic>?)?.map((e) => e.toString()) ?? []);
+      if (list.contains(uid))
+        list.removeWhere((x) => x == uid);
+      else
+        list.add(uid);
+      weekPlan[key] = list;
+      tx.set(_docRef, {'weekPlan': weekPlan}, SetOptions(merge: true));
+    });
   }
 }

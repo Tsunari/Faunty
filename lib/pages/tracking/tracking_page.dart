@@ -1,7 +1,7 @@
+import 'package:faunty/pages/tracking/attendance/attendance_viewer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../more/kantin_page.dart';
-import '../attendance/attendance_viewer.dart';
 import '../../components/tab_page.dart';
 import '../../components/under_construction.dart';
 

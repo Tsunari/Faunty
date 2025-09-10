@@ -25,7 +25,6 @@ For more information, see the main [README.md](../../README.md) in the project r
 - **Build & Run:** Use standard Flutter commands (`flutter run`, `flutter build web`). For web deployment, use `release.ps1` (PowerShell script) to build and deploy to Firebase Hosting.
 - **Firebase Setup:** App initialization is in `main.dart` using `firebase_options.dart`. Firestore and Auth are required for most features.
 - **i18n:** Add new translation keys to all language files in `lib/i18n/`. Use Slang for codegen (`dart run slang`). Discover new keys with `dart lib/tools/extract_t_strings_ast.dart`.
-- **Linting:** Uses `flutter_lints`. Run `flutter analyze` for static checks. See `analysis_options.yaml` for custom rules.
 
 ## Project-Specific Conventions
 - **Provider Usage:** Always use Riverpod's `ref.read`/`ref.watch` for state. Streams from Firestore are mapped to domain models.

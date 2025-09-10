@@ -6,6 +6,7 @@ import 'package:faunty/pages/more/about_page.dart';
 import 'package:faunty/pages/more/account_page.dart';
 import 'package:faunty/state_management/user_provider.dart';
 import 'package:faunty/tools/translation_helper.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../state_management/globals_provider.dart';
@@ -13,6 +14,7 @@ import 'users_page.dart';
 import '../../components/custom_chip.dart';
 import 'settings_page.dart';
 import 'package:faunty/components/language_dropdown.dart';
+import 'package:faunty/pages/more/ui_test_page.dart';
 
 class MorePage extends ConsumerWidget {
   const MorePage({super.key});
@@ -121,15 +123,7 @@ class MorePage extends ConsumerWidget {
         RoleGate(minRole: UserRole.hoca, child: const Divider()),
         ListTile(
           leading: Icon(Icons.account_circle_outlined, color: primaryColor),
-          title: Row(
-            children: [
-              Text(translation(context: context, 'Account')),
-              const SizedBox(width: 4),
-              CustomContainerChip(
-                label: translation(context: context, 'Active'),
-              ),
-            ],
-          ),
+          title: Text(translation(context: context, 'Account')),
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(builder: (context) => const AccountPage()),
@@ -138,15 +132,7 @@ class MorePage extends ConsumerWidget {
         ),
         ListTile(
           leading: Icon(Icons.group_outlined, color: primaryColor),
-          title: Row(
-            children: [
-              Text(translation(context: context, 'Users')),
-              const SizedBox(width: 4),
-              CustomContainerChip(
-                label: translation(context: context, 'Active'),
-              ),
-            ],
-          ),
+          title: Text(translation(context: context, 'Users')),
           onTap: () {
             Navigator.of(
               context,
@@ -155,36 +141,28 @@ class MorePage extends ConsumerWidget {
         ),
         ListTile(
           leading: Icon(Icons.language_outlined, color: primaryColor),
-          title: Row(
-            children: [
-              Text(translation(context: context, 'Language')),
-              const SizedBox(width: 4),
-              CustomContainerChip(
-                label: translation(context: context, 'Active'),
-              ),
-            ],
-          ),
+          title: Text(translation(context: context, 'Language')),
           trailing: LanguageDropdown(
             borderColor: primaryColor.withOpacity(0.5),
           ),
         ),
         ListTile(
           leading: Icon(Icons.extension_outlined, color: primaryColor),
-          title: Text(translation(context: context, 'Tools')),
+          title: Row(
+            children: [
+              Text(translation(context: context, 'Tools')),
+              const SizedBox(width: 4),
+              CustomContainerChip(
+                label: translation(context: context, 'Under Construction'),
+              ),
+            ],
+          ),
           onTap: () {},
         ),
         const Divider(),
         ListTile(
           leading: Icon(Icons.settings_outlined, color: primaryColor),
-          title: Row(
-            children: [
-              Text(translation(context: context, 'Settings')),
-              const SizedBox(width: 4),
-              CustomContainerChip(
-                label: translation(context: context, 'Active'),
-              ),
-            ],
-          ),
+          title: Text(translation(context: context, 'Settings')),
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(builder: (context) => const SettingsPage()),
@@ -193,15 +171,7 @@ class MorePage extends ConsumerWidget {
         ),
         ListTile(
           leading: Icon(Icons.info_outline, color: primaryColor),
-          title: Row(
-            children: [
-              Text(translation(context: context, 'About')),
-              const SizedBox(width: 4),
-              CustomContainerChip(
-                label: translation(context: context, 'Active'),
-              ),
-            ],
-          ),
+          title: Text(translation(context: context, 'About')),
           onTap: () {
             Navigator.of(
               context,
@@ -210,14 +180,41 @@ class MorePage extends ConsumerWidget {
         ),
         ListTile(
           leading: Icon(Icons.feedback_outlined, color: primaryColor),
-          title: Text(translation(context: context, 'Feedback')),
+          title: Row(
+            children: [
+              Text(translation(context: context, 'Feedback')),
+              const SizedBox(width: 4),
+              CustomContainerChip(
+                label: translation(context: context, 'Under Construction'),
+              ),
+            ],
+          ),
           onTap: () {},
         ),
         ListTile(
           leading: Icon(Icons.help_outline, color: primaryColor),
-          title: Text(translation(context: context, 'Help')),
+          title: Row(
+            children: [
+              Text(translation(context: context, 'Help')),
+              const SizedBox(width: 4),
+              CustomContainerChip(
+                label: translation(context: context, 'Under Construction'),
+              ),
+            ],
+          ),
           onTap: () {},
         ),
+        if (kDebugMode)
+          ListTile(
+            leading: Icon(Icons.bug_report_outlined, color: primaryColor),
+            title: Text(translation(context: context, 'UI Test Page')),
+            subtitle: Text(translation(context: context, 'Debug only')),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const UiTestPage()),
+              );
+            },
+          ),
       ],
     );
   }

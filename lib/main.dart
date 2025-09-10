@@ -62,13 +62,13 @@ class Faunty extends ConsumerWidget {
       title: translation(context: context, 'Faunty'),
       debugShowCheckedModeBanner: false,
       theme: isMonochrome
-          ? monochromeThemeData
+          ? monochromeThemeDataLight
           : ThemeData(
               colorScheme: ColorScheme.fromSeed(seedColor: preset.seedColor),
               useMaterial3: true,
             ),
       darkTheme: isMonochrome
-          ? monochromeThemeData
+          ? monochromeThemeDataDark
           : ThemeData(
               colorScheme: ColorScheme.fromSeed(
                 seedColor: preset.seedColor,

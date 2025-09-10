@@ -34,18 +34,60 @@ class _TabPageState extends ConsumerState<TabPage> with TickerProviderStateMixin
     _initTabController();
   }
 
+  @override
+  void didUpdateWidget(covariant TabPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // If number of tabs changed, recreate controller to match new length
+    if (_isTabControllerInitialized && widget.tabs.length != oldWidget.tabs.length) {
+      if (_tabController != null) {
+        _tabController!.removeListener(_handleTabChange);
+        _tabController!.dispose();
+      }
+      _isTabControllerInitialized = false;
+      _initTabController();
+    }
+  }
+
   Future<void> _initTabController() async {
     int initialIndex = ref.read(widget.tabIndexProvider) ?? 0;
+    // If provider had no saved index, try reading persisted prefs.
     if (ref.read(widget.tabIndexProvider) == null) {
       final prefs = await SharedPreferences.getInstance();
       int? storedIndex = prefs.getInt(widget.prefsKey);
-      if (storedIndex != null && storedIndex >= 0 && storedIndex < widget.tabs.length) {
+      if (storedIndex != null) {
         initialIndex = storedIndex;
       } else {
         initialIndex = 0;
       }
-      ref.read(widget.tabIndexProvider.notifier).state = initialIndex;
     }
+
+    // Clamp the initialIndex to a valid range for the current tabs length.
+    if (initialIndex < 0) initialIndex = 0;
+    if (widget.tabs.isEmpty) {
+      // No tabs to control. Mark initialized but leave controller null — build will show a fallback.
+      _tabController = null;
+      _isTabControllerInitialized = true;
+      // Defer provider mutation until after build to avoid Riverpod lifecycle errors.
+      Future(() {
+        try {
+          ref.read(widget.tabIndexProvider.notifier).state = null;
+        } catch (_) {}
+      });
+      if (mounted) setState(() {});
+      return;
+    }
+    if (initialIndex >= widget.tabs.length) initialIndex = widget.tabs.length - 1;
+
+    // Persist the (possibly clamped) index back into the provider and prefs.
+    // Defer the provider mutation to avoid modifying providers during widget lifecycle.
+    Future(() {
+      try {
+        ref.read(widget.tabIndexProvider.notifier).state = initialIndex;
+      } catch (_) {}
+    });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(widget.prefsKey, initialIndex);
+
     _tabController = TabController(length: widget.tabs.length, vsync: this, initialIndex: initialIndex);
     _tabController!.addListener(_handleTabChange);
     _isTabControllerInitialized = true;
@@ -72,8 +114,14 @@ class _TabPageState extends ConsumerState<TabPage> with TickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    if (!_isTabControllerInitialized || _tabController == null) {
+    if (!_isTabControllerInitialized) {
       return const Center(child: CircularProgressIndicator());
+    }
+    if (_tabController == null) {
+      // No tabs available — render a simple empty state instead of trying to build TabBar/TabBarView.
+      return Scaffold(
+        body: Center(child: Text('No tabs')),
+      );
     }
     return Scaffold(
       body: Column(
