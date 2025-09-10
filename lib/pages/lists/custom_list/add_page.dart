@@ -84,7 +84,7 @@ class _AddPageState extends ConsumerState<AddPage> {
                                     _editingListId = null;
                                     _titleCtrl.clear();
                                     _type = CustomListType.assignment;
-                                            _icon = IconSpec.material(0xe3af);
+                                    _icon = IconSpec.material(Icons.post_add_outlined.codePoint, fontFamily: Icons.post_add_outlined.fontFamily);
                                   });
                                 }
                               }

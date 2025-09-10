@@ -225,12 +225,12 @@ final ThemeData monochromeThemeDataLight = ThemeData(
   switchTheme: SwitchThemeData(
     // Inverted from dark: thumb should be white when ON, darker when OFF
     thumbColor: WidgetStateProperty.resolveWith((states) {
-      if (states.contains(MaterialState.selected)) return Colors.white;
+      if (states.contains(WidgetState.selected)) return Colors.white;
       return Colors.black87;
     }),
     // Track: black when ON to create a dark background behind the white thumb
     trackColor: WidgetStateProperty.resolveWith((states) {
-      if (states.contains(MaterialState.selected)) return Colors.black;
+      if (states.contains(WidgetState.selected)) return Colors.black;
       return Colors.transparent;
     }),
   ),
