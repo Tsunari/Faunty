@@ -1,5 +1,48 @@
 # Changelog
 
+## [1.3.0] - 10-09-2025
+### Added
+- Add tabview in attendance
+- Add way to change test notification content in UI
+- Added easy way test fcm functionality  from UI
+- Added survey page
+- Attendance
+- Attendance item edit page
+- Baseline for custom lists
+- Custom lists
+- Delete on table widget and edit mode in shell
+- Dev hosting init
+- FCM init for web
+- Firebase functions init and intensive testing
+- Implement foreground messages
+- Make tab in list page persistent
+- Multiple list support for attendance
+- Reorderable item manager in attendance management
+- Under construction page
+- WORKING NOTIFICATIONS
+### Changed
+- [Drastic] reusable attendance table
+- Add icon registry
+- Add padding to attendance dropdown
+- Add RoleGate to add Lists
+- Again notification enhancements
+- Assignment_list_widget init
+- Icon update
+- Introduce TabPage component for better tab management in Communication and Tracking pages.
+- Lists page in navBar
+- Refactor to id storing in firestore in attendance
+- Replace ListsPage with a stateless implementation
+- Some notification enhancements
+- Survey firestore integration and enhancement
+- Update NavBar destinations
+### Fixed
+- Fix token behaviour
+- Logic fixes in attendance
+- Small alignment fixes
+- Theme card overflow fix
+
+
+
 ## [1.2.0] - 11-08-2025
 ### Added
 - Add dialog to kantin widget
