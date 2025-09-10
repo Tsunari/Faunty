@@ -1,3 +1,4 @@
+import 'package:faunty/components/custom_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -22,23 +23,56 @@ class _AssignmentListWidgetState extends ConsumerState<AssignmentListWidget> {
   bool isSaving = false;
 
   @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+  }
+
+  void _saveChanges() async {
+    if (isSaving) return; // Prevent multiple save attempts
+    
+    if (mounted) setState(() => isSaving = true);
+    try {
+      if (pendingSaves.isNotEmpty) {
+        // Save all pending changes
+        for (final save in pendingSaves) {
+          await save();
+        }
+        pendingSaves.clear();
+        // Show success message only if there were changes to save
+        if (mounted) showCustomSnackBar(context, 'Changes saved successfully');
+      }
+      // Reset local items to sync with Firestore
+      localItems = null;
+    } catch (e) {
+      // Show error if save fails
+      if (mounted) showCustomSnackBar(context, 'Failed to save changes: $e');
+    } finally {
+      if (mounted) setState(() => isSaving = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final editMode = ref.watch(editModeProvider(widget.list.id));
-    final itemsAsync = ref.watch(customListItemsProvider(ListKey(widget.placeId, widget.list.id)));
     
-    // Handle edit mode changes
-    if (!editMode && localItems != null) {
-      // Exiting edit mode, discard changes
-      localItems = null;
-      pendingSaves.clear();
-      isSaving = false;
-    }
+    // Listen to edit mode changes
+    ref.listen(editModeProvider(widget.list.id), (previous, next) {
+      if (previous == true && next == false && mounted) {
+        // Exiting edit mode, save changes
+        _saveChanges();
+      }
+    });
+    
+    final itemsAsync = ref.watch(customListItemsProvider(ListKey(widget.placeId, widget.list.id)));
     
     return itemsAsync.when(
       data: (items) {
-        if (localItems == null) {
-          localItems = List.from(items);
-        }
+        localItems ??= List.from(items);
         // Use localItems for building tableItems
         final currentItems = localItems!;
         // Convert ListItem to table items (Assignment or Subsection)
@@ -168,30 +202,10 @@ class _AssignmentListWidgetState extends ConsumerState<AssignmentListWidget> {
             } : null,
           ),
           floatingActionButton: editMode ? FloatingActionButton(
-            onPressed: isSaving ? null : () async {
-              setState(() => isSaving = true);
-              try {
-                if (pendingSaves.isNotEmpty) {
-                  // Save all pending changes
-                  for (final save in pendingSaves) {
-                    await save();
-                  }
-                  pendingSaves.clear();
-                  // Reset local items to sync with Firestore
-                  localItems = null;
-                }
-                // Always exit edit mode
-                ref.read(editModeProvider(widget.list.id).notifier).state = false;
-                // Refresh the UI
-                setState(() {});
-              } catch (e) {
-                // Show error if save fails
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Failed to save changes: $e')),
-                );
-              } finally {
-                setState(() => isSaving = false);
-              }
+            onPressed: isSaving ? null : () {
+              _saveChanges();
+              // Always exit edit mode
+              ref.read(editModeProvider(widget.list.id).notifier).state = false;
             },
             child: isSaving ? const CircularProgressIndicator(color: Colors.white) : const Icon(Icons.save),
           ) : null,

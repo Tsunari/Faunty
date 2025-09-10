@@ -36,12 +36,30 @@ class CustomListShell extends ConsumerWidget {
                   Expanded(child: Text(list.title, style: Theme.of(context).textTheme.titleMedium)),
                   RoleGate(
                     minRole: UserRole.baskan,
-                    child: IconButton(
-                      onPressed: () {
-                        final current = ref.read(editModeProvider(list.id));
-                        ref.read(editModeProvider(list.id).notifier).state = !current;
+                    child: Consumer(
+                      builder: (context, ref, child) {
+                        final isEditMode = ref.watch(editModeProvider(list.id));
+                        return AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 200),
+                          transitionBuilder: (child, animation) => ScaleTransition(scale: animation, child: child),
+                          child: IconButton(
+                            key: ValueKey(isEditMode),
+                            onPressed: () {
+                              ref.read(editModeProvider(list.id).notifier).state = !isEditMode;
+                              onEditModeChanged?.call(!isEditMode);
+                            },
+                            icon: Icon(
+                              isEditMode ? Icons.check : Icons.edit,
+                              color: isEditMode ? Theme.of(context).colorScheme.primary : null,
+                            ),
+                            tooltip: isEditMode ? 'Exit edit mode' : 'Enter edit mode',
+                            style: IconButton.styleFrom(
+                              backgroundColor: isEditMode ? Theme.of(context).colorScheme.primary.withOpacity(0.1) : null,
+                              foregroundColor: isEditMode ? Theme.of(context).colorScheme.primary : null,
+                            ),
+                          ),
+                        );
                       },
-                      icon: const Icon(Icons.edit),
                     ),
                   ),
                   RoleGate(

@@ -57,12 +57,73 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
   bool editingLeft = true;
   final TextEditingController _controller = TextEditingController();
   final TextEditingController _subsectionController = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
+  final FocusNode _subsectionFocusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(_onFocusChanged);
+    _subsectionFocusNode.addListener(_onSubsectionFocusChanged);
+  }
 
   @override
   void dispose() {
+    _focusNode.removeListener(_onFocusChanged);
+    _subsectionFocusNode.removeListener(_onSubsectionFocusChanged);
+    _focusNode.dispose();
+    _subsectionFocusNode.dispose();
     _controller.dispose();
     _subsectionController.dispose();
     super.dispose();
+  }
+
+  void _onFocusChanged() {
+    if (!_focusNode.hasFocus && editingRowIndex != null) {
+      // Save when focus is lost
+      _saveEdit(editingRowIndex!, editingLeft, _controller.text);
+    }
+  }
+
+  void _onSubsectionFocusChanged() {
+    if (!_subsectionFocusNode.hasFocus && editingSubsectionItemIndex != null) {
+      // Save when focus is lost
+      _saveSubsectionTitle(editingSubsectionItemIndex!, _subsectionController.text);
+    }
+  }
+
+  @override
+  void didUpdateWidget(TableWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // If edit mode is turned off, save and close any open edits
+    if (oldWidget.editMode && !widget.editMode) {
+      _saveAndCloseAllEdits();
+    }
+  }
+
+  void _saveAndCloseAllEdits() async {
+    // Save row edit if active
+    if (editingRowIndex != null) {
+      try {
+        await _saveEdit(editingRowIndex!, editingLeft, _controller.text);
+      } catch (e) {
+        // Ignore save errors when closing
+      }
+    }
+    // Save subsection edit if active
+    if (editingSubsectionItemIndex != null) {
+      try {
+        _saveSubsectionTitle(editingSubsectionItemIndex!, _subsectionController.text);
+      } catch (e) {
+        // Ignore save errors when closing
+      }
+    }
+    // Close all edits
+    setState(() {
+      editingRowIndex = null;
+      editingSubsectionItemIndex = null;
+      editingLeft = true;
+    });
   }
 
   @override
@@ -130,7 +191,7 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
                     ],
                     if (widget.onAddSubsection != null) ...[
                       OutlinedButton.icon(
-                        onPressed: widget.onAddSubsection,
+                        onPressed: null, // widget.onAddSubsection
                         icon: const Icon(Icons.add, size: 18),
                         label: const Text('Add Subsection'),
                         style: OutlinedButton.styleFrom(
@@ -138,6 +199,7 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
                           foregroundColor: primary,
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         ),
+                        
                       ),
                     ],
                   ],
@@ -196,6 +258,7 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
                           textAlign: TextAlign.center,
                           decoration: InputDecoration(border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)), isDense: true, contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12)),
                           onSubmitted: (val) => _saveSubsectionTitle(itemIndex, val),
+                          onEditingComplete: () => _saveSubsectionTitle(itemIndex, _subsectionController.text),
                         ),
                       ),
                     ),
@@ -206,7 +269,7 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
           ));
         } else {
           blocks.add(GestureDetector(
-            onTap: () => _startEditingSubsection(itemIndex, item.title),
+            onTap: widget.editMode ? () => _startEditingSubsection(itemIndex, item.title) : null,
             child: Container(
               height: headerHeight,
               color: primary.withOpacity(0.12),
@@ -247,7 +310,7 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
-      onTap: () async {
+      onTap: widget.editMode ? () async {
         // Exit inline editing when tapped outside, but save changes first
         if (editingRowIndex != null) {
           await _saveEdit(editingRowIndex!, editingLeft, _controller.text);
@@ -262,7 +325,7 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
             editingSubsectionItemIndex = null;
           });
         }
-      },
+      } : null,
       child: Container(
         alignment: Alignment.topCenter,
         constraints: const BoxConstraints(minWidth: 400), // Minimum width
@@ -319,7 +382,7 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
                     ],
                     if (widget.onAddSubsection != null) ...[
                       OutlinedButton.icon(
-                        onPressed: widget.onAddSubsection,
+                        onPressed: null, // Disabled for now
                         icon: const Icon(Icons.add, size: 18),
                         label: const Text('Add Subsection'),
                         style: OutlinedButton.styleFrom(
@@ -409,6 +472,7 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
                 onTap: () {}, // Consume tap to prevent exit editing
                 child: TextField(
                   controller: _controller,
+                  focusNode: _focusNode,
                   autofocus: true,
                   decoration: InputDecoration(
                     isDense: true,
@@ -416,6 +480,7 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
                   ),
                     onSubmitted: (val) async => await _saveEdit(index, true, val),
+                    onEditingComplete: () async => await _saveEdit(index, true, _controller.text),
                 ),
               ),
             ),
@@ -430,7 +495,7 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
         child: Row(children: [
           Expanded(
               child: GestureDetector(
-              onTap: () async => await _onCellTap(index, true, r.left),
+              onTap: widget.editMode ? () async => await _onCellTap(index, true, r.left) : null,
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
                 child: () {
@@ -470,6 +535,7 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
                   ),
                   onSubmitted: (val) async => await _saveEdit(index, false, val),
+                  onEditingComplete: () async => await _saveEdit(index, false, _controller.text),
                 ),
               ),
             ),
@@ -484,7 +550,7 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
         child: Row(children: [
           Expanded(
               child: GestureDetector(
-              onTap: () async => await _onCellTap(index, false, r.right),
+              onTap: widget.editMode ? () async => await _onCellTap(index, false, r.right) : null,
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
                 child: () {
@@ -597,6 +663,15 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
   }
 
   Future<void> _onCellTap(int index, bool left, String currentValue) async {
+    // Save and close any active subsection edit
+    if (editingSubsectionItemIndex != null) {
+      try {
+        _saveSubsectionTitle(editingSubsectionItemIndex!, _subsectionController.text);
+      } catch (_) {
+        // ignore save errors here
+      }
+      editingSubsectionItemIndex = null;
+    }
     // if there is an active edit in a different cell, persist it first so we don't lose typed text
     if (editingRowIndex != null && (editingRowIndex != index || editingLeft != left)) {
       try {
@@ -683,6 +758,20 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
   }
 
   void _startEditingSubsection(int itemIndex, String currentTitle) {
+    // Save and close any active cell edit
+    if (editingRowIndex != null) {
+      try {
+        final prevStored = _getStoredValueAt(editingRowIndex!, editingLeft);
+        final currentText = _controller.text.trim();
+        if (currentText != prevStored.trim()) {
+          _saveEdit(editingRowIndex!, editingLeft, _controller.text);
+        }
+      } catch (_) {
+        // ignore save errors here
+      }
+      editingRowIndex = null;
+      editingLeft = true;
+    }
     setState(() {
       editingSubsectionItemIndex = itemIndex;
       _subsectionController.text = currentTitle;
