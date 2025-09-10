@@ -64,7 +64,9 @@ class _AssignmentListWidgetState extends ConsumerState<AssignmentListWidget> {
     ref.listen(editModeProvider(widget.list.id), (previous, next) {
       if (previous == true && next == false && mounted) {
         // Exiting edit mode, save changes
-        _saveChanges();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _saveChanges();
+        });
       }
     });
     
