@@ -11,11 +11,10 @@ class CustomListShell extends ConsumerWidget {
   final String placeId;
   final CustomList list;
   final Widget child;
-  final VoidCallback? onAddItem;
   final VoidCallback? onEditList;
   final ValueChanged<bool>? onEditModeChanged;
 
-  const CustomListShell({super.key, required this.placeId, required this.list, required this.child, this.onAddItem, this.onEditList, this.onEditModeChanged});
+  const CustomListShell({super.key, required this.placeId, required this.list, required this.child, this.onEditList, this.onEditModeChanged});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -35,13 +34,6 @@ class CustomListShell extends ConsumerWidget {
                   if (list.icon != null && list.icon!.kind == 'material') Icon(iconFromSpec(list.icon)),
                   const SizedBox(width: 8),
                   Expanded(child: Text(list.title, style: Theme.of(context).textTheme.titleMedium)),
-                  IconButton(
-                    onPressed: onAddItem ?? () async {
-                      final payload = {'left': '', 'right': ''};
-                      await svc.addItem(placeId, list.id, payload);
-                    },
-                    icon: const Icon(Icons.add),
-                  ),
                   RoleGate(
                     minRole: UserRole.baskan,
                     child: IconButton(

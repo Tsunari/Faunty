@@ -118,23 +118,25 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
                     if (widget.onAddAssignment != null) ...[
                       ElevatedButton.icon(
                         onPressed: widget.onAddAssignment,
-                        icon: const Icon(Icons.add),
+                        icon: const Icon(Icons.add, size: 18),
                         label: const Text('Add Assignment'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primary,
                           foregroundColor: theme.colorScheme.onPrimary,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      if (widget.onAddSubsection != null) const SizedBox(width: 12),
                     ],
                     if (widget.onAddSubsection != null) ...[
                       OutlinedButton.icon(
                         onPressed: widget.onAddSubsection,
-                        icon: const Icon(Icons.add),
+                        icon: const Icon(Icons.add, size: 18),
                         label: const Text('Add Subsection'),
                         style: OutlinedButton.styleFrom(
                           side: BorderSide(color: primary),
                           foregroundColor: primary,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         ),
                       ),
                     ],
@@ -187,23 +189,17 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
                 children: [
                   Expanded(
                     child: Center(
-                      child: TextField(
-                        controller: _subsectionController,
-                        textAlign: TextAlign.center,
-                        decoration: InputDecoration(border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)), isDense: true, contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12)),
-                        onSubmitted: (val) => _saveSubsectionTitle(itemIndex, val),
+                      child: GestureDetector(
+                        onTap: () {}, // Consume tap to prevent exit editing
+                        child: TextField(
+                          controller: _subsectionController,
+                          textAlign: TextAlign.center,
+                          decoration: InputDecoration(border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)), isDense: true, contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12)),
+                          onSubmitted: (val) => _saveSubsectionTitle(itemIndex, val),
+                        ),
                       ),
                     ),
                   ),
-                  if (widget.editMode && widget.onDeleteSubsection != null) ...[
-                    const SizedBox(width: 8),
-                    IconButton(
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      icon: Icon(Icons.delete, size: 20, color: Colors.red),
-                      onPressed: () => widget.onDeleteSubsection!(itemIndex),
-                    ),
-                  ],
                 ],
               ),
             ),
@@ -249,38 +245,98 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
     }
     flushPending();
 
-    return Container(
-      alignment: Alignment.topCenter,
-      constraints: const BoxConstraints(minWidth: 400), // Minimum width
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: containerColor,
-        border: Border.all(color: Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      clipBehavior: Clip.hardEdge,
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (widget.showColumnHeaders) ...[
-              Table(
-                columnWidths: const {0: FlexColumnWidth(1), 1: FlexColumnWidth(1)},
-                children: [
-                  TableRow(children: [
-                    Container(padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12), child: Text(widget.leftHeader ?? 'Left', style: headerStyle)),
-                    Container(padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12), child: Text(widget.rightHeader ?? 'Right', style: headerStyle)),
-                  ]),
-                ],
-              ),
-              const SizedBox(height: 6),
-            ],
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () async {
+        // Exit inline editing when tapped outside, but save changes first
+        if (editingRowIndex != null) {
+          await _saveEdit(editingRowIndex!, editingLeft, _controller.text);
+          setState(() {
+            editingRowIndex = null;
+            editingLeft = true;
+          });
+        }
+        if (editingSubsectionItemIndex != null) {
+          _saveSubsectionTitle(editingSubsectionItemIndex!, _subsectionController.text);
+          setState(() {
+            editingSubsectionItemIndex = null;
+          });
+        }
+      },
+      child: Container(
+        alignment: Alignment.topCenter,
+        constraints: const BoxConstraints(minWidth: 400), // Minimum width
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: containerColor,
+          border: Border.all(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        clipBehavior: Clip.hardEdge,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (widget.showColumnHeaders) ...[
+                Table(
+                  columnWidths: const {0: FlexColumnWidth(1), 1: FlexColumnWidth(1)},
+                  children: [
+                    TableRow(children: [
+                      Container(padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12), child: Text(widget.leftHeader ?? 'Left', style: headerStyle)),
+                      Container(padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12), child: Text(widget.rightHeader ?? 'Right', style: headerStyle)),
+                    ]),
+                  ],
+                ),
+                const SizedBox(height: 6),
+              ],
 
-            // render blocks sequentially with separators between them so borders remain visible
-            ..._interleaveWithSeparators(blocks, Theme.of(context).dividerColor),
+              // render blocks sequentially with separators between them so borders remain visible
+              ..._interleaveWithSeparators(blocks, Theme.of(context).dividerColor),
+
+            // Add buttons at the bottom when in edit mode
+            if (widget.editMode && (widget.onAddAssignment != null || widget.onAddSubsection != null)) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  border: Border(top: BorderSide(color: Colors.grey.shade300)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (widget.onAddAssignment != null) ...[
+                      ElevatedButton.icon(
+                        onPressed: widget.onAddAssignment,
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('Add Assignment'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primary,
+                          foregroundColor: theme.colorScheme.onPrimary,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        ),
+                      ),
+                      if (widget.onAddSubsection != null) const SizedBox(width: 12),
+                    ],
+                    if (widget.onAddSubsection != null) ...[
+                      OutlinedButton.icon(
+                        onPressed: widget.onAddSubsection,
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('Add Subsection'),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: primary),
+                          foregroundColor: primary,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
+    )
     );
   }
 
@@ -349,29 +405,23 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.only(left: 2),
-              child: TextField(
-                controller: _controller,
-                autofocus: true,
-                decoration: InputDecoration(
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+              child: GestureDetector(
+                onTap: () {}, // Consume tap to prevent exit editing
+                child: TextField(
+                  controller: _controller,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                  ),
+                    onSubmitted: (val) async => await _saveEdit(index, true, val),
                 ),
-                  onSubmitted: (val) async => await _saveEdit(index, true, val),
               ),
             ),
           ),
           const SizedBox(width: 8),
           ...buildTrailingButtons(),
-          if (widget.editMode && widget.onDeleteAssignment != null) ...[
-            const SizedBox(width: 8),
-            IconButton(
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              icon: Icon(Icons.delete, size: iconSize, color: Colors.red),
-              onPressed: () => widget.onDeleteAssignment!(index),
-            ),
-          ],
         ]),
       );
     } else {
@@ -409,29 +459,23 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.only(left: 4),
-              child: TextField(
-                controller: _controller,
-                autofocus: true,
-                decoration: InputDecoration(
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+              child: GestureDetector(
+                onTap: () {}, // Consume tap to prevent exit editing
+                child: TextField(
+                  controller: _controller,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                  ),
+                  onSubmitted: (val) async => await _saveEdit(index, false, val),
                 ),
-                onSubmitted: (val) async => await _saveEdit(index, false, val),
               ),
             ),
           ),
           const SizedBox(width: 8),
           ...buildTrailingButtons(),
-          if (widget.editMode && widget.onDeleteAssignment != null) ...[
-            const SizedBox(width: 8),
-            IconButton(
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              icon: Icon(Icons.delete, size: iconSize, color: Colors.red),
-              onPressed: () => widget.onDeleteAssignment!(index),
-            ),
-          ],
         ]),
       );
     } else {
