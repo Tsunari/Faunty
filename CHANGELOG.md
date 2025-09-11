@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.4.0] - 11-09-2025
+### Added
+- Show count of role category in user page
+- Functionality to add placeholder users without them having registered and hook up after registration with mail
+### Changed
+- Placeholder user UI enhancements
+### Fixed
+- Fix Dropdown issues in user page
+
 ## [1.3.0] - 10-09-2025
 ### Added
 - Add tabview in attendance
