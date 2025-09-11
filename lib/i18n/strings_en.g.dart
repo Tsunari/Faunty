@@ -543,6 +543,177 @@ class Translations implements BaseTranslations<AppLocale, Translations> {
 
 	/// en: 'Title'
 	String get title => 'Title';
+
+	/// en: 'Communication'
+	String get communication => 'Communication';
+
+	/// en: 'Tracking'
+	String get tracking => 'Tracking';
+
+	/// en: 'Lists'
+	String get lists => 'Lists';
+
+	/// en: 'Edit test notification message'
+	String get edit_test_notification_message => 'Edit test notification message';
+
+	/// en: 'Body'
+	String get body => 'Body';
+
+	/// en: 'Saved'
+	String get saved => 'Saved';
+
+	/// en: 'Saved FCM tokens'
+	String get saved_fcm_tokens => 'Saved FCM tokens';
+
+	/// en: 'Check notification permission'
+	String get check_notification_permission => 'Check notification permission';
+
+	/// en: 'Notification permission checked'
+	String get notification_permission_checked => 'Notification permission checked';
+
+	/// en: 'Refresh tokens'
+	String get refresh_tokens => 'Refresh tokens';
+
+	/// en: 'Refreshed tokens'
+	String get refreshed_tokens => 'Refreshed tokens';
+
+	/// en: 'No token fetched'
+	String get no_token_fetched => 'No token fetched';
+
+	/// en: 'No tokens found'
+	String get no_tokens_found => 'No tokens found';
+
+	/// en: 'Loading...'
+	String get loading => 'Loading...';
+
+	/// en: 'Copy all tokens for user'
+	String get copy_all_tokens_for_user => 'Copy all tokens for user';
+
+	/// en: 'All tokens copied'
+	String get all_tokens_copied => 'All tokens copied';
+
+	/// en: 'Copy token'
+	String get copy_token => 'Copy token';
+
+	/// en: 'Token copied'
+	String get token_copied => 'Token copied';
+
+	/// en: 'Send test notification'
+	String get send_test_notification => 'Send test notification';
+
+	/// en: 'Test notification sent'
+	String get test_notification_sent => 'Test notification sent';
+
+	/// en: 'Delete token?'
+	String get delete_token => 'Delete token?';
+
+	/// en: 'Are you sure you want to delete this FCM token?'
+	String get are_you_sure_you_want_to_delete_this_fcm_token => 'Are you sure you want to delete this FCM token?';
+
+	/// en: 'Delete'
+	String get delete => 'Delete';
+
+	/// en: 'Token deleted'
+	String get token_deleted => 'Token deleted';
+
+	/// en: 'Dismiss'
+	String get dismiss => 'Dismiss';
+
+	/// en: 'Notification opened'
+	String get notification_opened => 'Notification opened';
+
+	/// en: 'Open'
+	String get open => 'Open';
+
+	/// en: 'Show saved FCM tokens'
+	String get show_saved_fcm_tokens => 'Show saved FCM tokens';
+
+	/// en: 'Tools'
+	String get tools => 'Tools';
+
+	/// en: 'Under Construction'
+	String get under_construction => 'Under Construction';
+
+	/// en: 'Feedback'
+	String get feedback => 'Feedback';
+
+	/// en: 'UI Test Page'
+	String get ui_test_page => 'UI Test Page';
+
+	/// en: 'Debug only'
+	String get debug_only => 'Debug only';
+
+	/// en: 'This page is only visible in debug mode.'
+	String get this_page_is_only_visible_in_debug_mode => 'This page is only visible in debug mode.';
+
+	/// en: 'Show column headers'
+	String get show_column_headers => 'Show column headers';
+
+	/// en: 'Left'
+	String get left => 'Left';
+
+	/// en: 'Right'
+	String get right => 'Right';
+
+	/// en: 'Create User'
+	String get create_user => 'Create User';
+
+	/// en: 'User created successfully. They can now register with this email.'
+	String get user_created_successfully_they_can_now_register_with_this_email => 'User created successfully. They can now register with this email.';
+
+	/// en: 'Failed to create user: '
+	String get failed_to_create_user => 'Failed to create user: ';
+
+	/// en: 'Create New User'
+	String get create_new_user => 'Create New User';
+
+	/// en: 'Please enter an email'
+	String get please_enter_an_email => 'Please enter an email';
+
+	/// en: 'Please enter a valid email'
+	String get please_enter_a_valid_email => 'Please enter a valid email';
+
+	/// en: 'Please enter first name'
+	String get please_enter_first_name => 'Please enter first name';
+
+	/// en: 'Please enter last name'
+	String get please_enter_last_name => 'Please enter last name';
+
+	/// en: 'Role'
+	String get role => 'Role';
+
+	/// en: 'Note: The user will be created as a placeholder. They can register using this email address (does not have to exist necessarily), and their account will be linked automatically.'
+	String get note_the_user_will_be_created_as_a_placeholder_they_can_register_using_this_email_address_does_not_have_to_exist_necessarily_and_their_account_will_be_linked_automatically => 'Note: The user will be created as a placeholder. They can register using this email address (does not have to exist necessarily), and their account will be linked automatically.';
+
+	/// en: 'Remove tracking item'
+	String get remove_tracking_item => 'Remove tracking item';
+
+	/// en: 'Remove'
+	String get remove => 'Remove';
+
+	/// en: 'Manage tracking items'
+	String get manage_tracking_items => 'Manage tracking items';
+
+	/// en: 'Add new item'
+	String get add_new_item => 'Add new item';
+
+	/// en: 'Attendance'
+	String get attendance => 'Attendance';
+
+	/// en: 'Manage'
+	String get manage => 'Manage';
+
+	/// en: 'Use dropdown'
+	String get use_dropdown => 'Use dropdown';
+
+	/// en: 'Use tabs'
+	String get use_tabs => 'Use tabs';
+
+	/// en: 'No tracking items have been configured yet.'
+	String get no_tracking_items_have_been_configured_yet => 'No tracking items have been configured yet.';
+
+	/// en: 'Ask a manager to add tracking items or add them yourself.'
+	String get ask_a_manager_to_add_tracking_items_or_add_them_yourself => 'Ask a manager to add tracking items or add them yourself.';
 }
 
 /// Flat map(s) containing all translations.
@@ -718,6 +889,63 @@ extension on Translations {
 			case 'choose_app_language': return 'Choose app language.';
 			case 'load_template': return 'Load template';
 			case 'title': return 'Title';
+			case 'communication': return 'Communication';
+			case 'tracking': return 'Tracking';
+			case 'lists': return 'Lists';
+			case 'edit_test_notification_message': return 'Edit test notification message';
+			case 'body': return 'Body';
+			case 'saved': return 'Saved';
+			case 'saved_fcm_tokens': return 'Saved FCM tokens';
+			case 'check_notification_permission': return 'Check notification permission';
+			case 'notification_permission_checked': return 'Notification permission checked';
+			case 'refresh_tokens': return 'Refresh tokens';
+			case 'refreshed_tokens': return 'Refreshed tokens';
+			case 'no_token_fetched': return 'No token fetched';
+			case 'no_tokens_found': return 'No tokens found';
+			case 'loading': return 'Loading...';
+			case 'copy_all_tokens_for_user': return 'Copy all tokens for user';
+			case 'all_tokens_copied': return 'All tokens copied';
+			case 'copy_token': return 'Copy token';
+			case 'token_copied': return 'Token copied';
+			case 'send_test_notification': return 'Send test notification';
+			case 'test_notification_sent': return 'Test notification sent';
+			case 'delete_token': return 'Delete token?';
+			case 'are_you_sure_you_want_to_delete_this_fcm_token': return 'Are you sure you want to delete this FCM token?';
+			case 'delete': return 'Delete';
+			case 'token_deleted': return 'Token deleted';
+			case 'dismiss': return 'Dismiss';
+			case 'notification_opened': return 'Notification opened';
+			case 'open': return 'Open';
+			case 'show_saved_fcm_tokens': return 'Show saved FCM tokens';
+			case 'tools': return 'Tools';
+			case 'under_construction': return 'Under Construction';
+			case 'feedback': return 'Feedback';
+			case 'ui_test_page': return 'UI Test Page';
+			case 'debug_only': return 'Debug only';
+			case 'this_page_is_only_visible_in_debug_mode': return 'This page is only visible in debug mode.';
+			case 'show_column_headers': return 'Show column headers';
+			case 'left': return 'Left';
+			case 'right': return 'Right';
+			case 'create_user': return 'Create User';
+			case 'user_created_successfully_they_can_now_register_with_this_email': return 'User created successfully. They can now register with this email.';
+			case 'failed_to_create_user': return 'Failed to create user: ';
+			case 'create_new_user': return 'Create New User';
+			case 'please_enter_an_email': return 'Please enter an email';
+			case 'please_enter_a_valid_email': return 'Please enter a valid email';
+			case 'please_enter_first_name': return 'Please enter first name';
+			case 'please_enter_last_name': return 'Please enter last name';
+			case 'role': return 'Role';
+			case 'note_the_user_will_be_created_as_a_placeholder_they_can_register_using_this_email_address_does_not_have_to_exist_necessarily_and_their_account_will_be_linked_automatically': return 'Note: The user will be created as a placeholder. They can register using this email address (does not have to exist necessarily), and their account will be linked automatically.';
+			case 'remove_tracking_item': return 'Remove tracking item';
+			case 'remove': return 'Remove';
+			case 'manage_tracking_items': return 'Manage tracking items';
+			case 'add_new_item': return 'Add new item';
+			case 'attendance': return 'Attendance';
+			case 'manage': return 'Manage';
+			case 'use_dropdown': return 'Use dropdown';
+			case 'use_tabs': return 'Use tabs';
+			case 'no_tracking_items_have_been_configured_yet': return 'No tracking items have been configured yet.';
+			case 'ask_a_manager_to_add_tracking_items_or_add_them_yourself': return 'Ask a manager to add tracking items or add them yourself.';
 			default: return null;
 		}
 	}
