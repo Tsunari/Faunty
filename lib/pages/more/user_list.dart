@@ -1,4 +1,5 @@
 import 'package:faunty/components/role_gate.dart';
+import 'package:faunty/components/custom_chip.dart';
 import 'package:flutter/material.dart';
 import '../../models/user_entity.dart';
 import '../../models/user_roles.dart';
@@ -38,8 +39,25 @@ class UserListWithScrollbarState extends State<UserListWithScrollbar> {
           final u = widget.users[idx];
           return ListTile(
             leading: Icon(Icons.person_outline, color: widget.colorScheme.primary),
-            title: Text('${u.firstName} ${u.lastName}', style: TextStyle(color: widget.colorScheme.onSurface)),
-            subtitle: widget.currentUser.role == UserRole.superuser
+            title: Row(
+              children: [
+                Text('${u.firstName} ${u.lastName}', style: TextStyle(color: widget.colorScheme.onSurface)),
+                if (u.isPlaceholder) ...[
+                  const SizedBox(width: 8),
+                  RoleGate(
+                    minRole: UserRole.hoca,
+                    child: CustomContainerChip(
+                      label: 'Placeholder',
+                      backgroundColor: widget.colorScheme.secondary.withOpacity(0.1),
+                      textColor: widget.colorScheme.secondary,
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            subtitle: (widget.currentUser.role == UserRole.superuser || 
+                      (widget.currentUser.role == UserRole.hoca && u.isPlaceholder))
                 ? Text(u.email, style: TextStyle(color: widget.colorScheme.onSurface.withOpacity(0.7)))
                 : null,
             trailing: (u.uid == widget.currentUser.uid)

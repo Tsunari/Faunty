@@ -8,6 +8,7 @@ class UserEntity {
   final String lastName;
   final UserRole role;
   final String placeId;
+  final bool isPlaceholder;
 
   UserEntity({
     required this.uid,
@@ -16,6 +17,7 @@ class UserEntity {
     required this.lastName,
     required this.role,
     required this.placeId,
+    this.isPlaceholder = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -26,6 +28,7 @@ class UserEntity {
       'lastName': lastName,
       'role': role.name,
       'placeId': placeId,
+      'isPlaceholder': isPlaceholder,
     };
   }
 
@@ -37,6 +40,7 @@ class UserEntity {
       lastName: map['lastName'] as String? ?? '',
       role: UserRoleExtension.fromString(map['role'] as String),
       placeId: map['placeId'] ?? '',
+      isPlaceholder: map['isPlaceholder'] as bool? ?? false,
     );
   }
 }

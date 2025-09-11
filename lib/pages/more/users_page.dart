@@ -39,10 +39,13 @@ class UsersPage extends ConsumerWidget {
             actions: [
               RoleGate(
                 minRole: UserRole.hoca,
-                child: IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: () => _showCreateUserDialog(context, user),
-                  tooltip: translation(context: context, 'Create User'),
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: IconButton(
+                    icon: const Icon(Icons.add),
+                    onPressed: () => _showCreateUserDialog(context, user),
+                    tooltip: translation(context: context, 'Create User'),
+                  ),
                 ),
               ),
             ],
@@ -441,7 +444,7 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  translation(context: context, 'Note: The user will be created as a placeholder. They can register using this email address, and their account will be linked automatically.'),
+                  translation(context: context, 'Note: The user will be created as a placeholder. They can register using this email address (does not have to exist necessarily), and their account will be linked automatically.'),
                   style: TextStyle(
                     fontSize: 12,
                     color: colorScheme.onSurfaceVariant,
