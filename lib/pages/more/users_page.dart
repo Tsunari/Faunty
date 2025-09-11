@@ -114,6 +114,14 @@ class _RoleDropdownState extends State<RoleDropdown> {
   }
 
   @override
+  void didUpdateWidget(RoleDropdown oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.user.uid != widget.user.uid || oldWidget.user.role != widget.user.role) {
+      _selectedRole = widget.user.role;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return _loading
         ? SizedBox(

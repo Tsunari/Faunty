@@ -49,6 +49,7 @@ class UserListWithScrollbarState extends State<UserListWithScrollbar> {
                     child: RoleGate(
                       minRole: UserRole.hoca,
                       child: RoleDropdown(
+                        key: ValueKey('dropdown_${u.uid}'),
                         user: u,
                         colorScheme: widget.colorScheme,
                         enabled: widget.currentUser.role.index >= UserRole.hoca.index || widget.currentUser.role == UserRole.superuser,
