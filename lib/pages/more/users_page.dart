@@ -76,7 +76,7 @@ class UsersPage extends ConsumerWidget {
                             Padding(
                               padding: const EdgeInsets.symmetric(vertical: 8.0),
                               child: Text(
-                                role.name[0].toUpperCase() + role.name.substring(1),
+                                '${role.name[0].toUpperCase() + role.name.substring(1)} (${grouped[role]!.length})',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
