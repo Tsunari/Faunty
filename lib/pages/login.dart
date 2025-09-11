@@ -247,20 +247,50 @@ class _LoginPageState extends ConsumerState<LoginPage> with SingleTickerProvider
     if (!mounted) return;
     final (user, regError) = await registerWithEmail(context, email, password);
     if (user != null) {
-      // Save all required user fields in user_list for login and provider
-      await FirebaseFirestore.instance.collection('user_list').doc(user.uid).set({
-        'uid': user.uid,
-        'email': email,
-        'placeId': _selectedPlace!.id,
-        'firstName': firstName,
-        'lastName': lastName,
-        'role': 'User',
-      });
+      // Check if there's a placeholder user with this email in the selected place
+      final placeholderQuery = await FirebaseFirestore.instance
+          .collection('user_list')
+          .where('email', isEqualTo: email)
+          .where('placeId', isEqualTo: _selectedPlace!.id)
+          .where('isPlaceholder', isEqualTo: true)
+          .limit(1)
+          .get();
+
+      if (placeholderQuery.docs.isNotEmpty) {
+        // Link with existing placeholder user
+        final placeholderDoc = placeholderQuery.docs.first;
+        final placeholderData = placeholderDoc.data();
+
+        await FirebaseFirestore.instance.collection('user_list').doc(user.uid).set({
+          'uid': user.uid,
+          'email': email,
+          'placeId': placeholderData['placeId'] ?? _selectedPlace!.id,
+          'firstName': placeholderData['firstName'] ?? firstName,
+          'lastName': placeholderData['lastName'] ?? lastName,
+          'role': placeholderData['role'] ?? 'User',
+          'linkedFromPlaceholder': true,
+          'originalPlaceholderId': placeholderDoc.id,
+        });
+
+        // Delete the placeholder user
+        await FirebaseFirestore.instance.collection('user_list').doc(placeholderDoc.id).delete();
+      } else {
+        // Normal registration - create new user
+        await FirebaseFirestore.instance.collection('user_list').doc(user.uid).set({
+          'uid': user.uid,
+          'email': email,
+          'placeId': _selectedPlace!.id,
+          'firstName': firstName,
+          'lastName': lastName,
+          'role': 'User',
+        });
+      }
+
       // Invalidate userProvider to ensure fresh user state from StreamProvider
       ref.invalidate(userProvider);
       if (!mounted) return;
       Navigator.of(context).pushReplacementNamed('/user-welcome');
-      
+
     } else {
       if (!mounted) return;
       setState(() {

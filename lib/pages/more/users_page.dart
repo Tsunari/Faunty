@@ -1,4 +1,5 @@
 import 'package:faunty/pages/more/user_list.dart';
+import 'package:faunty/components/role_gate.dart';
 import 'package:faunty/tools/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -35,6 +36,16 @@ class UsersPage extends ConsumerWidget {
                     onPressed: () => Navigator.of(context).pop(),
                   )
                 : null,
+            actions: [
+              RoleGate(
+                minRole: UserRole.hoca,
+                child: IconButton(
+                  icon: const Icon(Icons.add),
+                  onPressed: () => _showCreateUserDialog(context, user),
+                  tooltip: translation(context: context, 'Create User'),
+                ),
+              ),
+            ],
           ),
           backgroundColor: colorScheme.surface,
           body: usersByPlaceAsync.when(
@@ -87,6 +98,13 @@ class UsersPage extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+
+  void _showCreateUserDialog(BuildContext context, UserEntity currentUser) {
+    showDialog(
+      context: context,
+      builder: (context) => CreateUserDialog(currentUser: currentUser),
     );
   }
 }
@@ -258,6 +276,196 @@ class _EditNameDialogState extends State<_EditNameDialog> {
                   }
                 },
           child: _loading ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Save'),
+        ),
+      ],
+    );
+  }
+}
+
+// Dialog for creating new users
+class CreateUserDialog extends StatefulWidget {
+  final UserEntity currentUser;
+
+  const CreateUserDialog({super.key, required this.currentUser});
+
+  @override
+  State<CreateUserDialog> createState() => _CreateUserDialogState();
+}
+
+class _CreateUserDialogState extends State<CreateUserDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
+  UserRole _selectedRole = UserRole.user;
+  bool _loading = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _createUser() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _loading = true);
+
+    try {
+      final email = _emailController.text.trim().toLowerCase();
+      final firstName = _firstNameController.text.trim();
+      final lastName = _lastNameController.text.trim();
+
+      // Generate a temporary UID for the placeholder user
+      final tempUid = 'temp_${DateTime.now().millisecondsSinceEpoch}_${email.hashCode.abs()}';
+
+      // Create placeholder user in Firestore
+      await FirebaseFirestore.instance.collection('user_list').doc(tempUid).set({
+        'uid': tempUid,
+        'email': email,
+        'placeId': widget.currentUser.placeId,
+        'firstName': firstName,
+        'lastName': lastName,
+        'role': _selectedRole.name,
+        'isPlaceholder': true, // Mark as placeholder user
+        'createdBy': widget.currentUser.uid,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(translation(context: context, 'User created successfully. They can now register with this email.')),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(translation(context: context, 'Failed to create user: ') + e.toString()),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return AlertDialog(
+      title: Text(translation(context: context, 'Create New User')),
+      content: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _emailController,
+                decoration: InputDecoration(
+                  labelText: translation(context: context, 'Email'),
+                  hintText: 'user@example.com',
+                ),
+                keyboardType: TextInputType.emailAddress,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return translation(context: context, 'Please enter an email');
+                  }
+                  if (!value.contains('@')) {
+                    return translation(context: context, 'Please enter a valid email');
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _firstNameController,
+                decoration: InputDecoration(
+                  labelText: translation(context: context, 'First Name'),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return translation(context: context, 'Please enter first name');
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _lastNameController,
+                decoration: InputDecoration(
+                  labelText: translation(context: context, 'Last Name'),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return translation(context: context, 'Please enter last name');
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<UserRole>(
+                value: _selectedRole,
+                decoration: InputDecoration(
+                  labelText: translation(context: context, 'Role'),
+                ),
+                items: UserRole.values
+                    .where((role) => role != UserRole.superuser) // Don't allow creating superusers
+                    .map((role) => DropdownMenuItem<UserRole>(
+                          value: role,
+                          child: Text(role.name[0].toUpperCase() + role.name.substring(1)),
+                        ))
+                    .toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => _selectedRole = value);
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceVariant.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  translation(context: context, 'Note: The user will be created as a placeholder. They can register using this email address, and their account will be linked automatically.'),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _loading ? null : () => Navigator.of(context).pop(),
+          child: Text(translation(context: context, 'Cancel')),
+        ),
+        ElevatedButton(
+          onPressed: _loading ? null : _createUser,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: colorScheme.primary,
+            foregroundColor: colorScheme.onPrimary,
+          ),
+          child: _loading
+              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+              : Text(translation(context: context, 'Create User')),
         ),
       ],
     );
