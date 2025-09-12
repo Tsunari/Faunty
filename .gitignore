@@ -52,5 +52,6 @@ macos/Flutter/*
 windows/flutter/*
 node_modules/
 .firebase
+.firebase/
 .tmp
 devtools_options.yaml

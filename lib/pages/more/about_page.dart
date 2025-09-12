@@ -36,11 +36,13 @@ class AboutPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              Text(
-                translation(context: context, 'Welcome to Faunty 2.0'),
-                style: textTheme.headlineMedium?.copyWith(
-                  color: primary,
-                  fontWeight: FontWeight.bold,
+              Center(
+                child: Text(
+                  translation(context: context, 'Welcome to Faunty'),
+                  style: textTheme.headlineMedium?.copyWith(
+                    color: primary,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -83,7 +85,7 @@ class AboutPage extends StatelessWidget {
                       Text(translation(context: context, 'About the Project'), style: textTheme.titleLarge?.copyWith(color: primary, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 12),
                       Text(
-                        translation(context: context, 'Faunty 2.0 is built with Flutter and Firebase, ensuring fast performance and real-time updates. Our mission is to empower users with tools that make everyday management effortless and enjoyable.'),
+                        translation(context: context, 'Faunty is built with Flutter and Firebase, ensuring fast performance and real-time updates. Our mission is to empower users with tools that make everyday management effortless and enjoyable.'),
                         style: textTheme.bodyMedium?.copyWith(color: onSurface),
                       ),
                       const SizedBox(height: 16),

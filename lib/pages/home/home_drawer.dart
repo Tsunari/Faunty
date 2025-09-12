@@ -62,10 +62,10 @@ class HomeDrawer extends ConsumerWidget {
                     future: getAppInfo(),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
-                        return Text('Loading version...');
+                        return Text(translation(context: context, 'Loading...'));
                       }
                       if (snapshot.hasError) {
-                        return Text('Version unavailable');
+                        return Text(translation(context: context, 'Version unavailable'));
                       }
                       final info = snapshot.data;
                       return Text('${info?.version ?? '-'}');
