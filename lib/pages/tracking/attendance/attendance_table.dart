@@ -41,7 +41,6 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
   late String _todayKey;
   String _visibleMonth = '';
   late final ValueNotifier<String> _visibleMonthVN = ValueNotifier<String>('');
-  // Rows expanded state (userIds)
   late final ValueNotifier<Set<String>> _expandedVN = ValueNotifier<Set<String>>(<String>{});
   String _selectedItem = '';
   int _numDays = 30; // initial window size
@@ -49,7 +48,6 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
   bool _isExtending = false;
   static const int _pageDays = 30;
   static const double _colWidthConst = 36.0;
-  // Deprecated map removed; using _expandedVN instead
 
   @override
   void initState() {
