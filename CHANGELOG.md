@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.5.0] - 12-09-2025
+### Added
+- Added home drawer
+- Superuser switch place
+### Changed
+- Chip on icon with info on tap instead of next to title
+- Permission update for attendance table
+- Realtime updates on inline cells
+- Rolegate to chip on icon
+- Some optimizations to attendance table
+- User list per role icons
+- Value notifier for expanded state in attendance table
+
+
+
 ## [1.4.0] - 11-09-2025
 ### Added
 - Show count of role category in user page
