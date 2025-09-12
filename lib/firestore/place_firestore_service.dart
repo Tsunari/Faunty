@@ -19,13 +19,15 @@ class PlaceFirestoreService {
   }
 
   static Future<List<PlaceModel>> fetchPlaces() async {
-    final snapshot = await _placesRef.get();
-    return snapshot.docs.map((doc) => PlaceModel.fromFirestore(doc)).toList();
+  // Order by createdAt to ensure newly created places appear at the end (append behavior)
+  final snapshot = await _placesRef.orderBy('createdAt').get();
+  return snapshot.docs.map((doc) => PlaceModel.fromFirestore(doc)).toList();
   }
 
   static Stream<List<PlaceModel>> placesStream() {
-    return _placesRef.snapshots().map((snapshot) =>
-        snapshot.docs.map((doc) => PlaceModel.fromFirestore(doc)).toList());
+  // Stream ordered by createdAt so new places show up appended
+  return _placesRef.orderBy('createdAt').snapshots().map((snapshot) =>
+    snapshot.docs.map((doc) => PlaceModel.fromFirestore(doc)).toList());
   }
 
   static Future<PlaceModel?> getPlaceById(String id) async {
@@ -35,7 +37,10 @@ class PlaceFirestoreService {
   }
 
   static Future<void> addPlace(PlaceModel place) async {
-    await _placesRef.add(place.toMap());
+  // Add a server timestamp so places can be ordered and new ones are appended
+  final data = Map<String, dynamic>.from(place.toMap());
+  data['createdAt'] = FieldValue.serverTimestamp();
+  await _placesRef.add(data);
   }
 
   static Future<void> updatePlace(String id, Map<String, dynamic> data) async {

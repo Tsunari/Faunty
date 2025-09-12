@@ -5,6 +5,9 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../../state_management/user_provider.dart';
 import '../../state_management/place_provider.dart';
 import '../../models/place_model.dart';
+import '../../firestore/place_firestore_service.dart';
+import '../../components/role_gate.dart';
+import '../../models/user_roles.dart';
 import '../../models/user_entity.dart';
 import '../../tools/translation_helper.dart';
 
@@ -23,12 +26,22 @@ class HomeDrawer extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildHeader(context, userAsync),
+            // We attempt to resolve the user's place displayName from the places stream when available
+            placesAsync.when(
+              data: (places) => _buildHeader(context, userAsync, places: places),
+              loading: () => _buildHeader(context, userAsync),
+              error: (_, __) => _buildHeader(context, userAsync),
+            ),
             const Divider(height: 1),
             const SizedBox(height: 16),
             Expanded(
               child: placesAsync.when(
-                data: (places) => _buildPlacesList(context, places),
+                data: (places) => Column(
+                  children: [
+                    Expanded(child: _buildPlacesList(context, places)),
+                    _buildAdminControls(context),
+                  ],
+                ),
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, st) => Center(child: Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -65,7 +78,15 @@ class HomeDrawer extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context, AsyncValue<UserEntity?> userAsync) {
+  Widget _buildHeader(BuildContext context, AsyncValue<UserEntity?> userAsync, {List<PlaceModel>? places}) {
+    // resolve displayName for user's current place if possible
+    String resolvePlaceDisplay(UserEntity? user) {
+      if (user == null) return '';
+      if (places == null) return user.placeId;
+      final found = PlaceModel.findById(places, user.placeId);
+      return found?.displayName ?? found?.name ?? user.placeId;
+    }
+
     return userAsync.when(
       data: (user) {
         if (user == null) {
@@ -73,7 +94,7 @@ class HomeDrawer extends ConsumerWidget {
             padding: const EdgeInsets.all(16.0),
             child: Row(
               children: [
-                const CircleAvatar(child: Icon(Icons.person)),
+                const CircleAvatar(radius: 20, child: Icon(Icons.person)),
                 const SizedBox(width: 12),
                 Expanded(child: Text(translation(context: context, 'Not signed in'))),
               ],
@@ -90,7 +111,7 @@ class HomeDrawer extends ConsumerWidget {
           child: Row(
             children: [
               CircleAvatar(
-                radius: 28,
+                radius: 30,
                 child: Text(initials, style: const TextStyle(fontWeight: FontWeight.bold)),
               ),
               const SizedBox(width: 12),
@@ -104,7 +125,7 @@ class HomeDrawer extends ConsumerWidget {
                     const SizedBox(height: 6),
                     Text('${translation(context: context, 'Role')}: ${user.role.name}', style: Theme.of(context).textTheme.bodySmall),
                     const SizedBox(height: 2),
-                    Text('${translation(context: context, 'Place')}: ${user.placeId}', style: Theme.of(context).textTheme.bodySmall),
+                    Text('${translation(context: context, 'Place')}: ${resolvePlaceDisplay(user)}', style: Theme.of(context).textTheme.bodySmall),
                   ],
                 ),
               ),
@@ -134,19 +155,125 @@ class HomeDrawer extends ConsumerWidget {
     return ListView.separated(
       padding: EdgeInsets.zero,
       itemCount: places.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (context, idx) {
         final p = places[idx];
-        return ListTile(
-          leading: p.imageUrl != null && p.imageUrl!.isNotEmpty
-              ? CircleAvatar(backgroundImage: NetworkImage(p.imageUrl!))
-              : const CircleAvatar(child: Icon(Icons.place)),
-          title: Text(p.displayName ?? p.name),
-          subtitle: p.description != null ? Text(p.description!, maxLines: 1, overflow: TextOverflow.ellipsis) : null,
-          trailing: p.registrationMode ? Icon(Icons.how_to_reg, color: Theme.of(context).colorScheme.primary) : null,
-          onTap: () => _showPlaceDetail(context, p),
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+            leading: p.imageUrl != null && p.imageUrl!.isNotEmpty
+                ? CircleAvatar(radius: 18, backgroundImage: NetworkImage(p.imageUrl!))
+                : const CircleAvatar(radius: 18, child: Icon(Icons.place, size: 18)),
+            title: Text(p.displayName ?? p.name),
+            subtitle: p.description != null ? Text(p.description!, maxLines: 1, overflow: TextOverflow.ellipsis) : null,
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (p.registrationMode) Icon(Icons.how_to_reg, color: Theme.of(context).colorScheme.primary, size: 18),
+                const SizedBox(width: 6),
+                RoleGate(
+                  minRole: UserRole.superuser,
+                  child: PopupMenuButton<String>(
+                    onSelected: (action) async {
+                      if (action == 'rename') {
+                        await _showRenameDialog(context, p);
+                      } else if (action == 'delete') {
+                        await _confirmAndDelete(context, p.id);
+                      }
+                    },
+                    itemBuilder: (ctx) => [
+                      const PopupMenuItem(value: 'rename', child: Text('Rename')),
+                      const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            onTap: () => _showPlaceDetail(context, p),
+          ),
         );
       },
+    );
+  }
+
+  Future<void> _showRenameDialog(BuildContext context, PlaceModel place) async {
+    final controller = TextEditingController(text: place.displayName ?? place.name);
+    final result = await showDialog<String?>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(translation(context: context, 'Rename place')),
+        content: TextField(controller: controller, decoration: InputDecoration(hintText: translation(context: context, 'Place name'))),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: Text(translation(context: context, 'Cancel'))),
+          ElevatedButton(onPressed: () => Navigator.of(ctx).pop(controller.text.trim()), child: Text(translation(context: context, 'Save'))),
+        ],
+      ),
+    );
+    if (result == null || result.isEmpty) return;
+    try {
+      await PlaceFirestoreService.updatePlace(place.id, {'displayName': result, 'name': result});
+    } catch (e) {
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error renaming place: $e')));
+    }
+  }
+
+  Future<void> _confirmAndDelete(BuildContext context, String placeId) async {
+    final ok = await showDialog<bool?>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(translation(context: context, 'Delete place?')),
+        content: Text(translation(context: context, 'Are you sure you want to delete this place? This action cannot be undone.')),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(translation(context: context, 'Cancel'))),
+          ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.of(ctx).pop(true), child: Text(translation(context: context, 'Delete'))),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await PlaceFirestoreService.deletePlace(placeId);
+    } catch (e) {
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error deleting place: $e')));
+    }
+  }
+
+  /// Admin controls to add a new place - only visible to superuser
+  Widget _buildAdminControls(BuildContext context) {
+    final nameController = TextEditingController();
+    return RoleGate(
+      minRole: UserRole.superuser,
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(translation(context: context, 'Manage places'), style: const TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            TextField(
+              controller: nameController,
+              decoration: InputDecoration(hintText: translation(context: context, 'New place name'), border: const OutlineInputBorder()),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(child: ElevatedButton.icon(onPressed: () async {
+                  final name = nameController.text.trim();
+                  if (name.isEmpty) return;
+                  final newPlace = PlaceModel(id: '', name: name, displayName: name);
+                  try {
+                    await PlaceFirestoreService.addPlace(newPlace);
+                    nameController.clear();
+                    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(translation(context: context, 'Place added'))));
+                  } catch (e) {
+                    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error adding place: $e')));
+                  }
+                }, icon: const Icon(Icons.add), label: Text(translation(context: context, 'Add place')))),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 
