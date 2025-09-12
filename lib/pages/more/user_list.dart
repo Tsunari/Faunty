@@ -2,6 +2,7 @@ import 'package:faunty/components/custom_snackbar.dart';
 import 'package:faunty/components/role_gate.dart';
 import 'package:faunty/components/custom_chip.dart';
 import 'package:faunty/tools/translation_helper.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../../models/user_entity.dart';
 import '../../models/user_roles.dart';
@@ -65,19 +66,22 @@ class UserListWithScrollbarState extends State<UserListWithScrollbar> {
                   child: Icon(_getRoleIcon(u.role), color: widget.colorScheme.primary),
                 ),
                 if (u.isPlaceholder)
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: GestureDetector(
-                      onTap: () {
-                        showCustomSnackBar(context, translation('This is a placeholder user. They can register using this email.'));
-                      },
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: widget.colorScheme.secondary,
-                          shape: BoxShape.circle,
+                  RoleGate(
+                    minRole: UserRole.hoca,
+                    child: Positioned(
+                      top: 0,
+                      right: 0,
+                      child: GestureDetector(
+                        onTap: () {
+                          showCustomSnackBar(context, translation('This is a placeholder user. They can register using this email.'));
+                        },
+                        child: Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: widget.colorScheme.secondary,
+                            shape: BoxShape.circle,
+                          ),
                         ),
                       ),
                     ),
