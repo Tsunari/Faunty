@@ -1,3 +1,4 @@
+import 'package:faunty/components/custom_snackbar.dart';
 import 'package:faunty/globals.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +9,7 @@ import '../../models/place_model.dart';
 import '../../firestore/place_firestore_service.dart';
 import '../../components/role_gate.dart';
 import '../../models/user_roles.dart';
+import '../../firestore/user_firestore_service.dart';
 import '../../models/user_entity.dart';
 import '../../tools/translation_helper.dart';
 
@@ -38,7 +40,7 @@ class HomeDrawer extends ConsumerWidget {
               child: placesAsync.when(
                 data: (places) => Column(
                   children: [
-                    Expanded(child: _buildPlacesList(context, places)),
+                    Expanded(child: _buildPlacesList(context, places, ref)),
                     _buildAdminControls(context),
                   ],
                 ),
@@ -94,7 +96,7 @@ class HomeDrawer extends ConsumerWidget {
             padding: const EdgeInsets.all(16.0),
             child: Row(
               children: [
-                const CircleAvatar(radius: 20, child: Icon(Icons.person)),
+                const CircleAvatar(radius: 30, child: Icon(Icons.person)),
                 const SizedBox(width: 12),
                 Expanded(child: Text(translation(context: context, 'Not signed in'))),
               ],
@@ -144,7 +146,7 @@ class HomeDrawer extends ConsumerWidget {
     );
   }
 
-  Widget _buildPlacesList(BuildContext context, List<PlaceModel> places) {
+  Widget _buildPlacesList(BuildContext context, List<PlaceModel> places, WidgetRef ref) {
     if (places.isEmpty) {
       return Center(child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -160,7 +162,7 @@ class HomeDrawer extends ConsumerWidget {
         final p = places[idx];
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8.0),
-          child: ListTile(
+            child: ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
             leading: p.imageUrl != null && p.imageUrl!.isNotEmpty
                 ? CircleAvatar(radius: 18, backgroundImage: NetworkImage(p.imageUrl!))
@@ -190,7 +192,7 @@ class HomeDrawer extends ConsumerWidget {
                 ),
               ],
             ),
-            onTap: () => _showPlaceDetail(context, p),
+            onTap: () => _showPlaceDetail(context, p, ref),
           ),
         );
       },
@@ -284,7 +286,7 @@ class HomeDrawer extends ConsumerWidget {
     return (parts[0].substring(0, 1) + parts[1].substring(0, 1)).toUpperCase();
   }
 
-  void _showPlaceDetail(BuildContext context, PlaceModel place) {
+  void _showPlaceDetail(BuildContext context, PlaceModel place, WidgetRef ref) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -348,6 +350,55 @@ class HomeDrawer extends ConsumerWidget {
                           onPressed: () => Navigator.of(context).pop(),
                           icon: const Icon(Icons.close),
                           label: Text(translation(context: context, 'Close')),
+                        ),
+                        const SizedBox(width: 12),
+                        // Superuser action: change current user's place to this place
+                        RoleGate(
+                          minRole: UserRole.superuser,
+                          child: ElevatedButton.icon(
+                            // style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.secondary),
+                            onPressed: () async {
+                              final confirm = await showDialog<bool?>(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: Text(translation(context: context, 'Change user place')),
+                                  content: Text(translation(context: context, 'Do you want to set your current place to "${place.displayName ?? place.name}"?')),
+                                  actions: [
+                                    TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(translation(context: context, 'Cancel'))),
+                                    ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: Text(translation(context: context, 'Yes'))),
+                                  ],
+                                ),
+                              );
+                              if (confirm != true) return;
+                              // get current user
+                              final userAsync = ref.read(userProvider);
+                              final currentUser = userAsync.asData?.value;
+                              if (currentUser == null) {
+                                if (context.mounted) showCustomSnackBar(context, translation(context: context, 'No current user loaded'));
+                                return;
+                              }
+                              final updated = UserEntity(
+                                uid: currentUser.uid,
+                                email: currentUser.email,
+                                firstName: currentUser.firstName,
+                                lastName: currentUser.lastName,
+                                role: currentUser.role,
+                                placeId: place.id,
+                                isPlaceholder: currentUser.isPlaceholder,
+                              );
+                              try {
+                                await UserFirestoreService().updateUser(updated);
+                                if (context.mounted) {
+                                  showCustomSnackBar(context, translation(context: context, 'Place updated'));
+                                  Navigator.of(context).pop();
+                                }
+                              } catch (e) {
+                                if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Error updating place: $e'));
+                              }
+                            },
+                            icon: const Icon(Icons.swap_horiz),
+                            label: Text(translation(context: context, 'Set as my place')),
+                          ),
                         ),
                       ],
                     ),
