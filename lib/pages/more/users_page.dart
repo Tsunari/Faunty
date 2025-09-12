@@ -1,5 +1,6 @@
 import 'package:faunty/pages/more/user_list.dart';
 import 'package:faunty/components/role_gate.dart';
+import 'package:faunty/tools/sort_utils.dart';
 import 'package:faunty/tools/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,7 +24,11 @@ class UsersPage extends ConsumerWidget {
         if (user == null) {
           return Center(child: Text(translation(context: context, 'No user loaded.')));
         }
-        final usersByPlaceAsync = ref.watch(usersByCurrentPlaceProvider);
+        final usersByPlaceAsync = ref.watch(
+          usersByCurrentPlaceProviderWithOptions(
+            const UserSortOption(field: UserSortField.firstName, order: SortOrder.asc),
+          ),
+        );
         return Scaffold(
           appBar: AppBar(
             title: Text(translation(context: context, 'Users')),
