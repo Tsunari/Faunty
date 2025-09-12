@@ -31,7 +31,7 @@ class AttendanceTable extends StatefulWidget {
   State<AttendanceTable> createState() => _AttendanceTableState();
 }
 
-class _AttendanceTableState extends State<AttendanceTable> {
+class _AttendanceTableState extends State<AttendanceTable> with TickerProviderStateMixin {
   late final ScrollController _timeScrollCtrl;
   late final ScrollController _namesScrollCtrl;
   late final ScrollController _gridScrollCtrl;
@@ -41,13 +41,15 @@ class _AttendanceTableState extends State<AttendanceTable> {
   late String _todayKey;
   String _visibleMonth = '';
   late final ValueNotifier<String> _visibleMonthVN = ValueNotifier<String>('');
+  // Rows expanded state (userIds)
+  late final ValueNotifier<Set<String>> _expandedVN = ValueNotifier<Set<String>>(<String>{});
   String _selectedItem = '';
   int _numDays = 30; // initial window size
   Map<String, dynamic> _attendanceCache = {};
   bool _isExtending = false;
   static const int _pageDays = 30;
   static const double _colWidthConst = 36.0;
-  final Map<String, bool> _expanded = {};
+  // Deprecated map removed; using _expandedVN instead
 
   @override
   void initState() {
@@ -302,34 +304,47 @@ class _AttendanceTableState extends State<AttendanceTable> {
                             );
                           }
                           final userId = roster[idx];
-                          final expanded = _expanded[userId] ?? false;
-                          final itemCount = itemsMeta.isEmpty ? 1 : itemsMeta.length;
-                          final blockHeight = expanded ? rowHeight * (1 + itemCount) : rowHeight;
-                          return InkWell(
-                            onTap: () => setState(() => _expanded[userId] = !(expanded)),
-                            child: Container(
-                              height: blockHeight,
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-                              decoration: BoxDecoration(border: Border(bottom: BorderSide(color: theme.dividerColor.withOpacity(0.2)))),
-                              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                Flexible(
-                                  fit: FlexFit.loose,
-                                  child: SizedBox(
-                                    height: rowHeight,
-                                    child: Row(children: [Expanded(child: Text(displayNameFor(userId), overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium)), Icon(expanded ? Icons.expand_less : Icons.expand_more, size: 18)]),
-                                  ),
-                                ),
-                                if (expanded)
-                                  for (var i = 0; i < itemCount; i++)
-                                    Flexible(
-                                      fit: FlexFit.loose,
-                                      child: SizedBox(
-                                        height: rowHeight,
-                                        child: Container(alignment: Alignment.centerLeft, padding: const EdgeInsets.only(left: 8.0), child: Text(i < itemsMeta.length ? (itemsMeta[i]['name'] as String? ?? '') : '', style: theme.textTheme.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis, softWrap: false)),
+                          return ValueListenableBuilder<Set<String>>(
+                            valueListenable: _expandedVN,
+                            builder: (context, expandedSet, _) {
+                              final expanded = expandedSet.contains(userId);
+                              final itemCount = itemsMeta.isEmpty ? 1 : itemsMeta.length;
+                              final blockHeight = expanded ? rowHeight * (1 + itemCount) : rowHeight;
+                              return InkWell(
+                                onTap: () {
+                                  final next = Set<String>.from(expandedSet);
+                                  if (expanded) {
+                                    next.remove(userId);
+                                  } else {
+                                    next.add(userId);
+                                  }
+                                  _expandedVN.value = next;
+                                },
+                                child: Container(
+                                    height: blockHeight,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                                    decoration: BoxDecoration(border: Border(bottom: BorderSide(color: theme.dividerColor.withOpacity(0.2)))),
+                                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                      Flexible(
+                                        fit: FlexFit.loose,
+                                        child: SizedBox(
+                                          height: rowHeight,
+                                          child: Row(children: [Expanded(child: Text(displayNameFor(userId), overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium)), Icon(expanded ? Icons.expand_less : Icons.expand_more, size: 18)]),
+                                        ),
                                       ),
-                                    ),
-                              ]),
-                            ),
+                                      if (expanded)
+                                        for (var i = 0; i < itemCount; i++)
+                                          Flexible(
+                                            fit: FlexFit.loose,
+                                            child: SizedBox(
+                                              height: rowHeight,
+                                              child: Container(alignment: Alignment.centerLeft, padding: const EdgeInsets.only(left: 8.0), child: Text(i < itemsMeta.length ? (itemsMeta[i]['name'] as String? ?? '') : '', style: theme.textTheme.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis, softWrap: false)),
+                                            ),
+                                          ),
+                                    ]),
+                                  ),
+                                );
+                            },
                           );
                         },
                       ),
@@ -402,53 +417,60 @@ class _AttendanceTableState extends State<AttendanceTable> {
                                   );
                                 }
                                 final userId = roster[rIdx];
-                                final expanded = _expanded[userId] ?? false;
-                                final renderedItems = <Map<String, dynamic>>[];
-                                final defaultIdOrName = _selectedItem.isNotEmpty ? _selectedItem : (itemsMeta.isNotEmpty ? (itemsMeta.first['id'] as String) : 'presence');
-                                final defaultItem = itemsMeta.firstWhere((e) => (e['id'] == defaultIdOrName) || (e['name'] == defaultIdOrName), orElse: () => itemsMeta.isNotEmpty ? itemsMeta.first : {'id': 'presence', 'name': 'Presence'});
-                                renderedItems.add(defaultItem);
-                                if (expanded) renderedItems.addAll(itemsMeta);
-                                return Column(
-                                  children: [
-                                    for (final it in renderedItems)
-                                      Container(
-                                        height: rowHeight,
-                                        decoration: BoxDecoration(
-                                          border: Border(
-                                            bottom: BorderSide(color: theme.dividerColor.withOpacity(0.2)),
-                                          ),
-                                        ),
-                                        child: Row(
+                                return ValueListenableBuilder<Set<String>>(
+                                  valueListenable: _expandedVN,
+                                  builder: (context, expandedSet, _) {
+                                    final expanded = expandedSet.contains(userId);
+                                    final renderedItems = <Map<String, dynamic>>[];
+                                    final defaultIdOrName = _selectedItem.isNotEmpty ? _selectedItem : (itemsMeta.isNotEmpty ? (itemsMeta.first['id'] as String) : 'presence');
+                                    final defaultItem = itemsMeta.firstWhere((e) => (e['id'] == defaultIdOrName) || (e['name'] == defaultIdOrName), orElse: () => itemsMeta.isNotEmpty ? itemsMeta.first : {'id': 'presence', 'name': 'Presence'});
+                                    renderedItems.add(defaultItem);
+                                    if (expanded) renderedItems.addAll(itemsMeta);
+                                    return RepaintBoundary(
+                                      child: Column(
                                           children: [
-                                            for (final d in columns)
+                                            for (final it in renderedItems)
                                               Container(
-                                                width: dayColWidth,
+                                                height: rowHeight,
                                                 decoration: BoxDecoration(
-                                                  color: d == _todayKey ? theme.colorScheme.primary.withOpacity(0.06) : null,
                                                   border: Border(
-                                                    right: BorderSide(color: theme.dividerColor.withOpacity(0.2)),
+                                                    bottom: BorderSide(color: theme.dividerColor.withOpacity(0.2)),
                                                   ),
                                                 ),
-                                                child: Center(
-                                                  child: Transform.scale(
-                                                    scale: 0.9,
-                                                    child: RepaintBoundary(
-                                                      child: _InlineCell(
-                                                        placeId: widget.placeId,
-                                                        dateKey: d,
-                                                        userId: userId,
-                                                        attendance: attendance,
-                                                        itemName: it['id'] as String,
-                                                        currentUser: widget.currentUser,
+                                                child: Row(
+                                                  children: [
+                                                    for (final d in columns)
+                                                      Container(
+                                                        width: dayColWidth,
+                                                        decoration: BoxDecoration(
+                                                          color: d == _todayKey ? theme.colorScheme.primary.withOpacity(0.06) : null,
+                                                          border: Border(
+                                                            right: BorderSide(color: theme.dividerColor.withOpacity(0.2)),
+                                                          ),
+                                                        ),
+                                                        child: Center(
+                                                          child: Transform.scale(
+                                                            scale: 0.9,
+                                                            child: RepaintBoundary(
+                                                              child: _InlineCell(
+                                                                placeId: widget.placeId,
+                                                                dateKey: d,
+                                                                userId: userId,
+                                                                attendance: attendance,
+                                                                itemName: it['id'] as String,
+                                                                currentUser: widget.currentUser,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
                                                       ),
-                                                    ),
-                                                  ),
+                                                  ],
                                                 ),
                                               ),
                                           ],
                                         ),
-                                      ),
-                                  ],
+                                    );
+                                  },
                                 );
                               },
                             ),
