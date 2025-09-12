@@ -14,6 +14,7 @@ import '../../state_management/user_provider.dart';
 import '../../state_management/program_provider.dart';
 import '../../state_management/catering_provider.dart';
 import '../../state_management/cleaning_provider.dart';
+import 'home_drawer.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -146,6 +147,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         final cleaningAsync = ref.watch(cleaningDataProvider);
         final width = MediaQuery.of(context).size.width;
         return Scaffold(
+          drawer: const HomeDrawer(),
           appBar: CustomAppBar(
             title: translation(context: context, 'Home'),
             actions: [
