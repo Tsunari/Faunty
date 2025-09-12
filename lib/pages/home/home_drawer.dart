@@ -35,7 +35,7 @@ class HomeDrawer extends ConsumerWidget {
               error: (_, __) => _buildHeader(context, userAsync),
             ),
             const Divider(height: 1),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             Expanded(
               child: placesAsync.when(
                 data: (places) => Column(
@@ -154,10 +154,12 @@ class HomeDrawer extends ConsumerWidget {
       ));
     }
 
+    final currentUser = ref.watch(userProvider).asData?.value;
+
     return ListView.separated(
       padding: EdgeInsets.zero,
       itemCount: places.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      separatorBuilder: (_, __) => const SizedBox(height: 0),
       itemBuilder: (context, idx) {
         final p = places[idx];
         return Padding(
@@ -172,7 +174,7 @@ class HomeDrawer extends ConsumerWidget {
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (p.registrationMode) Icon(Icons.how_to_reg, color: Theme.of(context).colorScheme.primary, size: 18),
+                if (currentUser != null && currentUser.placeId == p.id) Icon(Icons.how_to_reg, color: Theme.of(context).colorScheme.primary, size: 18),
                 const SizedBox(width: 6),
                 RoleGate(
                   minRole: UserRole.superuser,
@@ -330,7 +332,38 @@ class HomeDrawer extends ConsumerWidget {
                       children: [
                         Chip(label: Text('${translation(context: context, 'ID')}: ${place.id}')),
                         const SizedBox(width: 8),
-                        if (place.registrationMode) Chip(label: Text(translation(context: context, 'Registration mode'))),
+                        RoleGate(
+                          minRole: UserRole.superuser,
+                          fallback: Chip(
+                            label: Text(
+                              '${translation(context: context, 'Registration mode')}: ${place.registrationMode ? translation(context: context, 'On') : translation(context: context, 'Off')}',
+                            ),
+                            backgroundColor: place.registrationMode
+                                ? Theme.of(context).colorScheme.primary.withOpacity(0.12)
+                                : Theme.of(context).colorScheme.surface,
+                          ),
+                          // For superusers, provide a Consumer-wrapped tappable chip that watches the places stream
+                          child: Consumer(builder: (ctx, ref2, _) {
+                            final placesAsync = ref2.watch(placeStreamProvider);
+                            final current = placesAsync.asData?.value.firstWhere((pl) => pl.id == place.id, orElse: () => place);
+                            final regOn = current?.registrationMode ?? place.registrationMode;
+                            return InkWell(
+                              borderRadius: BorderRadius.circular(16),
+                              onTap: () async {
+                                try {
+                                  await PlaceFirestoreService.updatePlace(place.id, {'registrationMode': !regOn});
+                                  if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Registration mode updated'));
+                                } catch (e) {
+                                  if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Error updating registration mode: $e'));
+                                }
+                              },
+                              child: Chip(
+                                label: Text('${translation(context: context, 'Registration mode')}: ${regOn ? translation(context: context, 'On') : translation(context: context, 'Off')}'),
+                                backgroundColor: regOn ? Theme.of(context).colorScheme.primary.withOpacity(0.12) : Theme.of(context).colorScheme.surface,
+                              ),
+                            );
+                          }),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 18),
