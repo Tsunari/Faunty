@@ -53,3 +53,4 @@ windows/flutter/*
 node_modules/
 .firebase
 .tmp
+devtools_options.yaml

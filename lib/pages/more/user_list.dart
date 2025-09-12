@@ -1,5 +1,7 @@
+import 'package:faunty/components/custom_snackbar.dart';
 import 'package:faunty/components/role_gate.dart';
 import 'package:faunty/components/custom_chip.dart';
+import 'package:faunty/tools/translation_helper.dart';
 import 'package:flutter/material.dart';
 import '../../models/user_entity.dart';
 import '../../models/user_roles.dart';
@@ -24,6 +26,20 @@ class UserListWithScrollbarState extends State<UserListWithScrollbar> {
     super.dispose();
   }
 
+  IconData _getRoleIcon(UserRole role) {
+    switch (role) {
+      case UserRole.superuser:
+        return Icons.admin_panel_settings_outlined;
+      case UserRole.hoca:
+        return Icons.school_outlined;
+      case UserRole.baskan:
+      case UserRole.talebe:
+        return Icons.person_outline;
+      case UserRole.user:
+        return Icons.person_add_alt_1_outlined;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scrollbar(
@@ -32,30 +48,43 @@ class UserListWithScrollbarState extends State<UserListWithScrollbar> {
       child: ListView.separated(
         controller: _scrollController,
         shrinkWrap: true,
-        physics: const AlwaysScrollableScrollPhysics(),
+        physics: const NeverScrollableScrollPhysics(),
         itemCount: widget.users.length,
         separatorBuilder: (_, __) => Divider(height: 1, color: widget.colorScheme.outline.withOpacity(0.2)),
         itemBuilder: (context, idx) {
           final u = widget.users[idx];
           return ListTile(
-            leading: Icon(Icons.person_outline, color: widget.colorScheme.primary),
-            title: Row(
+            leading: Stack(
               children: [
-                Text('${u.firstName} ${u.lastName}', style: TextStyle(color: widget.colorScheme.onSurface)),
-                if (u.isPlaceholder) ...[
-                  const SizedBox(width: 8),
-                  RoleGate(
-                    minRole: UserRole.hoca,
-                    child: CustomContainerChip(
-                      label: 'Placeholder',
-                      backgroundColor: widget.colorScheme.secondary.withOpacity(0.1),
-                      textColor: widget.colorScheme.secondary,
-                      fontSize: 10,
+                GestureDetector(
+                  onTap: u.isPlaceholder
+                      ? () {
+                          showCustomSnackBar(context, translation('This is a placeholder user. They can register using this email.'));
+                        }
+                      : null,
+                  child: Icon(_getRoleIcon(u.role), color: widget.colorScheme.primary),
+                ),
+                if (u.isPlaceholder)
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: GestureDetector(
+                      onTap: () {
+                        showCustomSnackBar(context, translation('This is a placeholder user. They can register using this email.'));
+                      },
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: widget.colorScheme.secondary,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
                     ),
                   ),
-                ],
               ],
             ),
+            title: Text('${u.firstName} ${u.lastName}', style: TextStyle(color: widget.colorScheme.onSurface)),
             subtitle: (widget.currentUser.role == UserRole.superuser || 
                       (widget.currentUser.role == UserRole.hoca && u.isPlaceholder))
                 ? Text(u.email, style: TextStyle(color: widget.colorScheme.onSurface.withOpacity(0.7)))
