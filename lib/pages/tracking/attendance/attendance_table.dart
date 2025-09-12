@@ -40,6 +40,7 @@ class _AttendanceTableState extends State<AttendanceTable> {
   late DateTime _today;
   late String _todayKey;
   String _visibleMonth = '';
+  late final ValueNotifier<String> _visibleMonthVN = ValueNotifier<String>('');
   String _selectedItem = '';
   int _numDays = 30; // initial window size
   Map<String, dynamic> _attendanceCache = {};
@@ -58,7 +59,8 @@ class _AttendanceTableState extends State<AttendanceTable> {
     _today = DateTime(now.year, now.month, now.day);
     _todayKey = _fmt(_today);
     _startDay = _today;
-    _visibleMonth = _monthNameFromDate(_startDay);
+  _visibleMonth = _monthNameFromDate(_startDay);
+  _visibleMonthVN.value = _visibleMonth;
     _timeScrollCtrl.addListener(_onHorizontalScroll);
     _namesScrollCtrl.addListener(() {
       if (_isSyncingV) return;
@@ -107,6 +109,7 @@ class _AttendanceTableState extends State<AttendanceTable> {
     _timeScrollCtrl.dispose();
     _namesScrollCtrl.dispose();
     _gridScrollCtrl.dispose();
+  _visibleMonthVN.dispose();
     super.dispose();
   }
 
@@ -157,7 +160,10 @@ class _AttendanceTableState extends State<AttendanceTable> {
     final firstIndex = (offset / _colWidthConst).floor().clamp(0, _numDays - 1);
     final firstDate = _startDay.add(Duration(days: firstIndex));
     final next = _monthNameFromDate(firstDate);
-    if (next != _visibleMonth) setState(() => _visibleMonth = next);
+    if (next != _visibleMonth) {
+      _visibleMonth = next;
+      _visibleMonthVN.value = next;
+    }
   }
 
   Future<void> _scrollToToday() async {
@@ -216,8 +222,7 @@ class _AttendanceTableState extends State<AttendanceTable> {
     final double headingHeight = 72;
     final double availableWidth = MediaQuery.of(context).size.width - nameColWidth - 24;
     final double dayColWidth = baseDayColWidth;
-    final double totalWidth = (columns.length * dayColWidth) > availableWidth ? columns.length * dayColWidth : availableWidth;
-    final monthLabel = _visibleMonth.isEmpty ? _monthNameFromDate(_startDay) : _visibleMonth;
+  final double totalWidth = (columns.length * dayColWidth) > availableWidth ? columns.length * dayColWidth : availableWidth;
 
     return Column(
       children: [
@@ -262,13 +267,23 @@ class _AttendanceTableState extends State<AttendanceTable> {
                       child: Row(
                         children: [
                           Expanded(
-                            child: Text(
-                              monthLabel,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                            child: ValueListenableBuilder<String>(
+                              valueListenable: _visibleMonthVN,
+                              builder: (context, label, _) {
+                                return Text(
+                                  label.isEmpty ? _monthNameFromDate(_startDay) : label,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                                );
+                              },
                             ),
                           ),
-                          IconButton(onPressed: _scrollToToday, icon: const Icon(Icons.today), color: theme.colorScheme.primary, tooltip: 'Today'),
+                          IconButton(
+                            onPressed: _scrollToToday,
+                            icon: const Icon(Icons.today),
+                            color: theme.colorScheme.primary,
+                            tooltip: 'Today',
+                          ),
                         ],
                       ),
                     ),
@@ -417,34 +432,15 @@ class _AttendanceTableState extends State<AttendanceTable> {
                                                 child: Center(
                                                   child: Transform.scale(
                                                     scale: 0.9,
-                                                    child: _InlineCell(
-                                                      placeId: widget.placeId,
-                                                      dateKey: d,
-                                                      userId: userId,
-                                                      attendance: attendance,
-                                                      itemName: it['id'] as String,
-                                                      currentUser: widget.currentUser,
-                                                      onToggleLocal: (dateK, itemId, uid, isChecked) {
-                                                        setState(() {
-                                                          final next = Map<String, dynamic>.from(_attendanceCache);
-                                                          final dateRec = Map<String, dynamic>.from(next[dateK] as Map? ?? {});
-                                                          final rec = Map<String, dynamic>.from(dateRec[itemId] as Map? ?? {});
-                                                          final present = List<String>.from((rec['present'] as List?)?.cast<String>() ?? <String>[]);
-                                                          final absent = List<String>.from((rec['absent'] as List?)?.cast<String>() ?? <String>[]);
-                                                          if (isChecked) {
-                                                            if (!present.contains(uid)) present.add(uid);
-                                                            absent.remove(uid);
-                                                          } else {
-                                                            present.remove(uid);
-                                                            if (!absent.contains(uid)) absent.add(uid);
-                                                          }
-                                                          rec['present'] = present;
-                                                          rec['absent'] = absent;
-                                                          dateRec[itemId] = rec;
-                                                          next[dateK] = dateRec;
-                                                          _attendanceCache = next;
-                                                        });
-                                                      },
+                                                    child: RepaintBoundary(
+                                                      child: _InlineCell(
+                                                        placeId: widget.placeId,
+                                                        dateKey: d,
+                                                        userId: userId,
+                                                        attendance: attendance,
+                                                        itemName: it['id'] as String,
+                                                        currentUser: widget.currentUser,
+                                                      ),
                                                     ),
                                                   ),
                                                 ),
@@ -528,8 +524,7 @@ class _InlineCell extends StatefulWidget {
   final Map<String, dynamic> attendance;
   final String itemName;
   final UserEntity currentUser;
-  final void Function(String dateKey, String itemId, String userId, bool checked)? onToggleLocal;
-  const _InlineCell({Key? key, required this.placeId, required this.dateKey, required this.userId, required this.attendance, required this.itemName, required this.currentUser, this.onToggleLocal}) : super(key: key);
+  const _InlineCell({Key? key, required this.placeId, required this.dateKey, required this.userId, required this.attendance, required this.itemName, required this.currentUser}) : super(key: key);
 
   @override
   State<_InlineCell> createState() => _InlineCellState();
@@ -564,7 +559,6 @@ class _InlineCellState extends State<_InlineCell> {
       value: checked,
       onChanged: canEdit ? (val) async {
         setState(() => checked = val ?? false);
-        widget.onToggleLocal?.call(widget.dateKey, widget.itemName, widget.userId, checked);
         await AttendanceFirestoreService(widget.placeId).toggleAttendanceItem(dateId: widget.dateKey, itemId: widget.itemName, userId: widget.userId, checked: checked);
       } : null,
     );
