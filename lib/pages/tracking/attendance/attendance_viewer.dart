@@ -223,6 +223,7 @@ class _AttendanceViewerState extends ConsumerState<AttendanceViewer> {
                 onSelectedItemChanged: (val) async {
                   setState(() => _selectedItem = val);
                 },
+                currentUser: user,
               ),
             ),
     );

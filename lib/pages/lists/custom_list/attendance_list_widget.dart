@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:faunty/models/custom_list.dart';
 import 'package:faunty/state_management/attendance_provider.dart';
 import 'package:faunty/state_management/user_list_provider.dart';
+import 'package:faunty/state_management/user_provider.dart';
 import '../../tracking/attendance/attendance_table.dart';
 
 class AttendanceListWidget extends ConsumerWidget {
@@ -15,7 +16,12 @@ class AttendanceListWidget extends ConsumerWidget {
     // reuse existing attendance providers where possible
     final usersAsync = ref.watch(usersByCurrentPlaceProvider);
     final attendanceAsync = ref.watch(attendanceProvider(placeId));
+    final currentUser = ref.watch(userProvider).value;
     final attendanceItems = list.meta['sessions'] as List<Map<String, dynamic>>? ?? [];
+
+    if (currentUser == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
     return usersAsync.when(
       data: (users) {
@@ -28,6 +34,7 @@ class AttendanceListWidget extends ConsumerWidget {
           useTabs: true,
           selectedItem: attendanceItems.isNotEmpty ? (attendanceItems.first['id'] as String? ?? '') : '',
           onSelectedItemChanged: (s) {},
+          currentUser: currentUser,
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),

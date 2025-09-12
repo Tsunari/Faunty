@@ -13,6 +13,7 @@ class AttendanceTable extends StatefulWidget {
   final bool useTabs;
   final String selectedItem;
   final ValueChanged<String> onSelectedItemChanged;
+  final UserEntity currentUser;
 
   const AttendanceTable({
     super.key,
@@ -23,6 +24,7 @@ class AttendanceTable extends StatefulWidget {
     required this.useTabs,
     required this.selectedItem,
     required this.onSelectedItemChanged,
+    required this.currentUser,
   });
 
   @override
@@ -106,6 +108,16 @@ class _AttendanceTableState extends State<AttendanceTable> {
     _namesScrollCtrl.dispose();
     _gridScrollCtrl.dispose();
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant AttendanceTable oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.attendance != widget.attendance) {
+      setState(() {
+        _attendanceCache = Map<String, dynamic>.from(widget.attendance);
+      });
+    }
   }
 
   void _onHorizontalScroll() {
@@ -411,6 +423,7 @@ class _AttendanceTableState extends State<AttendanceTable> {
                                                       userId: userId,
                                                       attendance: attendance,
                                                       itemName: it['id'] as String,
+                                                      currentUser: widget.currentUser,
                                                       onToggleLocal: (dateK, itemId, uid, isChecked) {
                                                         setState(() {
                                                           final next = Map<String, dynamic>.from(_attendanceCache);
@@ -514,8 +527,9 @@ class _InlineCell extends StatefulWidget {
   final String userId;
   final Map<String, dynamic> attendance;
   final String itemName;
+  final UserEntity currentUser;
   final void Function(String dateKey, String itemId, String userId, bool checked)? onToggleLocal;
-  const _InlineCell({Key? key, required this.placeId, required this.dateKey, required this.userId, required this.attendance, required this.itemName, this.onToggleLocal}) : super(key: key);
+  const _InlineCell({Key? key, required this.placeId, required this.dateKey, required this.userId, required this.attendance, required this.itemName, required this.currentUser, this.onToggleLocal}) : super(key: key);
 
   @override
   State<_InlineCell> createState() => _InlineCellState();
@@ -545,13 +559,14 @@ class _InlineCellState extends State<_InlineCell> {
 
   @override
   Widget build(BuildContext context) {
+    final canEdit = widget.currentUser.role.index <= UserRole.baskan.index;
     return Checkbox(
       value: checked,
-      onChanged: (val) async {
+      onChanged: canEdit ? (val) async {
         setState(() => checked = val ?? false);
         widget.onToggleLocal?.call(widget.dateKey, widget.itemName, widget.userId, checked);
         await AttendanceFirestoreService(widget.placeId).toggleAttendanceItem(dateId: widget.dateKey, itemId: widget.itemName, userId: widget.userId, checked: checked);
-      },
+      } : null,
     );
   }
 }
