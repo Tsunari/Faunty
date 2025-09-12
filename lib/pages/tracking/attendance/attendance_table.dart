@@ -544,7 +544,7 @@ class _InlineCell extends StatefulWidget {
   final Map<String, dynamic> attendance;
   final String itemName;
   final UserEntity currentUser;
-  const _InlineCell({Key? key, required this.placeId, required this.dateKey, required this.userId, required this.attendance, required this.itemName, required this.currentUser}) : super(key: key);
+  const _InlineCell({required this.placeId, required this.dateKey, required this.userId, required this.attendance, required this.itemName, required this.currentUser});
 
   @override
   State<_InlineCell> createState() => _InlineCellState();
