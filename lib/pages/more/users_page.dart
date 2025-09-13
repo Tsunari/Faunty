@@ -330,6 +330,69 @@ class CreateUserDialog extends StatefulWidget {
   State<CreateUserDialog> createState() => _CreateUserDialogState();
 }
 
+// Dialog to change a user's place (for hocas)
+class ChangePlaceDialog extends ConsumerStatefulWidget {
+  final UserEntity user;
+  const ChangePlaceDialog({super.key, required this.user});
+
+  @override
+  ConsumerState<ChangePlaceDialog> createState() => _ChangePlaceDialogState();
+}
+
+class _ChangePlaceDialogState extends ConsumerState<ChangePlaceDialog> {
+  String? _selectedPlaceId;
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedPlaceId = widget.user.placeId;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final placesAsync = ref.watch(placeStreamProvider);
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return AlertDialog(
+      title: Text(translation(context: context, 'Change Place')),
+      content: placesAsync.when(
+        loading: () => const SizedBox(height: 80, child: Center(child: CircularProgressIndicator())),
+        error: (e, st) => Text(translation(context: context, 'Failed to load places: ') + e.toString()),
+        data: (places) {
+          return DropdownButtonFormField<String>(
+            value: _selectedPlaceId,
+            items: places.map((p) => DropdownMenuItem(value: p.id, child: Text(p.displayName ?? p.name))).toList(),
+            onChanged: (v) => setState(() => _selectedPlaceId = v),
+            decoration: InputDecoration(labelText: translation(context: context, 'Place')),
+          );
+        },
+      ),
+      actions: [
+        TextButton(onPressed: _loading ? null : () => Navigator.of(context).pop(), child: Text(translation(context: context, 'Cancel'))),
+        ElevatedButton(
+          onPressed: (_loading || _selectedPlaceId == null || _selectedPlaceId == widget.user.placeId)
+              ? null
+              : () async {
+                  setState(() => _loading = true);
+                  try {
+                    // TODO: Migrate user data to new place
+                    await FirebaseFirestore.instance.collection('user_list').doc(widget.user.uid).update({'placeId': _selectedPlaceId});
+                    if (context.mounted) Navigator.of(context).pop();
+                  } catch (e) {
+                    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(translation(context: context, 'Failed to change place: ') + e.toString())));
+                  } finally {
+                    if (mounted) setState(() => _loading = false);
+                  }
+                },
+          style: ElevatedButton.styleFrom(backgroundColor: colorScheme.primary, foregroundColor: colorScheme.onPrimary),
+          child: _loading ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : Text(translation(context: context, 'Save')),
+        ),
+      ],
+    );
+  }
+}
+
 class _CreateUserDialogState extends State<CreateUserDialog> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();

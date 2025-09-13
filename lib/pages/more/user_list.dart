@@ -138,10 +138,18 @@ class UserListWithScrollbarState extends State<UserListWithScrollbar> {
                                   if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Failed to delete user: ') + e.toString());
                                 }
                               }
+                              else if (val == 'change_place') {
+                                // open change place dialog defined in users_page.dart
+                                await showDialog(
+                                  context: context,
+                                  builder: (ctx) => ChangePlaceDialog(user: u),
+                                );
+                              }
                             },
                             itemBuilder: (ctx) {
                               final items = <PopupMenuEntry<String>>[
                                 PopupMenuItem(value: 'edit', child: Text(translation(context: context, 'Edit Name'))),
+                                PopupMenuItem(value: 'change_place', child: Text(translation(context: context, 'Change Place'))),
                               ];
                               if (u.isPlaceholder) {
                                 items.add(PopupMenuItem(value: 'delete', child: Text(translation(context: context, 'Delete Placeholder'))));
