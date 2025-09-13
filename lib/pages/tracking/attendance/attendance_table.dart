@@ -63,7 +63,7 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
     _today = DateTime(now.year, now.month, now.day);
     _todayKey = _fmt(_today);
     _startDay = _today;
-    _visibleMonth = _monthNameFromDate(_startDay);
+    _visibleMonth = _monthAndYearFromDate(_startDay);
     _visibleMonthVN.value = _visibleMonth;
     _timeScrollCtrl.addListener(_onHorizontalScroll);
     _namesScrollCtrl.addListener(() {
@@ -169,7 +169,7 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
     final offset = _timeScrollCtrl.offset;
     final firstIndex = (offset / _colWidthConst).floor().clamp(0, _numDays - 1);
     final firstDate = _startDay.add(Duration(days: firstIndex));
-    final next = _monthNameFromDate(firstDate);
+    final next = _monthAndYearFromDate(firstDate);
     if (next != _visibleMonth) {
       _visibleMonth = next;
       _visibleMonthVN.value = next;
@@ -281,7 +281,7 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
                               valueListenable: _visibleMonthVN,
                               builder: (context, label, _) {
                                 return Text(
-                                  label.isEmpty ? _monthNameFromDate(_startDay) : label,
+                                  label.isEmpty ? _monthAndYearFromDate(_startDay) : label,
                                   overflow: TextOverflow.ellipsis,
                                   style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                                 );
@@ -515,11 +515,13 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
     return '${two(dt.day)} $weekday';
   }
 
-  String _monthNameFromDate(DateTime dt) {
+  String _monthAndYearFromDate(DateTime dt) {
     const months = [
       'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'
     ];
-    return months[dt.month - 1];
+    final yy = dt.year % 100;
+    final yyStr = yy < 10 ? '0$yy' : '$yy';
+    return "${months[dt.month - 1]} $yyStr";
   }
 
   DateTime _parseKey(String key) {
