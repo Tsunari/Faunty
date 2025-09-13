@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.8.0] - 14-09-2025
+### Added
+- Superuser kantin management
+### Changed
+- Survey behaviour enhancements
+### Fixed
+- Fix survey for selecting/deselecting and enhance behaviour
+- Survey dialog disposal fix
+
+
+
 ## [1.7.0] - 13-09-2025
 ### Added
 - Add functionality to manually migrate registered user and hook them up to existing placeholder users
