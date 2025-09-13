@@ -120,7 +120,7 @@ class _MainPageState extends ConsumerState<MainPage> {
   Widget build(BuildContext context) {
     final userAsync = ref.watch(userProvider);
     return RoleGate(
-      minRole: UserRole.talebe,
+      minRole: UserRole.spectator,
       showChildOnPages: ['/login'],
       fallback: Builder(
         builder: (context) {
@@ -134,7 +134,7 @@ class _MainPageState extends ConsumerState<MainPage> {
           }
           if (userAsync is AsyncData &&
               userAsync.value != null &&
-              userAsync.value!.role == UserRole.user) {
+              (userAsync.value!.role == UserRole.user || userAsync.value!.role == UserRole.unknown)) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (ModalRoute.of(context)?.settings.name != '/user-welcome') {
                 Navigator.of(context).pushReplacement(
@@ -146,6 +146,17 @@ class _MainPageState extends ConsumerState<MainPage> {
               }
             });
           }
+          if (userAsync is AsyncData && userAsync.value != null && userAsync.value!.role == UserRole.archived) {
+            // TODO: Show archived user page
+            return const MaterialApp(
+              home: Scaffold(
+                body: Center(
+                  child: Text('Your account is archived.'),
+                ),
+              ),
+            );
+          }
+          // TODO: Same for other roles in the future (like spectator/ihvan-only view etc)
           return const SizedBox.shrink();
         },
       ),

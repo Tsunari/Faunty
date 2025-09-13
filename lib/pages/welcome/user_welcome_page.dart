@@ -22,7 +22,7 @@ class _UserWelcomePageState extends ConsumerState<UserWelcomePage> {
 
     userAsync.when(
       data: (user) {
-        if (userAsync is AsyncData && !_navigated && user != null && user.role != UserRole.user) {
+        if (userAsync is AsyncData && !_navigated && user != null && user.role != UserRole.user && user.role != UserRole.unknown) {
           _navigated = true;
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (context.mounted) {

@@ -1,7 +1,10 @@
+import 'package:faunty/models/place_model.dart';
 import 'package:faunty/pages/more/user_list.dart';
 import 'package:faunty/components/role_gate.dart';
+import 'package:faunty/state_management/place_provider.dart';
 import 'package:faunty/tools/sort_utils.dart';
 import 'package:faunty/tools/translation_helper.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../state_management/user_list_provider.dart';
@@ -29,9 +32,18 @@ class UsersPage extends ConsumerWidget {
             const UserSortOption(field: UserSortField.firstName, order: SortOrder.asc),
           ),
         );
+        final placesAsync = ref.watch(placeStreamProvider);
         return Scaffold(
           appBar: AppBar(
-            title: Text(translation(context: context, 'Users')),
+            title: placesAsync.when(
+              loading: () => Text('${translation(context: context, 'Users')} in ${user.placeId}'),
+              error: (_, __) => Text('${translation(context: context, 'Users')} in ${user.placeId}'),
+              data: (places) {
+                final found = PlaceModel.findById(places, user.placeId);
+                final placeName = found?.displayName ?? found?.name ?? user.placeId;
+                return Text('${translation(context: context, 'Users')} in $placeName');
+              },
+            ),
             backgroundColor: colorScheme.surface,
             foregroundColor: colorScheme.onSurface,
             elevation: 0.5,
@@ -74,7 +86,11 @@ class UsersPage extends ConsumerWidget {
                   for (final role in sortedRoles)
                     if (grouped[role]?.isNotEmpty ?? false)
                       if ((role != UserRole.superuser || user.role == UserRole.superuser) &&
-                          (role != UserRole.user || user.role.index <= UserRole.hoca.index))
+                          ((role != UserRole.user &&
+                           role != UserRole.spectator &&
+                           role != UserRole.archived && 
+                           role != UserRole.unknown) || user.role.index <= UserRole.hoca.index)
+                          )
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
