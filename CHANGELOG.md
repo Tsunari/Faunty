@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.7.0] - 13-09-2025
+### Added
+- Add functionality to manually migrate registered user and hook them up to existing placeholder users
+- Firestore quota service init
+- Take care of UID missmatch for whole lists and all functionality when migrating placeholder user (the temp uid was used everywhere but now the real UID has to be used)
+### Changed
+- Add created at Timestamp for firestore user creation
+- And some big firestore optimizations yet again
+- Show year next to month in attendance table
+- Yet another batch of attendance table optimizations
+
+
+
 ## [1.6.0] - 13-09-2025
 ### Added
 - Added new roles: spectator, archived, unknown
