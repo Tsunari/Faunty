@@ -10,7 +10,9 @@
 - And some big firestore optimizations yet again
 - Show year next to month in attendance table
 - Yet another batch of attendance table optimizations
-
+### Fixed
+- fix correct user provider usage in catering/cleaning
+- fix correct user provider usage in caterin/cleaning
 
 
 ## [1.6.0] - 13-09-2025
