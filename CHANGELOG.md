@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.6.0] - 13-09-2025
+### Added
+- Added new roles: spectator, archived, unknown
+- Added toggle superuser all user places view
+- Allow hocas to change place of users
+- Auto mail on user creation and talebe default
+- Name form fields in welcome screen for unknown role
+- Placeholder user management
+- Super user reg mode through drawer
+### Changed
+- Drawer changes
+- General role specific enhancements
+- Show spectators
+- Sortable user list providers
+
+
+
 ## [1.5.0] - 12-09-2025
 ### Added
 - Added home drawer
