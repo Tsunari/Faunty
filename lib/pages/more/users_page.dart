@@ -139,6 +139,7 @@ class _UsersPageState extends ConsumerState<UsersPage> {
                                     if (snap.hasError) return Center(child: Text(translation(context: context, 'Failed to load users: ') + snap.error.toString()));
                                     final docs = snap.data?.docs ?? [];
                                     final users = docs.map((d) => UserEntity.fromMap(d.data())).toList();
+                                    users.sort((a, b) => compareUsersByOption(a, b, const UserSortOption(field: UserSortField.firstName, order: SortOrder.asc)));
                                     return _buildUsersForPlace(users, colorScheme, user);
                                   },
                                 );
