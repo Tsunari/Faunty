@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../firestore/attendance_firestore_service.dart';
 import 'package:faunty/models/user_entity.dart';
@@ -45,6 +46,9 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
   String _selectedItem = '';
   int _numDays = 30; // initial window size
   Map<String, dynamic> _attendanceCache = {};
+  // pending optimistic changes keyed by "date|item|user" -> bool (checked)
+  late final ValueNotifier<Map<String, bool>> _pendingVN;
+  late final _AttendanceBatcher _batcher;
   bool _isExtending = false;
   static const int _pageDays = 30;
   static const double _colWidthConst = 36.0;
@@ -59,8 +63,8 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
     _today = DateTime(now.year, now.month, now.day);
     _todayKey = _fmt(_today);
     _startDay = _today;
-  _visibleMonth = _monthNameFromDate(_startDay);
-  _visibleMonthVN.value = _visibleMonth;
+    _visibleMonth = _monthNameFromDate(_startDay);
+    _visibleMonthVN.value = _visibleMonth;
     _timeScrollCtrl.addListener(_onHorizontalScroll);
     _namesScrollCtrl.addListener(() {
       if (_isSyncingV) return;
@@ -88,8 +92,11 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
       }
       _isSyncingV = false;
     });
-  _attendanceCache = Map<String, dynamic>.from(widget.attendance);
+    _attendanceCache = Map<String, dynamic>.from(widget.attendance);
     _selectedItem = widget.selectedItem;
+    // keep pending markers until server confirms the change
+    _batcher = _AttendanceBatcher(widget.placeId);
+    _pendingVN = ValueNotifier<Map<String, bool>>({});
     if (_selectedItem.isEmpty) {
       SharedPreferences.getInstance().then((sp) {
         final key = 'attendance_default_${widget.placeId}';
@@ -109,7 +116,10 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
     _timeScrollCtrl.dispose();
     _namesScrollCtrl.dispose();
     _gridScrollCtrl.dispose();
-  _visibleMonthVN.dispose();
+    _visibleMonthVN.dispose();
+    _expandedVN.dispose();
+    _batcher.dispose();
+    _pendingVN.dispose();
     super.dispose();
   }
 
@@ -222,7 +232,7 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
     final double headingHeight = 72;
     final double availableWidth = MediaQuery.of(context).size.width - nameColWidth - 24;
     final double dayColWidth = baseDayColWidth;
-  final double totalWidth = (columns.length * dayColWidth) > availableWidth ? columns.length * dayColWidth : availableWidth;
+    final double totalWidth = (columns.length * dayColWidth) > availableWidth ? columns.length * dayColWidth : availableWidth;
 
     return Column(
       children: [
@@ -457,6 +467,14 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
                                                                 attendance: attendance,
                                                                 itemName: it['id'] as String,
                                                                 currentUser: widget.currentUser,
+                                                                pendingLookup: (key) => _pendingVN.value[key],
+                                                                onToggle: (key, checked) {
+                                                                  // optimistic update: replace map to notify listeners
+                                                                  final next = Map<String, bool>.from(_pendingVN.value);
+                                                                  next[key] = checked;
+                                                                  _pendingVN.value = next;
+                                                                  _batcher.enqueue(key, checked);
+                                                                },
                                                               ),
                                                             ),
                                                           ),
@@ -544,43 +562,119 @@ class _InlineCell extends StatefulWidget {
   final Map<String, dynamic> attendance;
   final String itemName;
   final UserEntity currentUser;
-  const _InlineCell({required this.placeId, required this.dateKey, required this.userId, required this.attendance, required this.itemName, required this.currentUser});
+  final bool? Function(String key)? pendingLookup;
+  final void Function(String key, bool checked)? onToggle;
+
+  const _InlineCell({required this.placeId, required this.dateKey, required this.userId, required this.attendance, required this.itemName, required this.currentUser, this.pendingLookup, this.onToggle});
 
   @override
   State<_InlineCell> createState() => _InlineCellState();
 }
 
 class _InlineCellState extends State<_InlineCell> {
-  late bool checked;
+  late final ValueNotifier<bool> _checkedVN;
 
   @override
   void initState() {
     super.initState();
-    final dateRec = Map<String, dynamic>.from(widget.attendance[widget.dateKey] as Map? ?? {});
-    final rec = Map<String, dynamic>.from(dateRec[widget.itemName] as Map? ?? {});
-    final present = (rec['present'] as List?)?.cast<String>() ?? const <String>[];
-    checked = present.contains(widget.userId);
+    _checkedVN = ValueNotifier<bool>(_lookupChecked());
   }
 
   @override
   void didUpdateWidget(covariant _InlineCell oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final newVal = _lookupChecked();
+    if (newVal != _checkedVN.value) _checkedVN.value = newVal;
+  }
+
+  bool _lookupChecked() {
+    final key = '${widget.dateKey}|${widget.itemName}|${widget.userId}';
+    final pending = widget.pendingLookup?.call(key);
+    if (pending != null) return pending;
     final dateRec = Map<String, dynamic>.from(widget.attendance[widget.dateKey] as Map? ?? {});
     final rec = Map<String, dynamic>.from(dateRec[widget.itemName] as Map? ?? {});
     final present = (rec['present'] as List?)?.cast<String>() ?? const <String>[];
-    final newChecked = present.contains(widget.userId);
-    if (newChecked != checked) setState(() => checked = newChecked);
+    return present.contains(widget.userId);
+  }
+
+  @override
+  void dispose() {
+    _checkedVN.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final canEdit = widget.currentUser.role.index <= UserRole.baskan.index;
-    return Checkbox(
-      value: checked,
-      onChanged: canEdit ? (val) async {
-        setState(() => checked = val ?? false);
-        await AttendanceFirestoreService(widget.placeId).toggleAttendanceItem(dateId: widget.dateKey, itemId: widget.itemName, userId: widget.userId, checked: checked);
-      } : null,
+    final key = '${widget.dateKey}|${widget.itemName}|${widget.userId}';
+    return ValueListenableBuilder<bool>(
+      valueListenable: _checkedVN,
+      builder: (context, checked, _) {
+        return Checkbox(
+          value: checked,
+          onChanged: canEdit
+              ? (val) {
+                  final newVal = val ?? false;
+                  // update local notifier (no setState)
+                  _checkedVN.value = newVal;
+                  // notify parent to enqueue batched save
+                  widget.onToggle?.call(key, newVal);
+                }
+              : null,
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        );
+      },
     );
+  }
+}
+
+/// Helper that batches attendance toggles and flushes them to Firestore.
+class _AttendanceBatcher {
+  final String placeId;
+  // no callback: pending markers are reconciled from incoming attendance data
+  final Map<String, bool> _buffer = {};
+  final Duration _debounce = const Duration(milliseconds: 250);
+  Timer? _timer;
+  bool _disposed = false;
+
+  _AttendanceBatcher(this.placeId);
+
+  void enqueue(String key, bool checked) {
+    if (_disposed) return;
+    _buffer[key] = checked;
+    _timer?.cancel();
+    _timer = Timer(_debounce, _flush);
+  }
+
+  Future<void> _flush() async {
+    if (_buffer.isEmpty || _disposed) return;
+    final toSend = Map<String, bool>.from(_buffer);
+    _buffer.clear();
+    // Transform into date/item -> list of users present operations
+    // We'll call AttendanceFirestoreService.toggleAttendanceItem for each entry.
+    final service = AttendanceFirestoreService(placeId);
+    // Fire off writes in parallel but wait for them to finish.
+    final futures = <Future<void>>[];
+    toSend.forEach((compositeKey, checked) {
+      final parts = compositeKey.split('|');
+      if (parts.length != 3) return;
+      final dateId = parts[0];
+      final itemId = parts[1];
+      final userId = parts[2];
+      futures.add(service.toggleAttendanceItem(dateId: dateId, itemId: itemId, userId: userId, checked: checked));
+    });
+    try {
+      await Future.wait(futures);
+  // nothing to do here - parent reconciles pending keys against incoming attendance
+    } catch (_) {
+      // re-add failed items so another attempt can pick them up
+      _buffer.addAll(toSend);
+    }
+  }
+
+  void dispose() {
+    _disposed = true;
+    _timer?.cancel();
+    _buffer.clear();
   }
 }
