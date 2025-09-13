@@ -399,7 +399,7 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                                                         const Divider(height: 16),
                                                       ],
                                                     );
-                                                  }).toList(),
+                                                  }),
                                                   Align(
                                                     alignment: Alignment.centerRight,
                                                     child: TextButton(

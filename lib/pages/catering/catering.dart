@@ -38,7 +38,7 @@ class _CateringPageState extends ConsumerState<CateringPage> {
       translation(context: context, 'Dinner'),
     ];
     final roles = [UserRole.baskan, UserRole.talebe].map((r) => r.name).join(',');
-    final usersAsync = ref.watch(usersByRolesProvider(roles));
+    final usersAsync = ref.watch(usersByRolesAndPlaceProvider(roles));
     return usersAsync.when(
       data: (userList) {
         final userNames = userList.map((u) => '${u.firstName} ${u.lastName}').toList();

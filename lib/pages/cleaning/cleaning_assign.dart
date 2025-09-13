@@ -1,5 +1,6 @@
 import 'package:faunty/components/custom_confirm_dialog.dart';
 import 'package:faunty/models/user_roles.dart';
+import 'package:faunty/tools/sort_utils.dart';
 import 'package:faunty/tools/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -133,7 +134,7 @@ class _CleaningAssignPageState extends ConsumerState<CleaningAssignPage> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final rolesKey = [UserRole.talebe, UserRole.baskan].map((r) => r.name).join(',');
-    final usersAsync = ref.watch(usersByRolesProvider(rolesKey));
+    final usersAsync = ref.watch(usersByRolesAndPlaceProvider(rolesKey));
 
     return Scaffold(
       appBar: AppBar(
