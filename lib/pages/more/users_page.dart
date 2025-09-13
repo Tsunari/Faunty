@@ -216,16 +216,17 @@ class _RoleDropdownState extends State<RoleDropdown> {
 }
 
 // Dialog for editing first and last name
-class _EditNameDialog extends StatefulWidget {
+class EditNameDialog extends StatefulWidget {
   final UserEntity user;
   final ColorScheme colorScheme;
-  const _EditNameDialog({required this.user, required this.colorScheme});
+  const EditNameDialog({super.key, required this.user, required this.colorScheme});
 
   @override
-  State<_EditNameDialog> createState() => _EditNameDialogState();
+  State<EditNameDialog> createState() => EditNameDialogState();
 }
 
-class _EditNameDialogState extends State<_EditNameDialog> {
+class EditNameDialogState extends State<EditNameDialog> {
+  final _formKey = GlobalKey<FormState>();
   late TextEditingController _firstNameController;
   late TextEditingController _lastNameController;
   bool _loading = false;
@@ -248,18 +249,29 @@ class _EditNameDialogState extends State<_EditNameDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text(translation(context: context, 'Edit Name')),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: _firstNameController,
-            decoration: InputDecoration(labelText: translation(context: context, 'First Name')),
-          ),
-          TextField(
-            controller: _lastNameController,
-            decoration: InputDecoration(labelText: translation(context: context, 'Last Name')),
-          ),
-        ],
+      content: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextFormField(
+              controller: _firstNameController,
+              decoration: InputDecoration(labelText: translation(context: context, 'First Name')),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) return translation(context: context, 'Please enter first name');
+                return null;
+              },
+            ),
+            TextFormField(
+              controller: _lastNameController,
+              decoration: InputDecoration(labelText: translation(context: context, 'Last Name')),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) return translation(context: context, 'Please enter last name');
+                return null;
+              },
+            ),
+          ],
+        ),
       ),
       actions: [
         TextButton(
@@ -274,6 +286,7 @@ class _EditNameDialogState extends State<_EditNameDialog> {
           onPressed: _loading
               ? null
               : () async {
+                  if (!(_formKey.currentState?.validate() ?? false)) return;
                   setState(() => _loading = true);
                   final newFirst = _firstNameController.text.trim();
                   final newLast = _lastNameController.text.trim();

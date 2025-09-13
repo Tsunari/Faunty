@@ -1,8 +1,8 @@
 import 'package:faunty/components/custom_snackbar.dart';
 import 'package:faunty/components/role_gate.dart';
-import 'package:faunty/components/custom_chip.dart';
 import 'package:faunty/tools/translation_helper.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:faunty/components/custom_confirm_dialog.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../models/user_entity.dart';
 import '../../models/user_roles.dart';
@@ -102,15 +102,55 @@ class UserListWithScrollbarState extends State<UserListWithScrollbar> {
             trailing: (u.uid == widget.currentUser.uid)
                 ? null
                 : SizedBox(
-                    width: 90,
-                    child: RoleGate(
-                      minRole: UserRole.hoca,
-                      child: RoleDropdown(
-                        key: ValueKey('dropdown_${u.uid}'),
-                        user: u,
-                        colorScheme: widget.colorScheme,
-                        enabled: widget.currentUser.role.index >= UserRole.hoca.index || widget.currentUser.role == UserRole.superuser,
-                      ),
+                    width: 140,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: RoleGate(
+                            minRole: UserRole.hoca,
+                            child: RoleDropdown(
+                              key: ValueKey('dropdown_${u.uid}'),
+                              user: u,
+                              colorScheme: widget.colorScheme,
+                              enabled: widget.currentUser.role.index >= UserRole.hoca.index || widget.currentUser.role == UserRole.superuser,
+                            ),
+                          ),
+                        ),
+                        RoleGate(
+                          minRole: UserRole.hoca,
+                          child: PopupMenuButton<String>(
+                            icon: Icon(Icons.more_vert, color: widget.colorScheme.onSurface),
+                            onSelected: (val) async {
+                              if (val == 'edit') {
+                                // open edit name dialog
+                                await showDialog(
+                                  context: context,
+                                  builder: (ctx) => EditNameDialog(user: u, colorScheme: widget.colorScheme),
+                                );
+                              } else if (val == 'delete') {
+                                final confirmed = await showDeleteDialog(context: context, thingToDelete: translation(context: context, 'placeholder user'));
+                                if (confirmed != true) return;
+                                try {
+                                  await FirebaseFirestore.instance.collection('user_list').doc(u.uid).delete();
+                                  if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Placeholder user deleted.'));
+                                } catch (e) {
+                                  if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Failed to delete user: ') + e.toString());
+                                }
+                              }
+                            },
+                            itemBuilder: (ctx) {
+                              final items = <PopupMenuEntry<String>>[
+                                PopupMenuItem(value: 'edit', child: Text(translation(context: context, 'Edit Name'))),
+                              ];
+                              if (u.isPlaceholder) {
+                                items.add(PopupMenuItem(value: 'delete', child: Text(translation(context: context, 'Delete Placeholder'))));
+                              }
+                              return items;
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                   ),
             splashColor: Colors.transparent,
