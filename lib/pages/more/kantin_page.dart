@@ -497,7 +497,51 @@ class _KantinPageState extends ConsumerState<KantinPage> with WidgetsBindingObse
                               leading: CircleAvatar(child: Text(user.firstName.isNotEmpty ? user.firstName[0].toUpperCase() : user.uid.substring(0, 2).toUpperCase())),
                               title: Text('${user.firstName} ${user.lastName}'),
                               subtitle: Text(randomJoke(user.uid.hashCode)),
-                              trailing: Text('${(debts[user.uid] ?? 0.0).toStringAsFixed(2).replaceAll('.', ',')} €', style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.primary)),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text('${(debts[user.uid] ?? 0.0).toStringAsFixed(2).replaceAll('.', ',')} €', style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.primary)),
+                                  const SizedBox(width: 8),
+                                  // Edit button visible only to superusers
+                                  if (userRole == UserRole.superuser)
+                                    IconButton(
+                                      icon: const Icon(Icons.edit, size: 20),
+                                      tooltip: translation(context: context, 'Edit debt'),
+                                      onPressed: () async {
+                                        final controller = TextEditingController(text: (debts[user.uid] ?? 0.0).toStringAsFixed(2).replaceAll('.', ','));
+                                        final result = await showDialog<double>(
+                                          context: context,
+                                          builder: (ctx) => AlertDialog(
+                                            title: Text(translation(context: context, 'Edit debt for') + ' ${user.firstName} ${user.lastName}'),
+                                            content: TextField(
+                                              controller: controller,
+                                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                              decoration: InputDecoration(labelText: translation(context: context, 'Amount')),
+                                            ),
+                                            actions: [
+                                              TextButton(onPressed: () => Navigator.pop(ctx), child: Text(translation(context: context, 'Cancel'))),
+                                              ElevatedButton(
+                                                onPressed: () {
+                                                  final value = double.tryParse(controller.text.replaceAll(',', '.'));
+                                                  if (value != null) Navigator.pop(ctx, value);
+                                                },
+                                                child: Text(translation(context: context, 'Save')),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                        if (result != null) {
+                                          if (result > 999) {
+                                            if (context.mounted) showCustomSnackBar(context, translation(context: context, 'I sincerely apologize but you can not have more debt'));
+                                            return;
+                                          }
+                                          await KantinFirestoreService(placeId).updateUserDebt(user.uid, result);
+                                          if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Debt updated!'));
+                                        }
+                                      },
+                                    ),
+                                ],
+                              ),
                             ),
                           ))
                   ],
