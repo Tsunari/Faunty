@@ -136,7 +136,7 @@ class UserListWithScrollbarState extends State<UserListWithScrollbar> {
                                 try {
                                   await FirebaseFirestore.instance.collection('user_list').doc(u.uid).delete();
                                   // record write
-                                  try { ProviderScope.containerOf(context).read(firestoreQuotaProvider).recordWrite(); } catch (_) {}
+                                  try { if (context.mounted) ProviderScope.containerOf(context).read(firestoreQuotaProvider).recordWrite(); } catch (_) {}
                                   if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Placeholder user deleted.'));
                                 } catch (e) {
                                   if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Failed to delete user: ') + e.toString());
@@ -216,9 +216,9 @@ class _MigrateDialogState extends State<MigrateDialog> {
         _placeholders = snap.docs.cast<QueryDocumentSnapshot<Map<String, dynamic>>>();
         if (_placeholders.isNotEmpty) _selectedPlaceholderId = _placeholders.first.id;
       });
-      try { ProviderScope.containerOf(context).read(firestoreQuotaProvider).recordRead(); } catch (_) {}
+      try { if (mounted) ProviderScope.containerOf(context).read(firestoreQuotaProvider).recordRead(); } catch (_) {}
     } catch (e) {
-      if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Failed to load placeholders: ') + e.toString());
+      if (mounted) showCustomSnackBar(context, translation(context: context, 'Failed to load placeholders: ') + e.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -231,7 +231,12 @@ class _MigrateDialogState extends State<MigrateDialog> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(translation(context: context, 'Confirm Migration')),
-        content: Text(translation(context: context, 'This action is irreversible. The placeholder user will be deleted and the selected user will be updated. Are you sure you want to continue?')),
+        content: Text(
+          translation(
+            context: context,
+            'This action is irreversible. The selected placeholder will be converted into the canonical user record: its email will be replaced with the migrating user\'s email, the placeholder flag will be cleared, and the existing auth-backed user document (the one with the auth UID) will be deleted. Do you want to continue?',
+          ),
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(translation(context: context, 'Cancel'))),
           ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: Text(translation(context: context, 'Confirm'))),
@@ -244,8 +249,13 @@ class _MigrateDialogState extends State<MigrateDialog> {
       final placeholderDoc = await FirebaseFirestore.instance.collection('user_list').doc(_selectedPlaceholderId!).get();
       final placeholderData = placeholderDoc.data() ?? {};
 
-      // Update existing user doc with placeholder data
-      await FirebaseFirestore.instance.collection('user_list').doc(widget.user.uid).update({
+      // Instead of updating the real user's doc and deleting placeholder, update the placeholder
+      // doc to include the real user's auth uid and merged fields, then delete the real user's doc
+      final placeholderRef = FirebaseFirestore.instance.collection('user_list').doc(placeholderDoc.id);
+      await placeholderRef.update({
+        'authUid': widget.user.uid,
+        'isPlaceholder': false,
+        'email': widget.user.email,
         'firstName': placeholderData['firstName'] ?? widget.user.firstName,
         'lastName': placeholderData['lastName'] ?? widget.user.lastName,
         'role': placeholderData['role'] ?? widget.user.role.name,
@@ -255,18 +265,18 @@ class _MigrateDialogState extends State<MigrateDialog> {
         'linkedAt': FieldValue.serverTimestamp(),
         'linkedBy': widget.operator.uid,
       });
-      try { ProviderScope.containerOf(context).read(firestoreQuotaProvider).recordWrite(); } catch (_) {}
+      try { if (mounted) ProviderScope.containerOf(context).read(firestoreQuotaProvider).recordWrite(); } catch (_) {}
 
-      // Delete placeholder
-      await FirebaseFirestore.instance.collection('user_list').doc(placeholderDoc.id).delete();
-      try { ProviderScope.containerOf(context).read(firestoreQuotaProvider).recordWrite(); } catch (_) {}
+      // Delete the real user's old doc (the user.uid doc)
+      await FirebaseFirestore.instance.collection('user_list').doc(widget.user.uid).delete();
+      try { if (mounted) ProviderScope.containerOf(context).read(firestoreQuotaProvider).recordWrite(); } catch (_) {}
 
-      if (context.mounted) {
+      if (mounted) {
         Navigator.of(context).pop();
         showCustomSnackBar(context, translation(context: context, 'User migrated successfully.'));
       }
     } catch (e) {
-      if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Migration failed: ') + e.toString());
+      if (mounted) showCustomSnackBar(context, translation(context: context, 'Migration failed: ') + e.toString());
     } finally {
       if (mounted) setState(() => _saving = false);
     }

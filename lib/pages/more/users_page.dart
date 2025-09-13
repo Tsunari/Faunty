@@ -4,7 +4,6 @@ import 'package:faunty/components/role_gate.dart';
 import 'package:faunty/state_management/place_provider.dart';
 import 'package:faunty/tools/sort_utils.dart';
 import 'package:faunty/tools/translation_helper.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../state_management/user_list_provider.dart';
@@ -12,6 +11,7 @@ import '../../state_management/user_provider.dart';
 import '../../models/user_entity.dart';
 import '../../models/user_roles.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:uuid/uuid.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../state_management/firestore_quota_provider.dart';
 class UsersPage extends ConsumerStatefulWidget {
@@ -557,8 +557,8 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
       final firstName = _firstNameController.text.trim();
       final lastName = _lastNameController.text.trim();
 
-      // Generate a temporary UID for the placeholder user
-      final tempUid = 'temp_${DateTime.now().millisecondsSinceEpoch}_${email.hashCode.abs()}';
+      // Generate a placeholder UID using UUID v4 and keep it as the canonical id.
+      final tempUid = 'ph_${const Uuid().v4()}';
 
       // Create placeholder user in Firestore
       await FirebaseFirestore.instance.collection('user_list').doc(tempUid).set({

@@ -137,12 +137,7 @@ class _MainPageState extends ConsumerState<MainPage> {
               (userAsync.value!.role == UserRole.user || userAsync.value!.role == UserRole.unknown)) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (ModalRoute.of(context)?.settings.name != '/user-welcome') {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(
-                    builder: (context) => const UserWelcomePage(),
-                    settings: const RouteSettings(name: '/user-welcome'),
-                  ),
-                );
+                Navigator.of(context).pushNamedAndRemoveUntil('/user-welcome', (route) => false);
               }
             });
           }

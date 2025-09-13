@@ -2,6 +2,7 @@ import 'package:faunty/components/custom_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:uuid/uuid.dart';
 import 'package:faunty/models/custom_list.dart';
 import 'package:faunty/state_management/custom_list_provider.dart';
 import 'package:faunty/components/table_widget.dart';
@@ -175,7 +176,7 @@ class _AssignmentListWidgetState extends ConsumerState<AssignmentListWidget> {
             onAddAssignment: editMode ? () {
               // Create a new assignment item
               final newItem = ListItem(
-                id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
+                id: 'tmp_${const Uuid().v4()}',
                 order: localItems!.length,
                 payload: {'left': '', 'right': ''},
                 createdAt: Timestamp.now(),
@@ -188,7 +189,7 @@ class _AssignmentListWidgetState extends ConsumerState<AssignmentListWidget> {
             onAddSubsection: editMode ? () {
               // Create a new subsection item
               final newItem = ListItem(
-                id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
+                id: 'tmp_${const Uuid().v4()}',
                 order: localItems!.length,
                 payload: {
                   'type': 'subsection',

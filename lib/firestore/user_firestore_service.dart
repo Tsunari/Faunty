@@ -12,6 +12,11 @@ class UserFirestoreService {
       if (extraFields != null) ...extraFields,
       'createdAt': FieldValue.serverTimestamp(),
     };
+    // Ensure authUid is present for normal users so the provider can always
+    // resolve the signed-in user's document via a single 'authUid' query.
+    if (!data.containsKey('authUid')) {
+      data['authUid'] = user.uid;
+    }
     await _usersCollection.doc(user.uid).set(data);
     try { await quota?.recordWrite(); } catch (_) {}
   }

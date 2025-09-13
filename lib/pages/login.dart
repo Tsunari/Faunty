@@ -266,24 +266,21 @@ class _LoginPageState extends ConsumerState<LoginPage> with SingleTickerProvider
         // Link with existing placeholder user
         final placeholderDoc = placeholderQuery.docs.first;
         final placeholderData = placeholderDoc.data();
-        final newUser = UserEntity(
-          uid: user.uid,
-          email: email,
-          firstName: placeholderData['firstName'] ?? firstName,
-          lastName: placeholderData['lastName'] ?? lastName,
-          role: userRoleFromString(placeholderData['role'] as String? ?? 'User'),
-          placeId: placeholderData['placeId'] ?? _selectedPlace!.id,
-        );
-        await UserFirestoreService().createUser(newUser, extraFields: {
+        // Instead of creating a new doc with auth uid, update the placeholder doc to
+        // record the auth uid and link metadata while keeping the placeholder doc id.
+        final placeholderRef = FirebaseFirestore.instance.collection('user_list').doc(placeholderDoc.id);
+        await placeholderRef.update({
+          'authUid': user.uid,
+          'email': email,
+          'firstName': placeholderData['firstName'] ?? firstName,
+          'lastName': placeholderData['lastName'] ?? lastName,
+          'role': placeholderData['role'] ?? UserRole.user.name,
           'linkedFromPlaceholder': true,
+          'isPlaceholder': false,
           'originalPlaceholderId': placeholderDoc.id,
           'linkedAt': FieldValue.serverTimestamp(),
           'linkedBy': 'Mail Registration',
         });
-        try { ref.read(firestoreQuotaProvider).recordWrite(); } catch (_) {}
-
-              // Delete the placeholder user
-        await FirebaseFirestore.instance.collection('user_list').doc(placeholderDoc.id).delete();
         try { ref.read(firestoreQuotaProvider).recordWrite(); } catch (_) {}
       } else {
         // Normal registration - create new user
