@@ -6,6 +6,7 @@ import 'package:faunty/components/custom_app_bar.dart';
 import 'package:faunty/tools/translation_helper.dart';
 import 'package:faunty/state_management/survey_provider.dart';
 import 'package:faunty/state_management/user_list_provider.dart';
+import 'package:faunty/models/user_roles.dart';
 
 class SurveyPage extends ConsumerStatefulWidget {
   const SurveyPage({super.key});
@@ -91,10 +92,12 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                                       ],
                                     ),
                                   ),
-                                  IconButton(
-                                    icon: const Icon(Icons.edit),
-                                    tooltip: translation('Edit', context: context),
-                                    onPressed: () async {
+                                  // Only show edit button if user is Hoca or higher, or the creator
+                                  if (user.role.index <= UserRole.hoca.index || (survey['createdBy'] as String?) == user.uid)
+                                    IconButton(
+                                      icon: const Icon(Icons.edit),
+                                      tooltip: translation('Edit', context: context),
+                                      onPressed: () async {
                                       String editTitle = survey['title'];
                                       String editDescription = (survey['description'] ?? '').toString();
                                       List<String> editOptions = List<String>.from((survey['options'] as List).map((o) => o['label'].toString()));
@@ -173,9 +176,42 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                                                     mainAxisSize: MainAxisSize.min,
                                                     crossAxisAlignment: CrossAxisAlignment.start,
                                                     children: [
-                                                      Text(
-                                                        translation('Edit Survey', context: context),
-                                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                                      Row(
+                                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                        children: [
+                                                          Text(
+                                                            translation('Edit Survey', context: context),
+                                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                                          ),
+                                                          // Delete button in header (only if current user can edit)
+                                                          if (user.role.index <= UserRole.hoca.index || (survey['createdBy'] as String?) == user.uid)
+                                                            IconButton(
+                                                              icon: const Icon(Icons.delete_forever, color: Colors.red),
+                                                              tooltip: translation('Delete survey', context: context),
+                                                              onPressed: () async {
+                                                                final confirm = await showDialog<bool>(
+                                                                  context: context,
+                                                                  builder: (context) => AlertDialog(
+                                                                    title: Text(translation('Confirm delete', context: context)),
+                                                                    content: Text(translation('Are you sure you want to delete this survey? This cannot be undone.', context: context)),
+                                                                    actions: [
+                                                                      TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(translation('Cancel', context: context))),
+                                                                      ElevatedButton(onPressed: () => Navigator.of(context).pop(true), child: Text(translation('Delete', context: context))),
+                                                                    ],
+                                                                  ),
+                                                                );
+                                                                if (confirm == true) {
+                                                                  // perform delete and close dialogs
+                                                                  try {
+                                                                    await surveyService.deleteSurvey(surveyId);
+                                                                  } catch (e) {
+                                                                    // swallow - calling page-level snackbar would be better
+                                                                  }
+                                                                  Navigator.of(context).pop(); // close edit dialog
+                                                                }
+                                                              },
+                                                            ),
+                                                        ],
                                                       ),
                                                       const SizedBox(height: 16),
                                                       TextFormField(

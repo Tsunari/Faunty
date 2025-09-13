@@ -29,7 +29,7 @@ class UserListWithScrollbarState extends State<UserListWithScrollbar> {
     super.dispose();
   }
 
-  IconData _getRoleIcon(UserRole role) {
+  IconData _getRoleIcon(UserRole role, bool isPlaceholder) {
     switch (role) {
       case UserRole.superuser:
         return Icons.admin_panel_settings_outlined;
@@ -37,7 +37,7 @@ class UserListWithScrollbarState extends State<UserListWithScrollbar> {
         return Icons.school_outlined;
       case UserRole.baskan:
       case UserRole.talebe:
-        return Icons.person_outline;
+        return isPlaceholder ? Icons.person_outline : Icons.how_to_reg_outlined;
       case UserRole.user:
         return Icons.person_add_alt_1_outlined;
       case UserRole.spectator:
@@ -71,7 +71,7 @@ class UserListWithScrollbarState extends State<UserListWithScrollbar> {
                           showCustomSnackBar(context, translation('This is a placeholder user. They can register using this email.'));
                         }
                       : null,
-                  child: Icon(_getRoleIcon(u.role), color: widget.colorScheme.primary),
+                  child: Icon(_getRoleIcon(u.role, u.isPlaceholder), color: widget.colorScheme.primary),
                 ),
                 if (u.isPlaceholder)
                   RoleGate(

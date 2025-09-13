@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class SurveyFirestoreService {
   final String placeId;
@@ -24,11 +25,18 @@ class SurveyFirestoreService {
 
   /// Add a new survey
   Future<void> addSurvey(Map<String, dynamic> survey) async {
+    // Ensure createdBy is set to the current user uid if not already provided
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    survey['createdBy'] = survey['createdBy'] ?? uid;
+    // Also set a server timestamp for createdAt if not provided
+    survey['createdAt'] = survey['createdAt'] ?? FieldValue.serverTimestamp();
     await _surveyCollection.add(survey);
   }
 
   /// Update an existing survey
   Future<void> updateSurvey(String surveyId, Map<String, dynamic> data) async {
+    // Ensure we stamp updates with the server timestamp
+    data['updatedAt'] = FieldValue.serverTimestamp();
     await _surveyCollection.doc(surveyId).update(data);
   }
 
@@ -113,5 +121,10 @@ class SurveyFirestoreService {
       }
       transaction.update(docRef, {'options': options});
     });
+  }
+
+  /// Delete a survey
+  Future<void> deleteSurvey(String surveyId) async {
+    await _surveyCollection.doc(surveyId).delete();
   }
 }
