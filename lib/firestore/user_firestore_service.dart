@@ -6,8 +6,12 @@ import 'firestore_quota_service.dart';
 class UserFirestoreService {
   CollectionReference get _usersCollection => FirebaseFirestore.instance.collection('user_list');
 
-  Future<void> createUser(UserEntity user, {FirestoreQuotaService? quota}) async {
-    final data = user.toMap();
+  Future<void> createUser(UserEntity user, {FirestoreQuotaService? quota, Map<String, dynamic>? extraFields}) async {
+    final data = {
+      ...user.toMap(),
+      if (extraFields != null) ...extraFields,
+      'createdAt': FieldValue.serverTimestamp(),
+    };
     await _usersCollection.doc(user.uid).set(data);
     try { await quota?.recordWrite(); } catch (_) {}
   }

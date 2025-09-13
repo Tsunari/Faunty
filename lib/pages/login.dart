@@ -5,6 +5,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../firestore/user_firestore_service.dart';
+import '../models/user_entity.dart';
+import '../models/user_roles.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:faunty/tools/translation_helper.dart';
 import 'package:faunty/components/language_dropdown.dart';
@@ -263,33 +266,37 @@ class _LoginPageState extends ConsumerState<LoginPage> with SingleTickerProvider
         // Link with existing placeholder user
         final placeholderDoc = placeholderQuery.docs.first;
         final placeholderData = placeholderDoc.data();
-
-  await FirebaseFirestore.instance.collection('user_list').doc(user.uid).set({
-          'uid': user.uid,
-          'email': email,
-          'placeId': placeholderData['placeId'] ?? _selectedPlace!.id,
-          'firstName': placeholderData['firstName'] ?? firstName,
-          'lastName': placeholderData['lastName'] ?? lastName,
-          'role': placeholderData['role'] ?? 'User',
+        final newUser = UserEntity(
+          uid: user.uid,
+          email: email,
+          firstName: placeholderData['firstName'] ?? firstName,
+          lastName: placeholderData['lastName'] ?? lastName,
+          role: userRoleFromString(placeholderData['role'] as String? ?? 'User'),
+          placeId: placeholderData['placeId'] ?? _selectedPlace!.id,
+        );
+        await UserFirestoreService().createUser(newUser, extraFields: {
           'linkedFromPlaceholder': true,
           'originalPlaceholderId': placeholderDoc.id,
+          'linkedAt': FieldValue.serverTimestamp(),
+          'linkedBy': 'Mail Registration',
         });
-  try { ref.read(firestoreQuotaProvider).recordWrite(); } catch (_) {}
+        try { ref.read(firestoreQuotaProvider).recordWrite(); } catch (_) {}
 
-        // Delete the placeholder user
-  await FirebaseFirestore.instance.collection('user_list').doc(placeholderDoc.id).delete();
-  try { ref.read(firestoreQuotaProvider).recordWrite(); } catch (_) {}
+              // Delete the placeholder user
+        await FirebaseFirestore.instance.collection('user_list').doc(placeholderDoc.id).delete();
+        try { ref.read(firestoreQuotaProvider).recordWrite(); } catch (_) {}
       } else {
         // Normal registration - create new user
-  await FirebaseFirestore.instance.collection('user_list').doc(user.uid).set({
-          'uid': user.uid,
-          'email': email,
-          'placeId': _selectedPlace!.id,
-          'firstName': firstName,
-          'lastName': lastName,
-          'role': 'User',
-        });
-  try { ref.read(firestoreQuotaProvider).recordWrite(); } catch (_) {}
+        final newUser = UserEntity(
+          uid: user.uid,
+          email: email,
+          firstName: firstName,
+          lastName: lastName,
+          role: UserRole.user,
+          placeId: _selectedPlace!.id,
+        );
+        await UserFirestoreService().createUser(newUser);
+        try { ref.read(firestoreQuotaProvider).recordWrite(); } catch (_) {}
       }
 
       // Invalidate userProvider to ensure fresh user state from StreamProvider
