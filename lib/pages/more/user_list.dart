@@ -38,6 +38,12 @@ class UserListWithScrollbarState extends State<UserListWithScrollbar> {
         return Icons.person_outline;
       case UserRole.user:
         return Icons.person_add_alt_1_outlined;
+      case UserRole.spectator:
+        return Icons.visibility_outlined;
+      case UserRole.archived:
+        return Icons.archive_outlined;
+      case UserRole.unknown:
+        return Icons.help_outline;
     }
   }
 

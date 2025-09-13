@@ -32,6 +32,12 @@ class RoleGate extends ConsumerWidget {
         return 3;
       case UserRole.user:
         return 4;
+      case UserRole.spectator:
+        return 5;
+      case UserRole.archived:
+        return 6;
+      case UserRole.unknown:
+        return 7;
     }
   }
 
