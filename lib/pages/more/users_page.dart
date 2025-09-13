@@ -12,12 +12,37 @@ import '../../state_management/user_provider.dart';
 import '../../models/user_entity.dart';
 import '../../models/user_roles.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
-class UsersPage extends ConsumerWidget {
+import 'package:shared_preferences/shared_preferences.dart';
+class UsersPage extends ConsumerStatefulWidget {
   const UsersPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<UsersPage> createState() => _UsersPageState();
+}
+
+class _UsersPageState extends ConsumerState<UsersPage> {
+  bool _showAllPlaces = false;
+  bool _prefsLoaded = false;
+  static const _prefKeyShowAll = 'users_show_all_places';
+
+  Future<void> _loadPref() async {
+    try {
+      final sp = await SharedPreferences.getInstance();
+      final val = sp.getBool(_prefKeyShowAll);
+      if (val != null) setState(() => _showAllPlaces = val);
+    } catch (_) {}
+  }
+
+  Future<void> _toggleShowAllPlaces() async {
+    setState(() => _showAllPlaces = !_showAllPlaces);
+    try {
+      final sp = await SharedPreferences.getInstance();
+      await sp.setBool(_prefKeyShowAll, _showAllPlaces);
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final userAsync = ref.watch(userProvider);
     final colorScheme = Theme.of(context).colorScheme;
     return userAsync.when(
@@ -26,6 +51,11 @@ class UsersPage extends ConsumerWidget {
       data: (user) {
         if (user == null) {
           return Center(child: Text(translation(context: context, 'No user loaded.')));
+        }
+        // If current user is superuser, load stored preference once
+        if (!_prefsLoaded && user.role == UserRole.superuser) {
+          _prefsLoaded = true; // mark early to avoid duplicate calls
+          _loadPref();
         }
         final usersByPlaceAsync = ref.watch(
           usersByCurrentPlaceProviderWithOptions(
@@ -54,6 +84,15 @@ class UsersPage extends ConsumerWidget {
                   )
                 : null,
             actions: [
+              // Superuser-only toggle to view all places as tabs
+              RoleGate(
+                minRole: UserRole.superuser,
+                child: IconButton(
+                  icon: Icon(_showAllPlaces ? Icons.view_agenda : Icons.view_column),
+                  tooltip: translation(context: context, _showAllPlaces ? 'Show single place' : 'Show all places'),
+                  onPressed: () => _toggleShowAllPlaces(),
+                ),
+              ),
               RoleGate(
                 minRole: UserRole.hoca,
                 child: Padding(
@@ -68,59 +107,54 @@ class UsersPage extends ConsumerWidget {
             ],
           ),
           backgroundColor: colorScheme.surface,
-          body: usersByPlaceAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, st) => Center(child: Text('Error loading users: $e')),
-              data: (users) {
-              // Group users by role
-              final Map<UserRole, List<UserEntity>> grouped = {};
-              for (final u in users) {
-                grouped.putIfAbsent(u.role, () => []).add(u);
-              }
-              // Sort roles by privilege
-              final sortedRoles = UserRole.values.toList()
-                ..sort((a, b) => a.index.compareTo(b.index));
-              return ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  for (final role in sortedRoles)
-                    if (grouped[role]?.isNotEmpty ?? false)
-                      if ((role != UserRole.superuser || user.role == UserRole.superuser) &&
-                          ((role != UserRole.user &&
-                           role != UserRole.spectator &&
-                           role != UserRole.archived && 
-                           role != UserRole.unknown) || user.role.index <= UserRole.hoca.index) ||
-                          (role == UserRole.spectator && user.role == UserRole.spectator)
-                          )
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8.0),
-                              child: Text(
-                                '${role.name[0].toUpperCase() + role.name.substring(1)} (${grouped[role]!.length})',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: colorScheme.primary,
-                                ),
-                              ),
+          body: _showAllPlaces
+              ? placesAsync.when(
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (e, st) => Center(child: Text(translation(context: context, 'Error loading places: $e'))),
+                  data: (places) {
+                    if (places.isEmpty) return Center(child: Text(translation(context: context, 'No places available.')));
+                    return DefaultTabController(
+                      length: places.length,
+                      child: Column(
+                        children: [
+                          Material(
+                            color: colorScheme.surface,
+                            child: TabBar(
+                              isScrollable: true,
+                              tabs: places.map((p) => Tab(text: p.displayName ?? p.name)).toList(),
+                              tabAlignment: TabAlignment.center,
                             ),
-                            Card(
-                              color: colorScheme.surface,
-                              child: UserListWithScrollbar(
-                                users: grouped[role]!,
-                                colorScheme: colorScheme,
-                                currentUser: user,
-                              ),
+                          ),
+                          Expanded(
+                            child: TabBarView(
+                              children: places.map((place) {
+                                // For each place, show users in that place using a stream
+                                return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                                  stream: FirebaseFirestore.instance
+                                      .collection('user_list')
+                                      .where('placeId', isEqualTo: place.id)
+                                      .snapshots(),
+                                  builder: (ctx, snap) {
+                                    if (snap.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+                                    if (snap.hasError) return Center(child: Text(translation(context: context, 'Failed to load users: ') + snap.error.toString()));
+                                    final docs = snap.data?.docs ?? [];
+                                    final users = docs.map((d) => UserEntity.fromMap(d.data())).toList();
+                                    return _buildUsersForPlace(users, colorScheme, user);
+                                  },
+                                );
+                              }).toList(),
                             ),
-                            const SizedBox(height: 16),
-                          ],
-                  ),
-                ],
-              );
-            },
-          ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                )
+              : usersByPlaceAsync.when(
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (e, st) => Center(child: Text('Error loading users: $e')),
+                  data: (users) => _buildUsersForPlace(users, colorScheme, user),
+                ),
         );
       },
     );
@@ -130,6 +164,51 @@ class UsersPage extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (context) => CreateUserDialog(currentUser: currentUser),
+    );
+  }
+
+  Widget _buildUsersForPlace(List<UserEntity> users, ColorScheme colorScheme, UserEntity currentUser) {
+    // Group users by role
+    final Map<UserRole, List<UserEntity>> grouped = {};
+    for (final u in users) {
+      grouped.putIfAbsent(u.role, () => []).add(u);
+    }
+    // Sort roles by privilege
+    final sortedRoles = UserRole.values.toList()..sort((a, b) => a.index.compareTo(b.index));
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        for (final role in sortedRoles)
+          if (grouped[role]?.isNotEmpty ?? false)
+            if ((role != UserRole.superuser || currentUser.role == UserRole.superuser) &&
+                ((role != UserRole.user && role != UserRole.spectator && role != UserRole.archived && role != UserRole.unknown) || currentUser.role.index <= UserRole.hoca.index) ||
+                (role == UserRole.spectator && currentUser.role == UserRole.spectator))
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Text(
+                      '${role.name[0].toUpperCase() + role.name.substring(1)} (${grouped[role]!.length})',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                  Card(
+                    color: colorScheme.surface,
+                    child: UserListWithScrollbar(
+                      users: grouped[role]!,
+                      colorScheme: colorScheme,
+                      currentUser: currentUser,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+      ],
     );
   }
 }
