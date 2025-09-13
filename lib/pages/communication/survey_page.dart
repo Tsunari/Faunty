@@ -15,6 +15,8 @@ class SurveyPage extends ConsumerStatefulWidget {
 }
 
 class _SurveyPageState extends ConsumerState<SurveyPage> {
+  // Track pending vote operations to avoid race conditions from fast clicks
+  final Set<String> _pendingActions = {};
 
   @override
   Widget build(BuildContext context) {
@@ -265,20 +267,28 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                                         child: InkWell(
                                           borderRadius: BorderRadius.circular(16),
                                           onTap: () async {
-                                            if (allowMultiple) {
-                                              if (isSelected) {
-                                                await surveyService.decrementVote(surveyId, option['value'], userId: userId);
+                                            // serialize actions per survey to avoid race when switching selections
+                                            final actionKey = '$surveyId';
+                                            if (_pendingActions.contains(actionKey)) return; // ignore rapid duplicate taps
+                                            _pendingActions.add(actionKey);
+                                            try {
+                                              if (allowMultiple) {
+                                                if (isSelected) {
+                                                  await surveyService.decrementVote(surveyId, option['value'], userId: userId);
+                                                } else {
+                                                  await surveyService.incrementVote(surveyId, option['value'], userId: userId);
+                                                }
                                               } else {
-                                                await surveyService.incrementVote(surveyId, option['value'], userId: userId);
+                                                // Single choice: deselect if already selected, otherwise select the tapped option.
+                                                // Calling selectOption always will remove the user from any other option and add to the new one atomically.
+                                                if (isSelected) {
+                                                  await surveyService.decrementVote(surveyId, option['value'], userId: userId);
+                                                } else {
+                                                  await surveyService.selectOption(surveyId, option['value'], userId: userId);
+                                                }
                                               }
-                                            } else {
-                                              // Single choice: deselect if already selected, otherwise select
-                                              final alreadyVoted = options.any((opt) => (opt['users'] as List?)?.contains(userId) ?? false);
-                                              if (isSelected) {
-                                                await surveyService.decrementVote(surveyId, option['value'], userId: userId);
-                                              } else if (!alreadyVoted) {
-                                                await surveyService.selectOption(surveyId, option['value'], userId: userId);
-                                              }
+                                            } finally {
+                                              _pendingActions.remove(actionKey);
                                             }
                                           },
                                           child: Padding(

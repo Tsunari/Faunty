@@ -42,10 +42,13 @@ class SurveyFirestoreService {
       final options = List<Map<String, dynamic>>.from(data['options'] ?? []);
       for (var option in options) {
         if (option['value'] == optionValue) {
-          option['voteCount'] = (option['voteCount'] ?? 0) + 1;
           final users = List<String>.from(option['users'] ?? []);
-          if (!users.contains(userId)) users.add(userId);
-          option['users'] = users;
+          // Only increment if the user isn't already present
+          if (!users.contains(userId)) {
+            option['voteCount'] = ((option['voteCount'] ?? 0) as num).toInt() + 1;
+            users.add(userId);
+            option['users'] = users;
+          }
         }
       }
       transaction.update(docRef, {'options': options});
@@ -62,10 +65,15 @@ class SurveyFirestoreService {
       final options = List<Map<String, dynamic>>.from(data['options'] ?? []);
       for (var option in options) {
         if (option['value'] == optionValue) {
-          option['voteCount'] = ((option['voteCount'] ?? 0) - 1).clamp(0, double.infinity);
           final users = List<String>.from(option['users'] ?? []);
-          users.remove(userId);
-          option['users'] = users;
+          // Only decrement if the user was present
+          if (users.contains(userId)) {
+            users.remove(userId);
+            final current = (option['voteCount'] ?? 0) as num;
+            final newCount = (current.toInt() - 1) < 0 ? 0 : (current.toInt() - 1);
+            option['voteCount'] = newCount;
+            option['users'] = users;
+          }
         }
       }
       transaction.update(docRef, {'options': options});
@@ -80,14 +88,27 @@ class SurveyFirestoreService {
       final data = snapshot.data() as Map<String, dynamic>?;
       if (data == null) return;
       final options = List<Map<String, dynamic>>.from(data['options'] ?? []);
-      // Remove user from all options first
+      // Remove user from all options first and decrement voteCount where necessary.
       for (var option in options) {
         final users = List<String>.from(option['users'] ?? []);
-        users.remove(userId);
+        final hadUser = users.contains(userId);
+        if (hadUser) {
+          users.remove(userId);
+          final current = (option['voteCount'] ?? 0) as num;
+          final newCount = (current.toInt() - 1) < 0 ? 0 : (current.toInt() - 1);
+          option['voteCount'] = newCount;
+        }
         option['users'] = users;
+        // If this is the target option, add user and increment after removals
         if (option['value'] == optionValue) {
-          option['voteCount'] = (option['voteCount'] ?? 0) + 1;
-          if (!users.contains(userId)) users.add(userId);
+          final users2 = List<String>.from(option['users'] ?? []);
+          // Only increment if user is not already present after removals
+          if (!users2.contains(userId)) {
+            final vc = (option['voteCount'] ?? 0) as num;
+            option['voteCount'] = vc.toInt() + 1;
+            users2.add(userId);
+            option['users'] = users2;
+          }
         }
       }
       transaction.update(docRef, {'options': options});
