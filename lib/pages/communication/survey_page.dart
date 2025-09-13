@@ -1,9 +1,9 @@
 import 'package:faunty/state_management/user_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:faunty/components/custom_app_bar.dart';
 import 'package:faunty/tools/translation_helper.dart';
-import 'package:faunty/components/custom_snackbar.dart';
 import 'package:faunty/state_management/survey_provider.dart';
 import 'package:faunty/state_management/user_list_provider.dart';
 
@@ -73,9 +73,22 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Expanded(
-                                    child: Text(
-                                      translation(survey['title'], context: context),
-                                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 17),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          translation(survey['title'], context: context),
+                                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 17),
+                                        ),
+                                        if ((survey['description'] ?? '').toString().trim().isNotEmpty)
+                                          Padding(
+                                            padding: const EdgeInsets.only(top: 4.0),
+                                            child: Text(
+                                              translation(survey['description'], context: context),
+                                              style: const TextStyle(fontSize: 13, color: Colors.grey),
+                                            ),
+                                          ),
+                                      ],
                                     ),
                                   ),
                                   IconButton(
@@ -83,153 +96,303 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                                     tooltip: translation('Edit', context: context),
                                     onPressed: () async {
                                       String editTitle = survey['title'];
+                                      String editDescription = (survey['description'] ?? '').toString();
                                       List<String> editOptions = List<String>.from((survey['options'] as List).map((o) => o['label'].toString()));
                                       List<FocusNode> optionFocusNodes = List.generate(editOptions.length, (_) => FocusNode());
                                       bool allowMultiple = survey['allowMultiple'] == true;
                                       bool updated = false;
+                                      bool optionsEdited = false;
+                                      bool allowMultipleEdited = false;
+                                      // Use persistent controllers and ValueNotifiers instead of StatefulBuilder
+                                      final titleController = TextEditingController(text: editTitle);
+                                      final descriptionController = TextEditingController(text: editDescription);
+                                      final descriptionLengthNotifier = ValueNotifier<int>(descriptionController.text.length);
+                                      final optionsEditedNotifier = ValueNotifier<bool>(optionsEdited);
+                                      final allowMultipleEditedNotifier = ValueNotifier<bool>(allowMultipleEdited);
+                                      final allowMultipleNotifier = ValueNotifier<bool>(allowMultiple);
+                                      final optionsNotifier = ValueNotifier<int>(editOptions.length);
+                                      final optionControllers = List<TextEditingController>.generate(
+                                        editOptions.length,
+                                        (i) => TextEditingController(text: editOptions[i]),
+                                      );
+                                      final removedOptionControllers = <TextEditingController>[];
+                                      final removedOptionFocusNodes = <FocusNode>[];
+                                      // ensure description length updates
+                                      descriptionController.addListener(() {
+                                        descriptionLengthNotifier.value = descriptionController.text.length;
+                                      });
+
                                       await showDialog(
                                         context: context,
                                         builder: (context) {
-                                          return StatefulBuilder(
-                                            builder: (context, setStateDialog) {
-                                              return Dialog(
-                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                                child: Padding(
-                                                  padding: const EdgeInsets.all(20),
-                                                  child: SingleChildScrollView(
-                                                    child: Column(
-                                                      mainAxisSize: MainAxisSize.min,
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                                      children: [
-                                                        Text(
-                                                          translation('Edit Survey', context: context),
-                                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                          // form key to validate fields inline
+                                          final formKey = GlobalKey<FormState>();
+                                          return Dialog(
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                            child: Padding(
+                                              padding: const EdgeInsets.all(20),
+                                              child: SingleChildScrollView(
+                                                child: Form(
+                                                  key: formKey,
+                                                  child: Column(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      Text(
+                                                        translation('Edit Survey', context: context),
+                                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                                      ),
+                                                      const SizedBox(height: 16),
+                                                      TextFormField(
+                                                        controller: titleController,
+                                                        decoration: InputDecoration(
+                                                          labelText: translation('Survey Title', context: context),
+                                                          border: const OutlineInputBorder(),
                                                         ),
-                                                        const SizedBox(height: 16),
-                                                        TextField(
-                                                          controller: TextEditingController(text: editTitle),
-                                                          decoration: InputDecoration(
-                                                            labelText: translation('Survey Title', context: context),
-                                                            border: const OutlineInputBorder(),
-                                                          ),
-                                                          onChanged: (val) => editTitle = val,
-                                                        ),
-                                                        const SizedBox(height: 16),
-                                                        Text(
-                                                          translation('Options', context: context),
-                                                          style: const TextStyle(fontWeight: FontWeight.w500),
-                                                        ),
-                                                        const SizedBox(height: 8),
-                                                        ...List.generate(editOptions.length, (i) => Row(
-                                                          children: [
-                                                            Expanded(
-                                                              child: Padding(
-                                                                padding: const EdgeInsets.all(8.0),
-                                                                child: TextField(
-                                                                  focusNode: optionFocusNodes[i],
-                                                                  controller: TextEditingController(text: editOptions[i]),
-                                                                  decoration: InputDecoration(
-                                                                    labelText: translation('Option', context: context) + ' ${i + 1}',
-                                                                    border: const OutlineInputBorder(),
+                                                        validator: (val) => (val == null || val.trim().isEmpty) ? translation('Please fill in the title', context: context) : null,
+                                                        onChanged: (val) => editTitle = val,
+                                                      ),
+                                                      const SizedBox(height: 12),
+                                                      ValueListenableBuilder<int>(
+                                                        valueListenable: descriptionLengthNotifier,
+                                                        builder: (context, len, _) {
+                                                          return TextFormField(
+                                                            controller: descriptionController,
+                                                            maxLength: 250,
+                                                            inputFormatters: [LengthLimitingTextInputFormatter(250)],
+                                                            decoration: InputDecoration(
+                                                              labelText: translation('Description (optional)', context: context) + ' (' + len.toString() + '/250)',
+                                                              border: const OutlineInputBorder(),
+                                                              counterText: '',
+                                                            ),
+                                                            onChanged: (val) => editDescription = val,
+                                                          );
+                                                        },
+                                                      ),
+                                                      const SizedBox(height: 16),
+                                                      Text(
+                                                        translation('Options', context: context),
+                                                        style: const TextStyle(fontWeight: FontWeight.w500),
+                                                      ),
+                                                      const SizedBox(height: 8),
+                                                      ValueListenableBuilder<int>(
+                                                        valueListenable: optionsNotifier,
+                                                        builder: (context, _, __) {
+                                                          return Column(
+                                                            children: List.generate(optionControllers.length, (i) {
+                                                              return Row(
+                                                                children: [
+                                                                  Expanded(
+                                                                    child: Padding(
+                                                                      padding: const EdgeInsets.all(8.0),
+                                                                      child: TextFormField(
+                                                                        focusNode: optionFocusNodes[i],
+                                                                        controller: optionControllers[i],
+                                                                        decoration: InputDecoration(
+                                                                          labelText: translation('Option', context: context) + ' ${i + 1}',
+                                                                          border: const OutlineInputBorder(),
+                                                                        ),
+                                                                        validator: (val) {
+                                                                          if (optionsEditedNotifier.value && (val == null || val.trim().isEmpty)) {
+                                                                            return translation('Please fill in all fields', context: context);
+                                                                          }
+                                                                          return null;
+                                                                        },
+                                                                        onChanged: (val) {
+                                                                          editOptions[i] = val;
+                                                                          optionsEditedNotifier.value = true;
+                                                                        },
+                                                                      ),
+                                                                    ),
                                                                   ),
-                                                                  onChanged: (val) => editOptions[i] = val,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                            if (editOptions.length > 1)
-                                                              IconButton(
-                                                                icon: const Icon(Icons.remove_circle, color: Colors.red),
-                                                                onPressed: () {
-                                                                  setStateDialog(() {
-                                                                    optionFocusNodes[i].dispose();
-                                                                    optionFocusNodes.removeAt(i);
-                                                                    editOptions.removeAt(i);
-                                                                  });
-                                                                },
-                                                              ),
-                                                          ],
-                                                        )),
-                                                        Align(
-                                                          alignment: Alignment.centerLeft,
-                                                          child: TextButton.icon(
-                                                            icon: const Icon(Icons.add),
-                                                            label: Text(translation('Add Option', context: context)),
-                                                            onPressed: () {
-                                                              setStateDialog(() {
-                                                                editOptions.add('');
-                                                                optionFocusNodes.add(FocusNode());
-                                                              });
-                                                              Future.delayed(Duration(milliseconds: 100), () {
-                                                                if (optionFocusNodes.isNotEmpty) {
-                                                                  optionFocusNodes.last.requestFocus();
-                                                                }
-                                                              });
-                                                            },
+                                                                    if (optionControllers.length > 1)
+                                                                    IconButton(
+                                                                      icon: const Icon(Icons.remove_circle, color: Colors.red),
+                                                                      onPressed: () {
+                                                                        // remove controller and focus node but defer disposal until after rebuild
+                                                                        final removedFocus = optionFocusNodes.removeAt(i);
+                                                                        final removedController = optionControllers.removeAt(i);
+                                                                        removedOptionFocusNodes.add(removedFocus);
+                                                                        removedOptionControllers.add(removedController);
+                                                                        editOptions.removeAt(i);
+                                                                        optionsEditedNotifier.value = true;
+                                                                        optionsNotifier.value = optionsNotifier.value + 1; // trigger rebuild
+                                                                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                                                                          for (final n in removedOptionFocusNodes) {
+                                                                            try { n.dispose(); } catch (_) {}
+                                                                          }
+                                                                          for (final c in removedOptionControllers) {
+                                                                            try { c.dispose(); } catch (_) {}
+                                                                          }
+                                                                          removedOptionFocusNodes.clear();
+                                                                          removedOptionControllers.clear();
+                                                                        });
+                                                                      },
+                                                                    ),
+                                                                ],
+                                                              );
+                                                            }),
+                                                          );
+                                                        },
+                                                      ),
+                                                      Align(
+                                                        alignment: Alignment.centerLeft,
+                                                        child: TextButton.icon(
+                                                          icon: const Icon(Icons.add),
+                                                          label: Text(translation('Add Option', context: context)),
+                                                          onPressed: () {
+                                                            optionControllers.add(TextEditingController(text: ''));
+                                                            optionFocusNodes.add(FocusNode());
+                                                            editOptions.add('');
+                                                            optionsEditedNotifier.value = true;
+                                                            optionsNotifier.value = optionsNotifier.value + 1; // trigger rebuild
+                                                            Future.delayed(const Duration(milliseconds: 100), () {
+                                                              if (optionFocusNodes.isNotEmpty) {
+                                                                optionFocusNodes.last.requestFocus();
+                                                              }
+                                                            });
+                                                          },
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 12),
+                                                      Row(
+                                                        children: [
+                                                          Text(
+                                                            translation('Allow multiple answers', context: context),
+                                                            style: const TextStyle(fontSize: 15),
                                                           ),
-                                                        ),
-                                                        const SizedBox(height: 12),
-                                                        Row(
-                                                          children: [
-                                                            Text(
-                                                              translation('Allow multiple answers', context: context),
-                                                              style: const TextStyle(fontSize: 15),
-                                                            ),
-                                                            const SizedBox(width: 8),
-                                                            Switch(
-                                                              value: allowMultiple,
-                                                              onChanged: (val) {
-                                                                setStateDialog(() {
-                                                                  allowMultiple = val;
-                                                                });
+                                                          const SizedBox(width: 8),
+                                                          ValueListenableBuilder<bool>(
+                                                            valueListenable: allowMultipleNotifier,
+                                                              builder: (context, currentAllow, __) {
+                                                                return Switch(
+                                                                  value: currentAllow,
+                                                                  onChanged: (val) {
+                                                                    allowMultiple = val;
+                                                                    allowMultipleNotifier.value = val;
+                                                                    allowMultipleEditedNotifier.value = true;
+                                                                  },
+                                                                );
                                                               },
-                                                            ),
-                                                          ],
-                                                        ),
-                                                        const SizedBox(height: 12),
-                                                        Row(
-                                                          mainAxisAlignment: MainAxisAlignment.end,
-                                                          children: [
-                                                            TextButton(
-                                                              onPressed: () {
-                                                                for (final node in optionFocusNodes) {
-                                                                  node.dispose();
-                                                                }
-                                                                Navigator.of(context).pop();
-                                                              },
-                                                              child: Text(translation('Cancel', context: context)),
-                                                            ),
-                                                            const SizedBox(width: 8),
-                                                            ElevatedButton(
-                                                              onPressed: () {
-                                                                if (editTitle.trim().isEmpty || editOptions.any((o) => o.trim().isEmpty)) {
-                                                                  showCustomSnackBar(context, translation('Please fill in all fields', context: context));
-                                                                  return;
-                                                                }
-                                                                for (final node in optionFocusNodes) {
-                                                                  node.dispose();
-                                                                }
-                                                                updated = true;
-                                                                Navigator.of(context).pop();
-                                                              },
-                                                              child: Text(translation('Save', context: context)),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ],
-                                                    ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      const SizedBox(height: 8),
+                                                      ValueListenableBuilder<bool>(
+                                                        valueListenable: optionsEditedNotifier,
+                                                        builder: (context, optEdited, _) {
+                                                          return ValueListenableBuilder<bool>(
+                                                            valueListenable: allowMultipleEditedNotifier,
+                                                            builder: (context, allowEdited, __) {
+                                                              if (optEdited || allowEdited) {
+                                                                return Padding(
+                                                                  padding: const EdgeInsets.only(bottom: 8.0),
+                                                                  child: Text(
+                                                                    translation('Warning: Changing options or answer mode will reset votes if saved.', context: context),
+                                                                    style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 13),
+                                                                  ),
+                                                                );
+                                                              }
+                                                              return const SizedBox.shrink();
+                                                            },
+                                                          );
+                                                        },
+                                                      ),
+                                                      const SizedBox(height: 12),
+                                                      Row(
+                                                        mainAxisAlignment: MainAxisAlignment.end,
+                                                        children: [
+                                                          TextButton(
+                                                            onPressed: () {
+                                                              for (final node in optionFocusNodes) {
+                                                                node.dispose();
+                                                              }
+                                                              for (final c in optionControllers) {
+                                                                c.dispose();
+                                                              }
+                                                              titleController.dispose();
+                                                              descriptionController.dispose();
+                                                              descriptionLengthNotifier.dispose();
+                                                              optionsEditedNotifier.dispose();
+                                                              allowMultipleEditedNotifier.dispose();
+                                                              allowMultipleNotifier.dispose();
+                                                              optionsNotifier.dispose();
+                                                              Navigator.of(context).pop();
+                                                            },
+                                                            child: Text(translation('Cancel', context: context)),
+                                                          ),
+                                                          const SizedBox(width: 8),
+                                                          ElevatedButton(
+                                                            onPressed: () {
+                                                              // Validate form fields inline
+                                                              if (!formKey.currentState!.validate()) {
+                                                                return;
+                                                              }
+                                                              // Rebuild current option texts for capture
+                                                              final currentOptions = optionControllers.map((c) => c.text).toList();
+
+                                                              // Capture final values before disposing controllers/notifiers
+                                                              final finalTitle = titleController.text;
+                                                              final finalDescription = descriptionController.text;
+                                                              final finalOptions = currentOptions;
+                                                              final finalOptionsEdited = optionsEditedNotifier.value;
+                                                              final finalAllowMultipleEdited = allowMultipleEditedNotifier.value;
+
+                                                              for (final node in optionFocusNodes) {
+                                                                node.dispose();
+                                                              }
+                                                              for (final c in optionControllers) {
+                                                                c.dispose();
+                                                              }
+                                                              titleController.dispose();
+                                                              descriptionController.dispose();
+                                                              descriptionLengthNotifier.dispose();
+                                                              optionsEditedNotifier.dispose();
+                                                              allowMultipleEditedNotifier.dispose();
+                                                              allowMultipleNotifier.dispose();
+                                                              optionsNotifier.dispose();
+
+                                                              // write back captured values to outer-scope vars
+                                                              editTitle = finalTitle;
+                                                              editDescription = finalDescription;
+                                                              editOptions = finalOptions;
+                                                              optionsEdited = finalOptionsEdited;
+                                                              allowMultipleEdited = finalAllowMultipleEdited;
+
+                                                              updated = true;
+                                                              Navigator.of(context).pop();
+                                                            },
+                                                            child: Text(translation('Save', context: context)),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ],
                                                   ),
                                                 ),
-                                              );
-                                            },
+                                              ),
+                                            ),
                                           );
                                         },
                                       );
                                       if (updated) {
-                                        await surveyService.updateSurvey(surveyId, {
-                                          'title': editTitle.trim(),
-                                          'options': [for (var o in editOptions) {'label': o.trim(), 'value': o.trim()}],
-                                          'allowMultiple': allowMultiple,
-                                        });
+                                        // sync notifier values back to local booleans
+                                        optionsEdited = optionsEditedNotifier.value;
+                                        allowMultipleEdited = allowMultipleEditedNotifier.value;
+                                        // rebuild editOptions from controllers to capture final texts
+                                        try {
+                                          editOptions = optionControllers.map((c) => c.text).toList();
+                                        } catch (_) {}
+
+                                        final Map<String, dynamic> payload = {};
+                                        // Always update title and description
+                                        payload['title'] = editTitle.trim();
+                                        payload['description'] = editDescription.trim();
+                                        if (optionsEdited || allowMultipleEdited) {
+                                          // Replacing options or changing allowMultiple will reset votes
+                                          payload['options'] = [for (var o in editOptions) {'label': o.trim(), 'value': o.trim()}];
+                                          payload['allowMultiple'] = allowMultiple;
+                                        }
+                                        await surveyService.updateSurvey(surveyId, payload);
                                       }
                                     },
                                   ),
@@ -439,149 +602,265 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
               floatingActionButton: FloatingActionButton(
                 onPressed: () async {
                   String newTitle = '';
+                  String newDescription = '';
                   List<String> newOptions = [''];
                   List<FocusNode> optionFocusNodes = [FocusNode()];
                   bool added = false;
                   bool allowMultiple = false;
+                  bool optionsEdited = false;
+                  bool allowMultipleEdited = false;
+                  // Use controllers and notifiers to avoid setState in the Add dialog
+                  final titleController = TextEditingController(text: newTitle);
+                  final descriptionController = TextEditingController(text: newDescription);
+                  final descriptionLengthNotifier = ValueNotifier<int>(descriptionController.text.length);
+                  final optionControllers = List<TextEditingController>.generate(
+                    newOptions.length,
+                    (i) => TextEditingController(text: newOptions[i]),
+                  );
+                  final removedOptionControllers = <TextEditingController>[];
+                  final removedOptionFocusNodes = <FocusNode>[];
+                  final optionsEditedNotifier = ValueNotifier<bool>(optionsEdited);
+                  final allowMultipleEditedNotifier = ValueNotifier<bool>(allowMultipleEdited);
+                  final allowMultipleNotifier = ValueNotifier<bool>(allowMultiple);
+                  final optionsNotifier = ValueNotifier<int>(optionControllers.length);
+
+                  descriptionController.addListener(() {
+                    descriptionLengthNotifier.value = descriptionController.text.length;
+                  });
+
                   await showDialog(
                     context: context,
                     builder: (context) {
-                      return StatefulBuilder(
-                        builder: (context, setStateDialog) {
-                          return Dialog(
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            child: Padding(
-                              padding: const EdgeInsets.all(20),
-                              child: SingleChildScrollView(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      translation('Add Survey', context: context),
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                      final formKey = GlobalKey<FormState>();
+                      return Dialog(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: SingleChildScrollView(
+                            child: Form(
+                              key: formKey,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    translation('Add Survey', context: context),
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  TextFormField(
+                                    controller: titleController,
+                                    autofocus: true,
+                                    decoration: InputDecoration(
+                                      labelText: translation('Survey Title', context: context),
+                                      border: const OutlineInputBorder(),
                                     ),
-                                    const SizedBox(height: 16),
-                                    TextField(
-                                      autofocus: true,
-                                      decoration: InputDecoration(
-                                        labelText: translation('Survey Title', context: context),
-                                        border: const OutlineInputBorder(),
-                                      ),
-                                      onChanged: (val) => newTitle = val,
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      translation('Options', context: context),
-                                      style: const TextStyle(fontWeight: FontWeight.w500),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    ...List.generate(newOptions.length, (i) => Row(
-                                      children: [
-                                        Expanded(
-                                          child: Padding(
-                                            padding: const EdgeInsets.all(8.0),
-                                            child: TextField(
-                                              focusNode: optionFocusNodes[i],
-                                              decoration: InputDecoration(
-                                                labelText: translation('Option', context: context) + ' ${i + 1}',
-                                                border: const OutlineInputBorder(),
-                                              ),
-                                              onChanged: (val) => newOptions[i] = val,
-                                            ),
-                                          ),
+                                    validator: (val) => (val == null || val.trim().isEmpty) ? translation('Please fill in the title', context: context) : null,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  ValueListenableBuilder<int>(
+                                    valueListenable: descriptionLengthNotifier,
+                                    builder: (context, len, _) {
+                                      return TextFormField(
+                                        controller: descriptionController,
+                                        maxLength: 250,
+                                        inputFormatters: [LengthLimitingTextInputFormatter(250)],
+                                        decoration: InputDecoration(
+                                          labelText: translation('Description (optional)', context: context) + ' (' + len.toString() + '/250)',
+                                          border: const OutlineInputBorder(),
+                                          counterText: '',
                                         ),
-                                        if (newOptions.length > 1)
-                                          IconButton(
-                                            icon: const Icon(Icons.remove_circle, color: Colors.red),
-                                            onPressed: () {
-                                              setStateDialog(() {
-                                                optionFocusNodes[i].dispose();
-                                                optionFocusNodes.removeAt(i);
-                                                newOptions.removeAt(i);
-                                              });
+                                      );
+                                    },
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    translation('Options', context: context),
+                                    style: const TextStyle(fontWeight: FontWeight.w500),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  ValueListenableBuilder<int>(
+                                    valueListenable: optionsNotifier,
+                                    builder: (context, _, __) {
+                                      return Column(
+                                        children: List.generate(optionControllers.length, (i) {
+                                          return Row(
+                                            children: [
+                                              Expanded(
+                                                child: Padding(
+                                                  padding: const EdgeInsets.all(8.0),
+                                                  child: TextFormField(
+                                                    focusNode: optionFocusNodes[i],
+                                                    controller: optionControllers[i],
+                                                    decoration: InputDecoration(
+                                                      labelText: translation('Option', context: context) + ' ${i + 1}',
+                                                      border: const OutlineInputBorder(),
+                                                    ),
+                                                    validator: (val) {
+                                                      if (val == null || val.trim().isEmpty) {
+                                                        return translation('Please fill in all fields', context: context);
+                                                      }
+                                                      return null;
+                                                    },
+                                                    onChanged: (val) {
+                                                      newOptions[i] = val;
+                                                      optionsEditedNotifier.value = true;
+                                                    },
+                                                  ),
+                                                ),
+                                              ),
+                                              if (optionControllers.length > 1)
+                                                IconButton(
+                                                  icon: const Icon(Icons.remove_circle, color: Colors.red),
+                                                  onPressed: () {
+                                                    final removedFocus = optionFocusNodes.removeAt(i);
+                                                    final removedController = optionControllers.removeAt(i);
+                                                    removedOptionFocusNodes.add(removedFocus);
+                                                    removedOptionControllers.add(removedController);
+                                                    newOptions.removeAt(i);
+                                                    optionsEditedNotifier.value = true;
+                                                    optionsNotifier.value = optionsNotifier.value + 1; // trigger rebuild
+                                                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                                                      for (final n in removedOptionFocusNodes) {
+                                                        try { n.dispose(); } catch (_) {}
+                                                      }
+                                                      for (final c in removedOptionControllers) {
+                                                        try { c.dispose(); } catch (_) {}
+                                                      }
+                                                      removedOptionFocusNodes.clear();
+                                                      removedOptionControllers.clear();
+                                                    });
+                                                  },
+                                                ),
+                                            ],
+                                          );
+                                        }),
+                                      );
+                                    },
+                                  ),
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: TextButton.icon(
+                                      icon: const Icon(Icons.add),
+                                      label: Text(translation('Add Option', context: context)),
+                                      onPressed: () {
+                                        optionControllers.add(TextEditingController(text: ''));
+                                        optionFocusNodes.add(FocusNode());
+                                        newOptions.add('');
+                                        optionsEditedNotifier.value = true;
+                                        optionsNotifier.value = optionsNotifier.value + 1; // trigger rebuild
+                                        Future.delayed(const Duration(milliseconds: 100), () {
+                                          if (optionFocusNodes.isNotEmpty) {
+                                            optionFocusNodes.last.requestFocus();
+                                          }
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        translation('Allow multiple answers', context: context),
+                                        style: const TextStyle(fontSize: 15),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      ValueListenableBuilder<bool>(
+                                        valueListenable: allowMultipleNotifier,
+                                        builder: (context, currentAllow, __) {
+                                          return Switch(
+                                            value: currentAllow,
+                                            onChanged: (val) {
+                                              allowMultiple = val;
+                                              allowMultipleNotifier.value = val;
+                                              allowMultipleEditedNotifier.value = true;
                                             },
-                                          ),
-                                      ],
-                                    )),
-                                    Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: TextButton.icon(
-                                        icon: const Icon(Icons.add),
-                                        label: Text(translation('Add Option', context: context)),
-                                        onPressed: () {
-                                          setStateDialog(() {
-                                            newOptions.add('');
-                                            optionFocusNodes.add(FocusNode());
-                                          });
-                                          Future.delayed(Duration(milliseconds: 100), () {
-                                            if (optionFocusNodes.isNotEmpty) {
-                                              optionFocusNodes.last.requestFocus();
-                                            }
-                                          });
+                                          );
                                         },
                                       ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Row(
-                                      children: [
-                                        Text(
-                                          translation('Allow multiple answers', context: context),
-                                          style: const TextStyle(fontSize: 15),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Switch(
-                                          value: allowMultiple,
-                                          onChanged: (val) {
-                                            setStateDialog(() {
-                                              allowMultiple = val;
-                                            });
-                                          },
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        TextButton(
-                                          onPressed: () {
-                                            for (final node in optionFocusNodes) {
-                                              node.dispose();
-                                            }
-                                            Navigator.of(context).pop();
-                                          },
-                                          child: Text(translation('Cancel', context: context)),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        ElevatedButton(
-                                          onPressed: () {
-                                            if (newTitle.trim().isEmpty || newOptions.any((o) => o.trim().isEmpty)) {
-                                              showCustomSnackBar(context, translation('Please fill in all fields', context: context));
-                                              return;
-                                            }
-                                            for (final node in optionFocusNodes) {
-                                              node.dispose();
-                                            }
-                                            added = true;
-                                            Navigator.of(context).pop();
-                                          },
-                                          child: Text(translation('Add', context: context)),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  // New survey — no need to warn about resetting votes because there are no existing votes yet.
+                                  const SizedBox.shrink(),
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      TextButton(
+                                        onPressed: () {
+                                          for (final node in optionFocusNodes) {
+                                            node.dispose();
+                                          }
+                                          for (final c in optionControllers) {
+                                            c.dispose();
+                                          }
+                                          titleController.dispose();
+                                          descriptionController.dispose();
+                                          descriptionLengthNotifier.dispose();
+                                          optionsEditedNotifier.dispose();
+                                          allowMultipleEditedNotifier.dispose();
+                                          allowMultipleNotifier.dispose();
+                                          optionsNotifier.dispose();
+                                          Navigator.of(context).pop();
+                                        },
+                                        child: Text(translation('Cancel', context: context)),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          // Validate form fields inline
+                                          if (!formKey.currentState!.validate()) {
+                                            return;
+                                          }
+                                          final currentOptions = optionControllers.map((c) => c.text).toList();
+
+                                          // Capture final values
+                                          final finalTitle = titleController.text;
+                                          final finalDescription = descriptionController.text;
+                                          final finalOptions = currentOptions;
+                                          final finalOptionsEdited = optionsEditedNotifier.value;
+                                          final finalAllowMultipleEdited = allowMultipleEditedNotifier.value;
+
+                                          for (final node in optionFocusNodes) {
+                                            node.dispose();
+                                          }
+                                          for (final c in optionControllers) {
+                                            c.dispose();
+                                          }
+                                          titleController.dispose();
+                                          descriptionController.dispose();
+                                          descriptionLengthNotifier.dispose();
+                                          optionsEditedNotifier.dispose();
+                                          allowMultipleEditedNotifier.dispose();
+                                          allowMultipleNotifier.dispose();
+                                          optionsNotifier.dispose();
+
+                                          newTitle = finalTitle;
+                                          newDescription = finalDescription;
+                                          newOptions = finalOptions;
+                                          optionsEdited = finalOptionsEdited;
+                                          allowMultipleEdited = finalAllowMultipleEdited;
+
+                                          added = true;
+                                          Navigator.of(context).pop();
+                                        },
+                                        child: Text(translation('Add', context: context)),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
                             ),
-                          );
-                        },
+                          ),
+                        ),
                       );
                     },
                   );
                   if (added) {
                     await surveyService.addSurvey({
                       'title': newTitle.trim(),
+                      'description': newDescription.trim(),
                       'options': [
                         for (var o in newOptions)
                           {'label': o.trim(), 'value': o.trim()},
