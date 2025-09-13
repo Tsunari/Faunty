@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:faunty/models/user_roles.dart';
+import 'package:faunty/tools/sort_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../state_management/user_list_provider.dart';
@@ -420,6 +421,7 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
   // watch users with roles hoca,baskan,talebe for the current place
   final rolesKey = [UserRole.talebe, UserRole.baskan, UserRole.hoca].map((r) => r.name).join(',');
   final usersAsync = ref.watch(usersByRolesAndPlaceProvider(rolesKey));
+  // final usersAsync = ref.watch(usersByRolesAndPlaceProviderWithOptions({'rolesKey': rolesKey, 'sort': const UserSortOption()})); DOESNT WORK RN
   final usersList = usersAsync.asData?.value ?? <UserEntity>[];
   final Map<String, UserEntity> usersByName = {for (var u in usersList) '${u.firstName} ${u.lastName}': u};
     final isEditing = editingRowIndex == index;

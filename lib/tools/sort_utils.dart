@@ -11,7 +11,7 @@ class UserSortOption {
   final UserSortField field;
   final SortOrder order;
 
-  const UserSortOption({required this.field, this.order = SortOrder.asc});
+  const UserSortOption({this.field = UserSortField.firstName, this.order = SortOrder.asc});
 }
 
 /// Returns a comparator for the given [option].

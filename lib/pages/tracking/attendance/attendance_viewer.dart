@@ -2,6 +2,7 @@ import 'package:faunty/components/custom_app_bar.dart';
 import 'package:faunty/components/role_gate.dart';
 import 'package:faunty/state_management/user_provider.dart';
 import 'package:faunty/models/user_roles.dart';
+import 'package:faunty/tools/sort_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../state_management/attendance_provider.dart';
@@ -38,6 +39,8 @@ class _AttendanceViewerState extends ConsumerState<AttendanceViewer> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final usersAsync = ref.watch(usersByCurrentPlaceProvider);
+    // final rolesKey = [UserRole.talebe, UserRole.baskan].map((r) => r.name).join(',');
+    // final usersAsync = ref.watch(usersByRolesAndPlaceProviderWithOptions({'rolesKey': rolesKey, 'sort': const UserSortOption()})); DOESNT WORK RN
     final currentUser = ref.watch(userProvider);
     final user = currentUser.asData?.value;
 
