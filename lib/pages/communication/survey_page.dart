@@ -137,6 +137,11 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                                         optionsDifferentNotifier.value = diff;
                                       }
 
+                                      // listeners for option controllers to auto-update diff state
+                                      for (final c in optionControllers) {
+                                        c.addListener(computeOptionsDifferent);
+                                      }
+
                                       // listen for allowMultiple changes to update diff notifier
                                       allowMultipleNotifier.addListener(() {
                                         allowMultipleDifferentNotifier.value = allowMultipleNotifier.value != initialAllowMultiple;
@@ -242,10 +247,14 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                                                                         // remove controller and focus node but defer disposal until after rebuild
                                                                         final removedFocus = optionFocusNodes.removeAt(i);
                                                                         final removedController = optionControllers.removeAt(i);
+                                                                        // detach listener so computeOptionsDifferent doesn't reference this controller
+                                                                        try { removedController.removeListener(computeOptionsDifferent); } catch (_) {}
                                                                         removedOptionFocusNodes.add(removedFocus);
                                                                         removedOptionControllers.add(removedController);
                                                                         editOptions.removeAt(i);
                                                                         optionsEditedNotifier.value = true;
+                                                                        // update diff state and trigger rebuild
+                                                                        computeOptionsDifferent();
                                                                         optionsNotifier.value = optionsNotifier.value + 1; // trigger rebuild
                                                                         WidgetsBinding.instance.addPostFrameCallback((_) {
                                                                           for (final n in removedOptionFocusNodes) {
@@ -271,12 +280,13 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                                                           icon: const Icon(Icons.add),
                                                           label: Text(translation('Add Option', context: context)),
                                                           onPressed: () {
-                                                            final c = TextEditingController(text: '');
-                                                            optionControllers.add(c);
+                                                            optionControllers.add(TextEditingController(text: ''));
+                                                            // attach diff listener to the new controller
+                                                            optionControllers.last.addListener(computeOptionsDifferent);
                                                             optionFocusNodes.add(FocusNode());
                                                             editOptions.add('');
                                                             optionsEditedNotifier.value = true;
-                                                            // recompute diff now that we added an option
+                                                            // update diff state and trigger rebuild
                                                             computeOptionsDifferent();
                                                             optionsNotifier.value = optionsNotifier.value + 1; // trigger rebuild
                                                             Future.delayed(const Duration(milliseconds: 100), () {
@@ -337,19 +347,8 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                                                         children: [
                                                           TextButton(
                                                             onPressed: () {
-                                                              for (final node in optionFocusNodes) {
-                                                                node.dispose();
-                                                              }
-                                                              for (final c in optionControllers) {
-                                                                c.dispose();
-                                                              }
-                                                              titleController.dispose();
-                                                              descriptionController.dispose();
-                                                              descriptionLengthNotifier.dispose();
-                                                              optionsEditedNotifier.dispose();
-                                                              allowMultipleEditedNotifier.dispose();
-                                                              allowMultipleNotifier.dispose();
-                                                              optionsNotifier.dispose();
+                                                              // Close dialog; cleanup happens after showDialog returns to avoid
+                                                              // disposing controllers while dialog widgets are still updating.
                                                               Navigator.of(context).pop();
                                                             },
                                                             child: Text(translation('Cancel', context: context)),
@@ -364,29 +363,13 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                                                               // Rebuild current option texts for capture
                                                               final currentOptions = optionControllers.map((c) => c.text).toList();
 
-                                                              // Capture final values before disposing controllers/notifiers
+                                                              // Capture final values before closing dialog; actual disposal is
+                                                              // delayed until after showDialog returns to avoid use-after-dispose.
                                                               final finalTitle = titleController.text;
                                                               final finalDescription = descriptionController.text;
                                                               final finalOptions = currentOptions;
-                                                              // Determine whether options/allowMultiple actually changed compared to the original
                                                               final finalOptionsEdited = optionsDifferentNotifier.value;
                                                               final finalAllowMultipleEdited = allowMultipleDifferentNotifier.value;
-
-                                                              for (final node in optionFocusNodes) {
-                                                                node.dispose();
-                                                              }
-                                                              for (final c in optionControllers) {
-                                                                c.dispose();
-                                                              }
-                                                              titleController.dispose();
-                                                              descriptionController.dispose();
-                                                              descriptionLengthNotifier.dispose();
-                                                              optionsEditedNotifier.dispose();
-                                                              allowMultipleEditedNotifier.dispose();
-                                                              allowMultipleNotifier.dispose();
-                                                              optionsDifferentNotifier.dispose();
-                                                              allowMultipleDifferentNotifier.dispose();
-                                                              optionsNotifier.dispose();
 
                                                               // write back captured values to outer-scope vars
                                                               editTitle = finalTitle;
@@ -430,6 +413,34 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                                         }
                                         await surveyService.updateSurvey(surveyId, payload);
                                       }
+                                      // Dispose controllers, focus nodes and notifiers safely after dialog closed
+                                      try {
+                                        for (final node in optionFocusNodes) {
+                                          try {
+                                            node.dispose();
+                                          } catch (_) {}
+                                        }
+                                        for (final c in optionControllers) {
+                                          try {
+                                            c.dispose();
+                                          } catch (_) {}
+                                        }
+                                        for (final n in removedOptionFocusNodes) {
+                                          try { n.dispose(); } catch (_) {}
+                                        }
+                                        for (final c in removedOptionControllers) {
+                                          try { c.dispose(); } catch (_) {}
+                                        }
+                                        try { titleController.dispose(); } catch (_) {}
+                                        try { descriptionController.dispose(); } catch (_) {}
+                                        try { descriptionLengthNotifier.dispose(); } catch (_) {}
+                                        try { optionsEditedNotifier.dispose(); } catch (_) {}
+                                        try { allowMultipleEditedNotifier.dispose(); } catch (_) {}
+                                        try { allowMultipleNotifier.dispose(); } catch (_) {}
+                                        try { optionsNotifier.dispose(); } catch (_) {}
+                                        try { optionsDifferentNotifier.dispose(); } catch (_) {}
+                                        try { allowMultipleDifferentNotifier.dispose(); } catch (_) {}
+                                      } catch (_) {}
                                     },
                                   ),
                                 ],
@@ -825,19 +836,7 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                                     children: [
                                       TextButton(
                                         onPressed: () {
-                                          for (final node in optionFocusNodes) {
-                                            node.dispose();
-                                          }
-                                          for (final c in optionControllers) {
-                                            c.dispose();
-                                          }
-                                          titleController.dispose();
-                                          descriptionController.dispose();
-                                          descriptionLengthNotifier.dispose();
-                                          optionsEditedNotifier.dispose();
-                                          allowMultipleEditedNotifier.dispose();
-                                          allowMultipleNotifier.dispose();
-                                          optionsNotifier.dispose();
+                                          // Close dialog; cleanup happens after showDialog returns
                                           Navigator.of(context).pop();
                                         },
                                         child: Text(translation('Cancel', context: context)),
@@ -851,26 +850,12 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                                           }
                                           final currentOptions = optionControllers.map((c) => c.text).toList();
 
-                                          // Capture final values
+                                          // Capture final values; actual disposal happens after dialog returns
                                           final finalTitle = titleController.text;
                                           final finalDescription = descriptionController.text;
                                           final finalOptions = currentOptions;
                                           final finalOptionsEdited = optionsEditedNotifier.value;
                                           final finalAllowMultipleEdited = allowMultipleEditedNotifier.value;
-
-                                          for (final node in optionFocusNodes) {
-                                            node.dispose();
-                                          }
-                                          for (final c in optionControllers) {
-                                            c.dispose();
-                                          }
-                                          titleController.dispose();
-                                          descriptionController.dispose();
-                                          descriptionLengthNotifier.dispose();
-                                          optionsEditedNotifier.dispose();
-                                          allowMultipleEditedNotifier.dispose();
-                                          allowMultipleNotifier.dispose();
-                                          optionsNotifier.dispose();
 
                                           newTitle = finalTitle;
                                           newDescription = finalDescription;
@@ -893,6 +878,29 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                       );
                     },
                   );
+                  // Dispose controllers, focus nodes and notifiers safely after dialog closed
+                  try {
+                    for (final node in optionFocusNodes) {
+                      try { node.dispose(); } catch (_) {}
+                    }
+                    for (final c in optionControllers) {
+                      try { c.dispose(); } catch (_) {}
+                    }
+                    for (final n in removedOptionFocusNodes) {
+                      try { n.dispose(); } catch (_) {}
+                    }
+                    for (final c in removedOptionControllers) {
+                      try { c.dispose(); } catch (_) {}
+                    }
+                    try { titleController.dispose(); } catch (_) {}
+                    try { descriptionController.dispose(); } catch (_) {}
+                    try { descriptionLengthNotifier.dispose(); } catch (_) {}
+                    try { optionsEditedNotifier.dispose(); } catch (_) {}
+                    try { allowMultipleEditedNotifier.dispose(); } catch (_) {}
+                    try { allowMultipleNotifier.dispose(); } catch (_) {}
+                    try { optionsNotifier.dispose(); } catch (_) {}
+                  } catch (_) {}
+
                   if (added) {
                     await surveyService.addSurvey({
                       'title': newTitle.trim(),
