@@ -89,7 +89,8 @@ class UsersPage extends ConsumerWidget {
                           ((role != UserRole.user &&
                            role != UserRole.spectator &&
                            role != UserRole.archived && 
-                           role != UserRole.unknown) || user.role.index <= UserRole.hoca.index)
+                           role != UserRole.unknown) || user.role.index <= UserRole.hoca.index) ||
+                          (role == UserRole.spectator && user.role == UserRole.spectator)
                           )
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
