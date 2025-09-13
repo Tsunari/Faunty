@@ -334,16 +334,47 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
   final _emailController = TextEditingController();
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
-  UserRole _selectedRole = UserRole.user;
+  UserRole _selectedRole = UserRole.talebe;
   bool _loading = false;
+  final bool _autoEmail = true;
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _firstNameController.removeListener(_updateEmail);
+    _lastNameController.removeListener(_updateEmail);
+    _emailController.removeListener(_updateEmail);
     _firstNameController.dispose();
     _lastNameController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
+
+  @override
+  void initState() {
+    super.initState();
+    // Keep email in sync when auto-email is enabled
+    _firstNameController.addListener(_updateEmail);
+    _lastNameController.addListener(_updateEmail);
+    _emailController.addListener(() {
+      // If user manually edits email while auto is enabled, keep it overridden
+      // (we will regenerate when auto is toggled on)
+    });
+    // initialize
+    _updateEmail();
+  }
+
+  void _updateEmail() {
+    if (!_autoEmail) return;
+    final f = _sanitize(_firstNameController.text);
+    final l = _sanitize(_lastNameController.text);
+    final generated = (f.isEmpty && l.isEmpty) ? '' : '${f.isEmpty ? 'user' : f}@${l.isEmpty ? 'example' : l}.com';
+    // Avoid triggering listeners recursively if same
+    if (_emailController.text != generated) {
+      _emailController.text = generated;
+    }
+  }
+
+  String _sanitize(String s) => s.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
 
   Future<void> _createUser() async {
     if (!_formKey.currentState!.validate()) return;
@@ -409,24 +440,6 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
             mainAxisSize: MainAxisSize.min,
             children: [
               TextFormField(
-                controller: _emailController,
-                decoration: InputDecoration(
-                  labelText: translation(context: context, 'Email'),
-                  hintText: 'user@example.com',
-                ),
-                keyboardType: TextInputType.emailAddress,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return translation(context: context, 'Please enter an email');
-                  }
-                  if (!value.contains('@')) {
-                    return translation(context: context, 'Please enter a valid email');
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
                 controller: _firstNameController,
                 decoration: InputDecoration(
                   labelText: translation(context: context, 'First Name'),
@@ -447,6 +460,24 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return translation(context: context, 'Please enter last name');
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _emailController,
+                decoration: InputDecoration(
+                  labelText: translation(context: context, 'Email'),
+                  hintText: 'user@example.com',
+                ),
+                keyboardType: TextInputType.emailAddress,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return translation(context: context, 'Please enter an email');
+                  }
+                  if (!value.contains('@')) {
+                    return translation(context: context, 'Please enter a valid email');
                   }
                   return null;
                 },
