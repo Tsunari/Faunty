@@ -111,10 +111,40 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                                       final allowMultipleEditedNotifier = ValueNotifier<bool>(allowMultipleEdited);
                                       final allowMultipleNotifier = ValueNotifier<bool>(allowMultiple);
                                       final optionsNotifier = ValueNotifier<int>(editOptions.length);
+                                      // Keep a snapshot of initial values to detect real changes
+                                      final initialOptionsSnapshot = editOptions.map((e) => e.trim()).toList();
+                                      final initialAllowMultiple = allowMultiple;
+                                      final optionsDifferentNotifier = ValueNotifier<bool>(false);
+                                      final allowMultipleDifferentNotifier = ValueNotifier<bool>(false);
                                       final optionControllers = List<TextEditingController>.generate(
                                         editOptions.length,
                                         (i) => TextEditingController(text: editOptions[i]),
                                       );
+                                      // compute if options differ from initial snapshot
+                                      void computeOptionsDifferent() {
+                                        final current = optionControllers.map((c) => c.text.trim()).toList();
+                                        var diff = false;
+                                        if (current.length != initialOptionsSnapshot.length) {
+                                          diff = true;
+                                        } else {
+                                          for (var i = 0; i < current.length; i++) {
+                                            if (current[i] != initialOptionsSnapshot[i]) {
+                                              diff = true;
+                                              break;
+                                            }
+                                          }
+                                        }
+                                        optionsDifferentNotifier.value = diff;
+                                      }
+
+                                      // listen for allowMultiple changes to update diff notifier
+                                      allowMultipleNotifier.addListener(() {
+                                        allowMultipleDifferentNotifier.value = allowMultipleNotifier.value != initialAllowMultiple;
+                                        // also mark edited when the value actually differs
+                                        if (allowMultipleNotifier.value != initialAllowMultiple) {
+                                          allowMultipleEditedNotifier.value = true;
+                                        }
+                                      });
                                       final removedOptionControllers = <TextEditingController>[];
                                       final removedOptionFocusNodes = <FocusNode>[];
                                       // ensure description length updates
@@ -241,10 +271,13 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                                                           icon: const Icon(Icons.add),
                                                           label: Text(translation('Add Option', context: context)),
                                                           onPressed: () {
-                                                            optionControllers.add(TextEditingController(text: ''));
+                                                            final c = TextEditingController(text: '');
+                                                            optionControllers.add(c);
                                                             optionFocusNodes.add(FocusNode());
                                                             editOptions.add('');
                                                             optionsEditedNotifier.value = true;
+                                                            // recompute diff now that we added an option
+                                                            computeOptionsDifferent();
                                                             optionsNotifier.value = optionsNotifier.value + 1; // trigger rebuild
                                                             Future.delayed(const Duration(milliseconds: 100), () {
                                                               if (optionFocusNodes.isNotEmpty) {
@@ -279,12 +312,12 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                                                       ),
                                                       const SizedBox(height: 8),
                                                       ValueListenableBuilder<bool>(
-                                                        valueListenable: optionsEditedNotifier,
-                                                        builder: (context, optEdited, _) {
+                                                        valueListenable: optionsDifferentNotifier,
+                                                        builder: (context, optDiff, _) {
                                                           return ValueListenableBuilder<bool>(
-                                                            valueListenable: allowMultipleEditedNotifier,
-                                                            builder: (context, allowEdited, __) {
-                                                              if (optEdited || allowEdited) {
+                                                            valueListenable: allowMultipleDifferentNotifier,
+                                                            builder: (context, allowDiff, __) {
+                                                              if (optDiff || allowDiff) {
                                                                 return Padding(
                                                                   padding: const EdgeInsets.only(bottom: 8.0),
                                                                   child: Text(
@@ -335,8 +368,9 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                                                               final finalTitle = titleController.text;
                                                               final finalDescription = descriptionController.text;
                                                               final finalOptions = currentOptions;
-                                                              final finalOptionsEdited = optionsEditedNotifier.value;
-                                                              final finalAllowMultipleEdited = allowMultipleEditedNotifier.value;
+                                                              // Determine whether options/allowMultiple actually changed compared to the original
+                                                              final finalOptionsEdited = optionsDifferentNotifier.value;
+                                                              final finalAllowMultipleEdited = allowMultipleDifferentNotifier.value;
 
                                                               for (final node in optionFocusNodes) {
                                                                 node.dispose();
@@ -350,6 +384,8 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                                                               optionsEditedNotifier.dispose();
                                                               allowMultipleEditedNotifier.dispose();
                                                               allowMultipleNotifier.dispose();
+                                                              optionsDifferentNotifier.dispose();
+                                                              allowMultipleDifferentNotifier.dispose();
                                                               optionsNotifier.dispose();
 
                                                               // write back captured values to outer-scope vars
