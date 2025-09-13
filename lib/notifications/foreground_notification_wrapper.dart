@@ -32,12 +32,14 @@ class _ForegroundNotificationWrapperState extends State<ForegroundNotificationWr
     // Foreground messages: show an in-app banner/snackbar
     _onMessageSub = _onMessageStream.listen((msg) {
       if (kDebugMode) print('ForegroundNotificationWrapper.onMessage: ${msg.messageId}');
+      if (!mounted) return; // avoid using context after dispose
       _showNotification(msg, openedFromAction: false);
     });
 
     // When user taps a notification (app in background -> foreground): show UI
     _onOpenedSub = _onMessageOpenedStream.listen((msg) {
       if (kDebugMode) print('ForegroundNotificationWrapper.onMessageOpenedApp: ${msg.messageId}');
+      if (!mounted) return;
       _showNotification(msg, openedFromAction: true);
     });
 
@@ -46,7 +48,10 @@ class _ForegroundNotificationWrapperState extends State<ForegroundNotificationWr
       if (msg != null) {
         if (kDebugMode) print('ForegroundNotificationWrapper.initialMessage: ${msg.messageId}');
         // Delay slightly so UI is ready
-        WidgetsBinding.instance.addPostFrameCallback((_) => _showNotification(msg, openedFromAction: true));
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _showNotification(msg, openedFromAction: true);
+        });
       }
     }).catchError((e) {
       if (kDebugMode) print('getInitialMessage error: $e');
@@ -66,6 +71,7 @@ class _ForegroundNotificationWrapperState extends State<ForegroundNotificationWr
       final body = msg.notification?.body ?? msg.data['body'] ?? '';
 
       // Prefer a MaterialBanner for a visible, tappable UI.
+      if (!mounted) return;
       final messenger = ScaffoldMessenger.maybeOf(context);
       if (messenger != null) {
         messenger.clearMaterialBanners();
@@ -101,58 +107,59 @@ class _ForegroundNotificationWrapperState extends State<ForegroundNotificationWr
       }
 
       // Overlay fallback if no ScaffoldMessenger is present.
-  final overlay = Overlay.of(context);
-        late final OverlayEntry entry;
-        entry = OverlayEntry(
-          builder: (ctx) => Positioned(
-            top: MediaQuery.of(ctx).padding.top + 8,
-            left: 16,
-            right: 16,
-            child: Material(
-              elevation: 6,
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: Theme.of(ctx).colorScheme.surface),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (title.isNotEmpty) Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          if (body.isNotEmpty) Text(body),
-                        ],
-                      ),
+      if (!mounted) return;
+      final overlay = Overlay.of(context);
+      late final OverlayEntry entry;
+      entry = OverlayEntry(
+        builder: (ctx) => Positioned(
+          top: MediaQuery.of(ctx).padding.top + 8,
+          left: 16,
+          right: 16,
+          child: Material(
+            elevation: 6,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: Theme.of(ctx).colorScheme.surface),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (title.isNotEmpty) Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        if (body.isNotEmpty) Text(body),
+                      ],
                     ),
-                    IconButton(
-                      onPressed: () {
-                        entry.remove();
-                      },
-                      icon: const Icon(Icons.close),
-                    ),
-                  ],
-                ),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      entry.remove();
+                    },
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
               ),
             ),
           ),
-        );
-        var inserted = false;
-        try {
-          overlay.insert(entry);
-          inserted = true;
-        } catch (e) {
-          if (kDebugMode) print('Overlay insert failed: $e');
-        }
-        if (inserted) {
-          Future.delayed(const Duration(seconds: 4), () {
-            try {
-              entry.remove();
-            } catch (_) {}
-          });
-          return;
-        }
+        ),
+      );
+      var inserted = false;
+      try {
+        overlay.insert(entry);
+        inserted = true;
+      } catch (e) {
+        if (kDebugMode) print('Overlay insert failed: $e');
+      }
+      if (inserted) {
+        Future.delayed(const Duration(seconds: 4), () {
+          try {
+            entry.remove();
+          } catch (_) {}
+        });
+        return;
+      }
 
       // Last resort: snackbar helper (may be no-op if no messenger)
       showCustomSnackBar(context, '${title.isNotEmpty ? '$title — ' : ''}$body');

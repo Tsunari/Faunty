@@ -292,16 +292,10 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                                                                         // update diff state and trigger rebuild
                                                                         computeOptionsDifferent();
                                                                         optionsNotifier.value = optionsNotifier.value + 1; // trigger rebuild
-                                                                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                                                                          for (final n in removedOptionFocusNodes) {
-                                                                            try { n.dispose(); } catch (_) {}
-                                                                          }
-                                                                          for (final c in removedOptionControllers) {
-                                                                            try { c.dispose(); } catch (_) {}
-                                                                          }
-                                                                          removedOptionFocusNodes.clear();
-                                                                          removedOptionControllers.clear();
-                                                                        });
+                                                                        // NOTE: disposal of removed controllers/focus nodes is deferred until
+                                                                        // the dialog is closed (see cleanup after showDialog). Disposing
+                                                                        // them immediately can cause "used after dispose" when the
+                                                                        // widget tree still references internal objects.
                                                                       },
                                                                     ),
                                                                 ],
@@ -450,33 +444,34 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                                         await surveyService.updateSurvey(surveyId, payload);
                                       }
                                       // Dispose controllers, focus nodes and notifiers safely after dialog closed
-                                      try {
-                                        for (final node in optionFocusNodes) {
-                                          try {
-                                            node.dispose();
-                                          } catch (_) {}
-                                        }
-                                        for (final c in optionControllers) {
-                                          try {
-                                            c.dispose();
-                                          } catch (_) {}
-                                        }
-                                        for (final n in removedOptionFocusNodes) {
-                                          try { n.dispose(); } catch (_) {}
-                                        }
-                                        for (final c in removedOptionControllers) {
-                                          try { c.dispose(); } catch (_) {}
-                                        }
-                                        try { titleController.dispose(); } catch (_) {}
-                                        try { descriptionController.dispose(); } catch (_) {}
-                                        try { descriptionLengthNotifier.dispose(); } catch (_) {}
-                                        try { optionsEditedNotifier.dispose(); } catch (_) {}
-                                        try { allowMultipleEditedNotifier.dispose(); } catch (_) {}
-                                        try { allowMultipleNotifier.dispose(); } catch (_) {}
-                                        try { optionsNotifier.dispose(); } catch (_) {}
-                                        try { optionsDifferentNotifier.dispose(); } catch (_) {}
-                                        try { allowMultipleDifferentNotifier.dispose(); } catch (_) {}
-                                      } catch (_) {}
+                                      // Deferring disposal to the next frame avoids disposing while
+                                      // the dialog is still running its close animation which can
+                                      // cause widgets to access disposed controllers.
+                                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                                        try {
+                                          for (final node in optionFocusNodes) {
+                                            try { node.dispose(); } catch (_) {}
+                                          }
+                                          for (final c in optionControllers) {
+                                            try { c.dispose(); } catch (_) {}
+                                          }
+                                          for (final n in removedOptionFocusNodes) {
+                                            try { n.dispose(); } catch (_) {}
+                                          }
+                                          for (final c in removedOptionControllers) {
+                                            try { c.dispose(); } catch (_) {}
+                                          }
+                                          try { titleController.dispose(); } catch (_) {}
+                                          try { descriptionController.dispose(); } catch (_) {}
+                                          try { descriptionLengthNotifier.dispose(); } catch (_) {}
+                                          try { optionsEditedNotifier.dispose(); } catch (_) {}
+                                          try { allowMultipleEditedNotifier.dispose(); } catch (_) {}
+                                          try { allowMultipleNotifier.dispose(); } catch (_) {}
+                                          try { optionsNotifier.dispose(); } catch (_) {}
+                                          try { optionsDifferentNotifier.dispose(); } catch (_) {}
+                                          try { allowMultipleDifferentNotifier.dispose(); } catch (_) {}
+                                        } catch (_) {}
+                                      });
                                     },
                                   ),
                                 ],
@@ -803,16 +798,8 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                                                     newOptions.removeAt(i);
                                                     optionsEditedNotifier.value = true;
                                                     optionsNotifier.value = optionsNotifier.value + 1; // trigger rebuild
-                                                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                                                      for (final n in removedOptionFocusNodes) {
-                                                        try { n.dispose(); } catch (_) {}
-                                                      }
-                                                      for (final c in removedOptionControllers) {
-                                                        try { c.dispose(); } catch (_) {}
-                                                      }
-                                                      removedOptionFocusNodes.clear();
-                                                      removedOptionControllers.clear();
-                                                    });
+                                                    // NOTE: disposal deferred until after dialog closes to avoid
+                                                    // use-after-dispose when the TextFormFields are still active.
                                                   },
                                                 ),
                                             ],
@@ -915,27 +902,29 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                     },
                   );
                   // Dispose controllers, focus nodes and notifiers safely after dialog closed
-                  try {
-                    for (final node in optionFocusNodes) {
-                      try { node.dispose(); } catch (_) {}
-                    }
-                    for (final c in optionControllers) {
-                      try { c.dispose(); } catch (_) {}
-                    }
-                    for (final n in removedOptionFocusNodes) {
-                      try { n.dispose(); } catch (_) {}
-                    }
-                    for (final c in removedOptionControllers) {
-                      try { c.dispose(); } catch (_) {}
-                    }
-                    try { titleController.dispose(); } catch (_) {}
-                    try { descriptionController.dispose(); } catch (_) {}
-                    try { descriptionLengthNotifier.dispose(); } catch (_) {}
-                    try { optionsEditedNotifier.dispose(); } catch (_) {}
-                    try { allowMultipleEditedNotifier.dispose(); } catch (_) {}
-                    try { allowMultipleNotifier.dispose(); } catch (_) {}
-                    try { optionsNotifier.dispose(); } catch (_) {}
-                  } catch (_) {}
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    try {
+                      for (final node in optionFocusNodes) {
+                        try { node.dispose(); } catch (_) {}
+                      }
+                      for (final c in optionControllers) {
+                        try { c.dispose(); } catch (_) {}
+                      }
+                      for (final n in removedOptionFocusNodes) {
+                        try { n.dispose(); } catch (_) {}
+                      }
+                      for (final c in removedOptionControllers) {
+                        try { c.dispose(); } catch (_) {}
+                      }
+                      try { titleController.dispose(); } catch (_) {}
+                      try { descriptionController.dispose(); } catch (_) {}
+                      try { descriptionLengthNotifier.dispose(); } catch (_) {}
+                      try { optionsEditedNotifier.dispose(); } catch (_) {}
+                      try { allowMultipleEditedNotifier.dispose(); } catch (_) {}
+                      try { allowMultipleNotifier.dispose(); } catch (_) {}
+                      try { optionsNotifier.dispose(); } catch (_) {}
+                    } catch (_) {}
+                  });
 
                   if (added) {
                     await surveyService.addSurvey({
