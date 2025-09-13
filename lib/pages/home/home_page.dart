@@ -14,6 +14,7 @@ import '../../state_management/user_provider.dart';
 import '../../state_management/program_provider.dart';
 import '../../state_management/catering_provider.dart';
 import '../../state_management/cleaning_provider.dart';
+import '../../state_management/firestore_quota_provider.dart';
 import 'home_drawer.dart';
 
 class HomePage extends ConsumerStatefulWidget {
@@ -160,6 +161,25 @@ class _HomePageState extends ConsumerState<HomePage> {
                     icon: const Icon(Icons.notifications),
                     onPressed: () async {
                       await showTokensDialog(context, ref);
+                    },
+                  ),
+                ),
+              ),
+              // Superuser-only manual flush button for testing quota buffers
+              RoleGate(
+                minRole: UserRole.superuser,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: IconButton(
+                    tooltip: translation(context: context, 'Flush quota buffers'),
+                    icon: const Icon(Icons.sync),
+                    onPressed: () async {
+                      try {
+                        await ref.read(firestoreQuotaProvider).flushNow();
+                        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(translation(context: context, 'Quota buffers flushed'))));
+                      } catch (e) {
+                        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(translation(context: context, 'Failed to flush quotas: ') + e.toString())));
+                      }
                     },
                   ),
                 ),

@@ -33,11 +33,11 @@ class AttendanceFirestoreService {
   }
 
   Future<void> setAttendance(String id, Map<String, dynamic> content) async {
-    await _attendanceCollection.doc(id).set(content);
+  await _attendanceCollection.doc(id).set(content);
   }
 
   Future<void> deleteAttendance(String id) async {
-    await _attendanceCollection.doc(id).delete();
+  await _attendanceCollection.doc(id).delete();
   }
 
   // Metadata doc to store items and default selection
@@ -56,7 +56,7 @@ class AttendanceFirestoreService {
   }
 
   Future<void> setAttendanceMeta(Map<String, dynamic> content) async {
-    await _metaDoc.set(content);
+  await _metaDoc.set(content);
   }
 
   /// Add a new item to the attendance meta and return its generated id.
@@ -66,7 +66,7 @@ class AttendanceFirestoreService {
     final items = (meta['items'] as List?)?.cast<Map<String, dynamic>>() ?? <Map<String, dynamic>>[];
     items.add({'id': id, 'name': name});
     meta['items'] = items;
-    await setAttendanceMeta(meta);
+  await setAttendanceMeta(meta);
     return id;
   }
 
@@ -80,7 +80,7 @@ class AttendanceFirestoreService {
       }
     }
     meta['items'] = items;
-    await setAttendanceMeta(meta);
+  await setAttendanceMeta(meta);
   }
 
   Future<void> removeAttendanceMetaItem(String id) async {
@@ -88,7 +88,7 @@ class AttendanceFirestoreService {
     final items = (meta['items'] as List?)?.map((e) => Map<String, dynamic>.from(e as Map)).toList() ?? <Map<String, dynamic>>[];
     items.removeWhere((it) => it['id'] == id);
     meta['items'] = items;
-    await setAttendanceMeta(meta);
+  await setAttendanceMeta(meta);
   }
 
   /// Atomically toggle presence for a single item field using arrayUnion/arrayRemove.

@@ -6,6 +6,7 @@ import '../../state_management/user_provider.dart';
 import '../../models/user_roles.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:faunty/tools/translation_helper.dart';
+import '../../state_management/firestore_quota_provider.dart';
 
 
 class UserWelcomePage extends ConsumerStatefulWidget {
@@ -173,6 +174,7 @@ class _UserWelcomePageState extends ConsumerState<UserWelcomePage> {
                                             'firstName': newFirst,
                                             'lastName': newLast,
                                           });
+                                          try { ref.read(firestoreQuotaProvider).recordWrite(); } catch (_) {}
                                           if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Name updated.'));
                                         } catch (e) {
                                           if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Failed to update name: ') + e.toString());

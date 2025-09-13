@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:faunty/tools/translation_helper.dart';
 import 'package:faunty/components/language_dropdown.dart';
 import '../state_management/user_provider.dart';
+import '../state_management/firestore_quota_provider.dart';
 
 Future<(User?, String?)> registerWithEmail(BuildContext context, String email, String password) async {
   try {
@@ -160,7 +161,8 @@ class _LoginPageState extends ConsumerState<LoginPage> with SingleTickerProvider
       });
       if (user != null) {
         // Fetch user document to determine role
-        final doc = await FirebaseFirestore.instance.collection('user_list').doc(user.uid).get();
+    final doc = await FirebaseFirestore.instance.collection('user_list').doc(user.uid).get();
+    try { ref.read(firestoreQuotaProvider).recordRead(); } catch (_) {}
         String? role;
         if (doc.exists && doc.data() != null) {
           final data = doc.data()!;
@@ -249,19 +251,20 @@ class _LoginPageState extends ConsumerState<LoginPage> with SingleTickerProvider
     if (user != null) {
       // Check if there's a placeholder user with this email in the selected place
       final placeholderQuery = await FirebaseFirestore.instance
-          .collection('user_list')
-          .where('email', isEqualTo: email)
-          .where('placeId', isEqualTo: _selectedPlace!.id)
-          .where('isPlaceholder', isEqualTo: true)
-          .limit(1)
-          .get();
+        .collection('user_list')
+        .where('email', isEqualTo: email)
+        .where('placeId', isEqualTo: _selectedPlace!.id)
+        .where('isPlaceholder', isEqualTo: true)
+        .limit(1)
+        .get();
+      try { ref.read(firestoreQuotaProvider).recordRead(); } catch (_) {}
 
       if (placeholderQuery.docs.isNotEmpty) {
         // Link with existing placeholder user
         final placeholderDoc = placeholderQuery.docs.first;
         final placeholderData = placeholderDoc.data();
 
-        await FirebaseFirestore.instance.collection('user_list').doc(user.uid).set({
+  await FirebaseFirestore.instance.collection('user_list').doc(user.uid).set({
           'uid': user.uid,
           'email': email,
           'placeId': placeholderData['placeId'] ?? _selectedPlace!.id,
@@ -271,12 +274,14 @@ class _LoginPageState extends ConsumerState<LoginPage> with SingleTickerProvider
           'linkedFromPlaceholder': true,
           'originalPlaceholderId': placeholderDoc.id,
         });
+  try { ref.read(firestoreQuotaProvider).recordWrite(); } catch (_) {}
 
         // Delete the placeholder user
-        await FirebaseFirestore.instance.collection('user_list').doc(placeholderDoc.id).delete();
+  await FirebaseFirestore.instance.collection('user_list').doc(placeholderDoc.id).delete();
+  try { ref.read(firestoreQuotaProvider).recordWrite(); } catch (_) {}
       } else {
         // Normal registration - create new user
-        await FirebaseFirestore.instance.collection('user_list').doc(user.uid).set({
+  await FirebaseFirestore.instance.collection('user_list').doc(user.uid).set({
           'uid': user.uid,
           'email': email,
           'placeId': _selectedPlace!.id,
@@ -284,6 +289,7 @@ class _LoginPageState extends ConsumerState<LoginPage> with SingleTickerProvider
           'lastName': lastName,
           'role': 'User',
         });
+  try { ref.read(firestoreQuotaProvider).recordWrite(); } catch (_) {}
       }
 
       // Invalidate userProvider to ensure fresh user state from StreamProvider

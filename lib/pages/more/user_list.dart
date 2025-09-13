@@ -4,6 +4,8 @@ import 'package:faunty/tools/translation_helper.dart';
 import 'package:faunty/components/custom_confirm_dialog.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
+import '../../state_management/firestore_quota_provider.dart';
 import '../../models/user_entity.dart';
 import '../../models/user_roles.dart';
 import 'users_page.dart';
@@ -133,6 +135,8 @@ class UserListWithScrollbarState extends State<UserListWithScrollbar> {
                                 if (confirmed != true) return;
                                 try {
                                   await FirebaseFirestore.instance.collection('user_list').doc(u.uid).delete();
+                                  // record write
+                                  try { ProviderScope.containerOf(context).read(firestoreQuotaProvider).recordWrite(); } catch (_) {}
                                   if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Placeholder user deleted.'));
                                 } catch (e) {
                                   if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Failed to delete user: ') + e.toString());
