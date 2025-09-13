@@ -56,7 +56,7 @@ class AttendanceFirestoreService {
   }
 
   Future<void> setAttendanceMeta(Map<String, dynamic> content) async {
-  await _metaDoc.set(content);
+    await _metaDoc.set(content);
   }
 
   /// Add a new item to the attendance meta and return its generated id.

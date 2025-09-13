@@ -46,12 +46,22 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
   String _selectedItem = '';
   int _numDays = 30; // initial window size
   Map<String, dynamic> _attendanceCache = {};
+  // cache for quick uid -> display name lookup to avoid repeated firstWhere calls
+  late final Map<String, String> _displayNameMap = {};
+  // last seen uid->role mapping to detect in-place role changes
+  final Map<String, UserRole> _lastKnownRoles = {};
+  // cache generated columns for current _startDay/_numDays window
+  List<String>? _columnsCache;
+  int? _columnsCacheNumDays;
+  int? _columnsCacheStartEpoch;
   // pending optimistic changes keyed by "date|item|user" -> bool (checked)
   late final ValueNotifier<Map<String, bool>> _pendingVN;
   late final _AttendanceBatcher _batcher;
   bool _isExtending = false;
   static const int _pageDays = 30;
   static const double _colWidthConst = 36.0;
+  // last first-visible column index observed (used for simple virtualization)
+  int _lastFirstVisibleCol = 0;
 
   @override
   void initState() {
@@ -97,6 +107,8 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
     // keep pending markers until server confirms the change
     _batcher = _AttendanceBatcher(widget.placeId);
     _pendingVN = ValueNotifier<Map<String, bool>>({});
+  // build initial display name cache and record roles
+  _updateUsersCache();
     if (_selectedItem.isEmpty) {
       SharedPreferences.getInstance().then((sp) {
         final key = 'attendance_default_${widget.placeId}';
@@ -126,16 +138,104 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
   @override
   void didUpdateWidget(covariant AttendanceTable oldWidget) {
     super.didUpdateWidget(oldWidget);
+    var needRebuild = false;
     if (oldWidget.attendance != widget.attendance) {
-      setState(() {
-        _attendanceCache = Map<String, dynamic>.from(widget.attendance);
-      });
+      _attendanceCache = Map<String, dynamic>.from(widget.attendance);
+      needRebuild = true;
     }
+
+    // If the attendance map instance didn't change, it might still have been mutated
+    // (for example the 'roster' nested list). Detect roster changes and merge them into
+    // our cache so UI stays up-to-date while still benefiting from caching.
+    final incomingRoster = (widget.attendance['roster'] as List?)?.cast<String>();
+    final cachedRoster = (_attendanceCache['roster'] as List?)?.cast<String>();
+    if (!_listEquals(incomingRoster ?? <String>[], cachedRoster ?? <String>[]) ) {
+      // merge roster into cache
+      if (incomingRoster == null) {
+        _attendanceCache.remove('roster');
+      } else {
+        _attendanceCache['roster'] = List<String>.from(incomingRoster);
+      }
+      needRebuild = true;
+    }
+
+    // If users list changed (by uid) we should update UI and clean up state such as expanded rows.
+    final oldUids = oldWidget.users.map((u) => u.uid).toList();
+    final newUids = widget.users.map((u) => u.uid).toList();
+    // Rebuild if uid list changed
+    if (!_listEquals(oldUids, newUids)) {
+      final existing = newUids.toSet();
+      final nextExpanded = _expandedVN.value.where((e) => existing.contains(e)).toSet();
+      _expandedVN.value = nextExpanded;
+      needRebuild = true;
+      _updateUsersCache();
+    } else {
+      // Uid list is same, but roles or other user properties might have changed.
+      // Detect role changes by comparing uid->role signature.
+      final oldRoles = {for (var u in oldWidget.users) u.uid: u.role};
+      final newRoles = {for (var u in widget.users) u.uid: u.role};
+      if (!_mapEquals(oldRoles, newRoles)) {
+        needRebuild = true;
+        _updateUsersCache();
+      }
+    }
+
+    if (needRebuild) setState(() {});
+  }
+
+  void _updateUsersCache() {
+    _displayNameMap.clear();
+    _lastKnownRoles.clear();
+    for (final u in widget.users) {
+      final full = '${u.firstName} ${u.lastName}'.trim();
+      _displayNameMap[u.uid] = full.isEmpty ? u.uid : full;
+      _lastKnownRoles[u.uid] = u.role;
+    }
+  }
+
+  List<String> _buildColumns() {
+    final startEpoch = _startDay.millisecondsSinceEpoch ~/ Duration.millisecondsPerDay;
+    if (_columnsCache != null && _columnsCacheNumDays == _numDays && _columnsCacheStartEpoch == startEpoch) {
+      return _columnsCache!;
+    }
+    final cols = List.generate(
+      _numDays,
+      (i) => _fmt(_startDay.add(Duration(days: i))),
+    );
+    _columnsCache = cols;
+    _columnsCacheNumDays = _numDays;
+    _columnsCacheStartEpoch = startEpoch;
+    return cols;
+  }
+
+  bool _listEquals(List<String> a, List<String> b) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  bool _mapEquals(Map<String, dynamic> a, Map<String, dynamic> b) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (final k in a.keys) {
+      if (!b.containsKey(k)) return false;
+      if (a[k] != b[k]) return false;
+    }
+    return true;
   }
 
   void _onHorizontalScroll() {
     if (!_timeScrollCtrl.hasClients || _isExtending) return;
     final pos = _timeScrollCtrl.position;
+    final firstIndexNow = (pos.pixels / _colWidthConst).floor().clamp(0, _numDays - 1);
+    if (firstIndexNow != _lastFirstVisibleCol) {
+      _lastFirstVisibleCol = firstIndexNow;
+      // trigger rebuild so we only create visible columns (CRAZY PERFORMANCE WIN)
+      setState(() {});
+    }
     const double threshold = _colWidthConst * 8;
     if (pos.maxScrollExtent - pos.pixels < threshold) {
       setState(() {
@@ -206,25 +306,55 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final users = widget.users;
+    // Keep display name and role caches up-to-date even if the provider mutated
+    // the users list in-place. This is intentionally done without calling
+    // setState to avoid losing rebuild optimizations; updating the cache is
+    // cheap and only affects local lookup maps used during rendering.
+    var usersCacheMismatch = false;
+    if (_lastKnownRoles.length != users.length) {
+      usersCacheMismatch = true;
+    } else {
+      for (final u in users) {
+        final last = _lastKnownRoles[u.uid];
+        if (last != u.role) {
+          usersCacheMismatch = true;
+          break;
+        }
+      }
+    }
+    if (usersCacheMismatch) {
+      _updateUsersCache();
+    }
     final itemsMeta = widget.attendanceItems;
     final attendance = _attendanceCache;
 
-  // Prefer roster provided by attendance stream (AttendanceFirestoreService adds it),
-  // otherwise fall back to the full users list.
-  final List<String> roster = (attendance['roster'] as List?)?.cast<String>() ?? users.map((u) => u.uid).toList();
-    // helper to get display name for uid
-    String displayNameFor(String uid) {
-      final u = users.firstWhere(
-        (e) => e.uid == uid,
-        orElse: () => UserEntity(uid: uid, email: '', firstName: '', lastName: '', role: UserRole.user, placeId: ''),
-      );
-      final full = '${u.firstName} ${u.lastName}'.trim();
-      return full.isEmpty ? uid : full;
-    }
-    final List<String> columns = List.generate(
-      _numDays,
-      (i) => _fmt(_startDay.add(Duration(days: i))),
-    );
+    // Prefer roster provided by attendance stream (AttendanceFirestoreService adds it),
+    // otherwise derive roster from users but only include roles that should appear in attendance.
+    final providedRoster = (attendance['roster'] as List?)?.cast<String>();
+    // If attendance provides a roster, treat it as authoritative but still filter
+    // against current users and their roles - this ensures role changes hide users
+    // even if the roster was cached and not updated.
+    final List<String> roster = (providedRoster != null)
+        ? providedRoster.where((uid) {
+            final u = users.cast<UserEntity?>().firstWhere((e) => e?.uid == uid, orElse: () => null);
+            if (u == null) return false;
+            return u.role == UserRole.talebe || u.role == UserRole.baskan;
+          }).toList()
+        : users.where((u) {
+            // Only show talebe and baskan in roster by default; adjust roles here as needed.
+            return u.role == UserRole.talebe || u.role == UserRole.baskan;
+          }).map((u) => u.uid).toList();
+  // helper to get display name for uid using cached map
+  String displayNameFor(String uid) => _displayNameMap[uid] ?? uid;
+  final List<String> columns = _buildColumns();
+  // virtualization window: build only visible columns plus a small buffer
+  final visibleWidth = MediaQuery.of(context).size.width - 170 - 24; // availableWidth used later
+  final visibleColsCount = (visibleWidth / _colWidthConst).ceil() + 4; // buffer
+  final firstVisible = _lastFirstVisibleCol.clamp(0, columns.length - 1);
+  final startCol = firstVisible;
+  final endCol = (firstVisible + visibleColsCount).clamp(0, columns.length);
+  final leftSpacerWidth = startCol * _colWidthConst;
+  final rightSpacerWidth = math.max(0.0, (columns.length - endCol) * _colWidthConst);
 
     final double nameColWidth = 170;
     final double rowHeight = 28;
@@ -447,11 +577,13 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
                                                 ),
                                                 child: Row(
                                                   children: [
-                                                    for (final d in columns)
+                                                    // left spacer to keep scroll position consistent
+                                                    SizedBox(width: leftSpacerWidth),
+                                                    for (int ci = startCol; ci < endCol; ci++)
                                                       Container(
                                                         width: dayColWidth,
                                                         decoration: BoxDecoration(
-                                                          color: d == _todayKey ? theme.colorScheme.primary.withOpacity(0.06) : null,
+                                                          color: columns[ci] == _todayKey ? theme.colorScheme.primary.withOpacity(0.06) : null,
                                                           border: Border(
                                                             right: BorderSide(color: theme.dividerColor.withOpacity(0.2)),
                                                           ),
@@ -462,7 +594,7 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
                                                             child: RepaintBoundary(
                                                               child: _InlineCell(
                                                                 placeId: widget.placeId,
-                                                                dateKey: d,
+                                                                dateKey: columns[ci],
                                                                 userId: userId,
                                                                 attendance: attendance,
                                                                 itemName: it['id'] as String,
@@ -480,6 +612,8 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
                                                           ),
                                                         ),
                                                       ),
+                                                    // right spacer to preserve total width
+                                                    SizedBox(width: rightSpacerWidth),
                                                   ],
                                                 ),
                                               ),
@@ -593,9 +727,9 @@ class _InlineCellState extends State<_InlineCell> {
     final key = '${widget.dateKey}|${widget.itemName}|${widget.userId}';
     final pending = widget.pendingLookup?.call(key);
     if (pending != null) return pending;
-    final dateRec = Map<String, dynamic>.from(widget.attendance[widget.dateKey] as Map? ?? {});
-    final rec = Map<String, dynamic>.from(dateRec[widget.itemName] as Map? ?? {});
-    final present = (rec['present'] as List?)?.cast<String>() ?? const <String>[];
+    final dateRec = widget.attendance[widget.dateKey] as Map<String, dynamic>?;
+    final rec = dateRec == null ? null : (dateRec[widget.itemName] as Map<String, dynamic>?);
+    final present = rec == null ? const <String>[] : (rec['present'] as List?)?.cast<String>() ?? const <String>[];
     return present.contains(widget.userId);
   }
 

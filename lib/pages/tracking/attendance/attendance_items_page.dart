@@ -35,6 +35,7 @@ class _AttendanceItemsPageState extends ConsumerState<AttendanceItemsPage> {
 
   Future<void> _load() async {
     final meta = await AttendanceFirestoreService(widget.placeId).getAttendanceMeta();
+    if (!mounted) return;
     setState(() {
       _items = (meta['items'] as List?)?.map((e) => Map<String, dynamic>.from(e as Map)).toList() ?? <Map<String, dynamic>>[];
       _loading = false;
@@ -52,17 +53,18 @@ class _AttendanceItemsPageState extends ConsumerState<AttendanceItemsPage> {
     if (val.isEmpty) return;
     // create via service to get stable id
     final id = await AttendanceFirestoreService(widget.placeId).addAttendanceMetaItem(val);
+    if (!mounted) return;
     setState(() {
-  _items.add({'id': id, 'name': val});
+      _items.add({'id': id, 'name': val});
       _newCtrl.clear();
     });
     await _save();
   }
 
   Future<void> _startEdit(int idx) async {
-  _editingIndex = idx;
-  _editCtrls[idx] = TextEditingController(text: _items[idx]['name'] as String? ?? '');
-    setState(() {});
+    _editingIndex = idx;
+    _editCtrls[idx] = TextEditingController(text: _items[idx]['name'] as String? ?? '');
+    if (mounted) setState(() {});
   }
 
   Future<void> _commitEdit(int idx) async {
@@ -73,6 +75,7 @@ class _AttendanceItemsPageState extends ConsumerState<AttendanceItemsPage> {
     if ((_items[idx]['name'] as String? ?? '') != val) {
       final id = _items[idx]['id'] as String;
       await AttendanceFirestoreService(widget.placeId).renameAttendanceMetaItem(id, val);
+      if (!mounted) return;
       setState(() => _items[idx]['name'] = val);
       await _save();
     }
@@ -83,7 +86,7 @@ class _AttendanceItemsPageState extends ConsumerState<AttendanceItemsPage> {
     _editCtrls[idx]?.dispose();
     _editCtrls.remove(idx);
     _editingIndex = null;
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
   Future<void> _removeItem(int index) async {
@@ -101,9 +104,14 @@ class _AttendanceItemsPageState extends ConsumerState<AttendanceItemsPage> {
     );
     if (ok != true) return;
     final id = _items[index]['id'] as String;
-    setState(() {
+    if (mounted) {
+      setState(() {
+        _items.removeAt(index);
+      });
+    } else {
+      // if widget is gone, just mutate the list to keep consistency
       _items.removeAt(index);
-    });
+    }
     await AttendanceFirestoreService(widget.placeId).removeAttendanceMetaItem(id);
     await _save();
   }
