@@ -12,6 +12,7 @@ import '../../models/user_roles.dart';
 import '../../firestore/user_firestore_service.dart';
 import '../../models/user_entity.dart';
 import '../../tools/translation_helper.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// A modern drawer used on the Home page.
 /// Shows basic user info and a list of places that open a modern popout when tapped.
@@ -312,10 +313,6 @@ class HomeDrawer extends ConsumerWidget {
                     Row(
                       children: [
                         Expanded(child: Text(place.displayName ?? place.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold))),
-                        IconButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          icon: const Icon(Icons.close),
-                        ),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -328,112 +325,171 @@ class HomeDrawer extends ConsumerWidget {
                     if (place.description != null && place.description!.isNotEmpty)
                       Text(place.description!, style: Theme.of(context).textTheme.bodyMedium),
                     const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Chip(label: Text('${translation(context: context, 'ID')}: ${place.id}')),
-                        const SizedBox(width: 8),
-                        RoleGate(
-                          minRole: UserRole.superuser,
-                          fallback: Chip(
-                            label: Text(
-                              '${translation(context: context, 'Registration mode')}: ${place.registrationMode ? translation(context: context, 'On') : translation(context: context, 'Off')}',
-                            ),
-                            backgroundColor: place.registrationMode
-                                ? Theme.of(context).colorScheme.primary.withOpacity(0.12)
-                                : Theme.of(context).colorScheme.surface,
-                          ),
-                          // For superusers, provide a Consumer-wrapped tappable chip that watches the places stream
-                          child: Consumer(builder: (ctx, ref2, _) {
-                            final placesAsync = ref2.watch(placeStreamProvider);
-                            final current = placesAsync.asData?.value.firstWhere((pl) => pl.id == place.id, orElse: () => place);
-                            final regOn = current?.registrationMode ?? place.registrationMode;
-                            return InkWell(
-                              borderRadius: BorderRadius.circular(16),
-                              onTap: () async {
-                                try {
-                                  await PlaceFirestoreService.updatePlace(place.id, {'registrationMode': !regOn});
-                                  if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Registration mode updated'));
-                                } catch (e) {
-                                  if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Error updating registration mode: $e'));
-                                }
-                              },
-                              child: Chip(
-                                label: Text('${translation(context: context, 'Registration mode')}: ${regOn ? translation(context: context, 'On') : translation(context: context, 'Off')}'),
-                                backgroundColor: regOn ? Theme.of(context).colorScheme.primary.withOpacity(0.12) : Theme.of(context).colorScheme.surface,
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        children: [
+                          Chip(label: Text('${translation(context: context, 'ID')}: ${place.id}')),
+                          const SizedBox(width: 8),
+                          RoleGate(
+                            minRole: UserRole.superuser,
+                            fallback: Chip(
+                              label: Text(
+                                '${translation(context: context, 'Registration mode')}: ${place.registrationMode ? translation(context: context, 'On') : translation(context: context, 'Off')}',
                               ),
-                            );
-                          }),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
-                    // Action buttons placeholder
-                    Row(
-                      children: [
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            // Close and navigate to place page (optional)
-                            Navigator.of(context).pop();
-                          },
-                          icon: const Icon(Icons.open_in_new),
-                          label: Text(translation(context: context, 'Open')),
-                        ),
-                        const SizedBox(width: 12),
-                        OutlinedButton.icon(
-                          onPressed: () => Navigator.of(context).pop(),
-                          icon: const Icon(Icons.close),
-                          label: Text(translation(context: context, 'Close')),
-                        ),
-                        const SizedBox(width: 12),
-                        // Superuser action: change current user's place to this place
-                        RoleGate(
-                          minRole: UserRole.superuser,
-                          child: ElevatedButton.icon(
-                            // style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.secondary),
-                            onPressed: () async {
-                              final confirm = await showDialog<bool?>(
-                                context: context,
-                                builder: (ctx) => AlertDialog(
-                                  title: Text(translation(context: context, 'Change user place')),
-                                  content: Text(translation(context: context, 'Do you want to set your current place to "${place.displayName ?? place.name}"?')),
-                                  actions: [
-                                    TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(translation(context: context, 'Cancel'))),
-                                    ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: Text(translation(context: context, 'Yes'))),
-                                  ],
+                              backgroundColor: place.registrationMode
+                                  ? Theme.of(context).colorScheme.primary.withOpacity(0.12)
+                                  : Theme.of(context).colorScheme.surface,
+                            ),
+                            // For superusers, provide a Consumer-wrapped tappable chip that watches the places stream
+                            child: Consumer(builder: (ctx, ref2, _) {
+                              final placesAsync = ref2.watch(placeStreamProvider);
+                              final current = placesAsync.asData?.value.firstWhere((pl) => pl.id == place.id, orElse: () => place);
+                              final regOn = current?.registrationMode ?? place.registrationMode;
+                              return InkWell(
+                                borderRadius: BorderRadius.circular(16),
+                                onTap: () async {
+                                  try {
+                                    await PlaceFirestoreService.updatePlace(place.id, {'registrationMode': !regOn});
+                                    if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Registration mode updated'));
+                                  } catch (e) {
+                                    if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Error updating registration mode: $e'));
+                                  }
+                                },
+                                child: Chip(
+                                  label: Text('${translation(context: context, 'Registration mode')}: ${regOn ? translation(context: context, 'On') : translation(context: context, 'Off')}'),
+                                  backgroundColor: regOn ? Theme.of(context).colorScheme.primary.withOpacity(0.12) : Theme.of(context).colorScheme.surface,
                                 ),
                               );
-                              if (confirm != true) return;
-                              // get current user
-                              final userAsync = ref.read(userProvider);
-                              final currentUser = userAsync.asData?.value;
-                              if (currentUser == null) {
-                                if (context.mounted) showCustomSnackBar(context, translation(context: context, 'No current user loaded'));
-                                return;
-                              }
-                              final updated = UserEntity(
-                                uid: currentUser.uid,
-                                email: currentUser.email,
-                                firstName: currentUser.firstName,
-                                lastName: currentUser.lastName,
-                                role: currentUser.role,
-                                placeId: place.id,
-                                isPlaceholder: currentUser.isPlaceholder,
-                              );
-                              try {
-                                await UserFirestoreService().updateUser(updated);
-                                if (context.mounted) {
-                                  showCustomSnackBar(context, translation(context: context, 'Place updated'));
-                                  Navigator.of(context).pop();
-                                }
-                              } catch (e) {
-                                if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Error updating place: $e'));
-                              }
-                            },
-                            icon: const Icon(Icons.swap_horiz),
-                            label: Text(translation(context: context, 'Set as my place')),
+                            }),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    // Action buttons placeholder (horizontally scrollable)
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        children: [
+                          if (place.mapsUrl != null && place.mapsUrl!.isNotEmpty) ...[
+                            ElevatedButton.icon(
+                              onPressed: () async {
+                                final uri = Uri.tryParse(place.mapsUrl!);
+                                if (uri == null) {
+                                  if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Invalid Maps URL'));
+                                  return;
+                                }
+                                try {
+                                  if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+                                    if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Could not open URL'));
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Error opening URL: $e'));
+                                }
+                              },
+                              icon: const Icon(Icons.map),
+                              label: Text(translation(context: context, 'Open in Maps')),
+                            ),
+                            const SizedBox(width: 12),
+                          ],
+
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              // Close and navigate to place page (optional)
+                              Navigator.of(context).pop();
+                            },
+                            icon: const Icon(Icons.open_in_new),
+                            label: Text(translation(context: context, 'Open')),
+                          ),
+                          const SizedBox(width: 12),
+
+                          // Superuser action: change current user's place to this place
+                          RoleGate(
+                            minRole: UserRole.hoca,
+                            child: ElevatedButton.icon(
+                              onPressed: () async {
+                                final confirm = await showDialog<bool?>(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    title: Text(translation(context: context, 'Change user place')),
+                                    content: Text(translation(context: context, 'Do you want to set your current place to "${place.displayName ?? place.name}"?')),
+                                    actions: [
+                                      TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(translation(context: context, 'Cancel'))),
+                                      ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: Text(translation(context: context, 'Yes'))),
+                                    ],
+                                  ),
+                                );
+                                if (confirm != true) return;
+                                // get current user
+                                final userAsync = ref.read(userProvider);
+                                final currentUser = userAsync.asData?.value;
+                                if (currentUser == null) {
+                                  if (context.mounted) showCustomSnackBar(context, translation(context: context, 'No current user loaded'));
+                                  return;
+                                }
+                                final updated = UserEntity(
+                                  uid: currentUser.uid,
+                                  email: currentUser.email,
+                                  firstName: currentUser.firstName,
+                                  lastName: currentUser.lastName,
+                                  role: currentUser.role,
+                                  placeId: place.id,
+                                  isPlaceholder: currentUser.isPlaceholder,
+                                );
+                                try {
+                                  await UserFirestoreService().updateUser(updated);
+                                  if (context.mounted) {
+                                    showCustomSnackBar(context, translation(context: context, 'Place updated'));
+                                    Navigator.of(context).pop();
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Error updating place: $e'));
+                                }
+                              },
+                              icon: const Icon(Icons.swap_horiz),
+                              label: Text(translation(context: context, 'Set as my place')),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+
+                          // Superuser: connect or update Google Maps link
+                          RoleGate(
+                            minRole: UserRole.superuser,
+                            child: ElevatedButton.icon(
+                              onPressed: () async {
+                                final controller = TextEditingController(text: place.mapsUrl ?? '');
+                                final result = await showDialog<String?>(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    title: Text(translation(context: context, 'Connect Google Maps')),
+                                    content: TextField(
+                                      controller: controller,
+                                      decoration: InputDecoration(hintText: translation(context: context, 'Paste maps link here (https://...)')),
+                                    ),
+                                    actions: [
+                                      TextButton(onPressed: () => Navigator.of(ctx).pop(), child: Text(translation(context: context, 'Cancel'))),
+                                      ElevatedButton(onPressed: () => Navigator.of(ctx).pop(controller.text.trim()), child: Text(translation(context: context, 'Save'))),
+                                    ],
+                                  ),
+                                );
+                                if (result == null) return;
+                                final trimmed = result.trim();
+                                try {
+                                  await PlaceFirestoreService.updatePlace(place.id, {'mapsUrl': trimmed});
+                                  if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Maps link updated'));
+                                } catch (e) {
+                                  if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Error saving Maps link: $e'));
+                                }
+                              },
+                              icon: const Icon(Icons.link),
+                              label: Text(translation(context: context, 'Connect place')),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 36),
                   ],

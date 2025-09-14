@@ -7,12 +7,14 @@ class PlaceModel {
   final String? displayName;
   final String? description;
   final String? imageUrl;
+  final String? mapsUrl;
   final bool registrationMode;
 
   PlaceModel({
     required this.id,
     required this.name,
     this.displayName,
+    this.mapsUrl,
     this.description,
     this.imageUrl,
     this.registrationMode = false,
@@ -33,6 +35,7 @@ class PlaceModel {
       id: doc.id,
       name: data['name'] ?? '',
       displayName: data['displayName'],
+      mapsUrl: data['mapsUrl'],
       description: data['description'],
       imageUrl: data['imageUrl'],
       registrationMode: data['registrationMode'] ?? false,
@@ -43,6 +46,7 @@ class PlaceModel {
     return {
       'name': name,
       if (displayName != null) 'displayName': displayName,
+      if (mapsUrl != null) 'mapsUrl': mapsUrl,
       if (description != null) 'description': description,
       if (imageUrl != null) 'imageUrl': imageUrl,
       'registrationMode': registrationMode,
