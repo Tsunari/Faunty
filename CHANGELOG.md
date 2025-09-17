@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.9.0] - 17-09-2025
+### Added
+- Added new default state for attendance table
+- Connect place functionality
+- Iframe init
+- OnLeave state on attendance checkbox
+### Changed
+- Reverse date order on attendance table
+
+
+
 ## [1.8.0] - 14-09-2025
 ### Added
 - Superuser kantin management
