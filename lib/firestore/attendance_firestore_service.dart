@@ -103,16 +103,19 @@ class AttendanceFirestoreService {
     final presentPath = '$itemId.present';
     final absentPath = '$itemId.absent';
     final onLeavePath = '$itemId.onLeave';
+    final defaultPath = '$itemId.default';
     final writeBatch = FirebaseFirestore.instance.batch();
     if (checked) {
       // add to present, remove from absent
       writeBatch.update(docRef, {presentPath: FieldValue.arrayUnion([userId])});
       writeBatch.update(docRef, {absentPath: FieldValue.arrayRemove([userId])});
       writeBatch.update(docRef, {onLeavePath: FieldValue.arrayRemove([userId])});
+      writeBatch.update(docRef, {defaultPath: FieldValue.arrayRemove([userId])});
     } else {
       writeBatch.update(docRef, {presentPath: FieldValue.arrayRemove([userId])});
       writeBatch.update(docRef, {absentPath: FieldValue.arrayUnion([userId])});
       writeBatch.update(docRef, {onLeavePath: FieldValue.arrayRemove([userId])});
+      writeBatch.update(docRef, {defaultPath: FieldValue.arrayRemove([userId])});
     }
     try {
       await writeBatch.commit();
@@ -123,6 +126,7 @@ class AttendanceFirestoreService {
           'present': checked ? [userId] : <String>[],
           'absent': checked ? <String>[] : [userId],
           'onLeave': <String>[],
+          'default': <String>[],
         }
       };
       await docRef.set(initial, SetOptions(merge: true));
@@ -134,18 +138,20 @@ class AttendanceFirestoreService {
     required String dateId,
     required String itemId,
     required String userId,
-    required String state, // 'present' | 'absent' | 'onLeave'
+    required String state, // 'present' | 'absent' | 'onLeave' | 'default'
   }) async {
     final docRef = _attendanceCollection.doc(dateId);
     final presentPath = '$itemId.present';
     final absentPath = '$itemId.absent';
     final onLeavePath = '$itemId.onLeave';
+    final defaultPath = '$itemId.default';
     final writeBatch = FirebaseFirestore.instance.batch();
 
     // Remove from all, then add to the chosen one
     writeBatch.update(docRef, {presentPath: FieldValue.arrayRemove([userId])});
     writeBatch.update(docRef, {absentPath: FieldValue.arrayRemove([userId])});
     writeBatch.update(docRef, {onLeavePath: FieldValue.arrayRemove([userId])});
+    writeBatch.update(docRef, {defaultPath: FieldValue.arrayRemove([userId])});
 
     if (state == 'present') {
       writeBatch.update(docRef, {presentPath: FieldValue.arrayUnion([userId])});
@@ -153,6 +159,8 @@ class AttendanceFirestoreService {
       writeBatch.update(docRef, {absentPath: FieldValue.arrayUnion([userId])});
     } else if (state == 'onLeave') {
       writeBatch.update(docRef, {onLeavePath: FieldValue.arrayUnion([userId])});
+    } else if (state == 'default') {
+      writeBatch.update(docRef, {defaultPath: FieldValue.arrayUnion([userId])});
     }
 
     try {
@@ -164,6 +172,7 @@ class AttendanceFirestoreService {
           'present': state == 'present' ? [userId] : <String>[],
           'absent': state == 'absent' ? [userId] : <String>[],
           'onLeave': state == 'onLeave' ? [userId] : <String>[],
+          'default': state == 'default' ? [userId] : <String>[],
         }
       };
       await docRef.set(initial, SetOptions(merge: true));

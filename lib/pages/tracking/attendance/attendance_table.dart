@@ -710,7 +710,7 @@ class _InlineCell extends StatefulWidget {
 }
 
 class _InlineCellState extends State<_InlineCell> {
-  late final ValueNotifier<String> _stateVN; // 'present' | 'absent' | 'onLeave'
+  late final ValueNotifier<String> _stateVN; // 'present' | 'absent' | 'onLeave' | 'default'
 
   @override
   void initState() {
@@ -734,10 +734,12 @@ class _InlineCellState extends State<_InlineCell> {
     final present = rec == null ? const <String>[] : (rec['present'] as List?)?.cast<String>() ?? const <String>[];
     final onLeave = rec == null ? const <String>[] : (rec['onLeave'] as List?)?.cast<String>() ?? const <String>[];
     final absent = rec == null ? const <String>[] : (rec['absent'] as List?)?.cast<String>() ?? const <String>[];
+    final def = rec == null ? const <String>[] : (rec['default'] as List?)?.cast<String>() ?? const <String>[];
     if (present.contains(widget.userId)) return 'present';
     if (onLeave.contains(widget.userId)) return 'onLeave';
     if (absent.contains(widget.userId)) return 'absent';
-    return 'absent';
+    if (def.contains(widget.userId)) return 'default';
+    return 'default';
   }
 
   @override
@@ -761,11 +763,16 @@ class _InlineCellState extends State<_InlineCell> {
           icon = Icon(Icons.check, size: 16, color: scheme.onPrimary);
           bg = scheme.primary;
           border = scheme.primary;
+        } else if (state == 'absent') {
+          icon = Icon(Icons.remove, size: 16, color: scheme.error);
+          bg = scheme.error.withOpacity(0.08);
+          border = scheme.error;
         } else if (state == 'onLeave') {
           icon = Icon(Icons.info_outline, size: 16, color: scheme.primary);
           bg = scheme.primary.withOpacity(0.08);
           border = scheme.primary;
         } else {
+          // default state
           icon = const SizedBox.shrink();
           bg = null;
           border = Theme.of(context).dividerColor.withOpacity(0.6);
@@ -774,12 +781,14 @@ class _InlineCellState extends State<_InlineCell> {
         void handleTap() {
           if (!canEdit) return;
           String next;
-          if (state == 'absent') {
-            next = 'present';
-          } else if (state == 'present') {
-            next = 'onLeave';
-          } else {
+          if (state == 'present') {
             next = 'absent';
+          } else if (state == 'absent') {
+            next = 'onLeave';
+          } else if (state == 'onLeave') {
+            next = 'default';
+          } else {
+            next = 'present';
           }
           _stateVN.value = next;
           widget.onToggle?.call(key, next);
