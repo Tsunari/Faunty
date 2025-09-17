@@ -183,7 +183,7 @@ class UpdateService {
   }
 
   static void _visibilityCallback() {
-    final hidden = jsDocumentHidden();
+    final hidden = jsDocumentHidden;
     if (!hidden) {
       final last = _lastSuccessfulCheck;
       if (last == null || DateTime.now().difference(last) > visibilityMinGap) {
@@ -199,7 +199,7 @@ class UpdateService {
 
 // JS interop bindings moved to top-level (cannot annotate inside non-@JS class)
 @JS('document.hidden')
-external bool jsDocumentHidden();
+external bool get jsDocumentHidden;
 
 @JS('document.addEventListener')
 external void jsDocumentAddEventListener(JSString event, JSFunction callback);
