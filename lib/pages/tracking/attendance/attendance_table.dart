@@ -54,8 +54,8 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
   List<String>? _columnsCache;
   int? _columnsCacheNumDays;
   int? _columnsCacheStartEpoch;
-  // pending optimistic changes keyed by "date|item|user" -> bool (checked)
-  late final ValueNotifier<Map<String, bool>> _pendingVN;
+  // pending optimistic changes keyed by "date|item|user" -> 'present' | 'absent' | 'onLeave'
+  late final ValueNotifier<Map<String, String>> _pendingVN; // value: tri-state
   late final _AttendanceBatcher _batcher;
   bool _isExtending = false;
   static const int _pageDays = 30;
@@ -106,7 +106,7 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
     _selectedItem = widget.selectedItem;
     // keep pending markers until server confirms the change
     _batcher = _AttendanceBatcher(widget.placeId);
-    _pendingVN = ValueNotifier<Map<String, bool>>({});
+  _pendingVN = ValueNotifier<Map<String, String>>({});
   // build initial display name cache and record roles
   _updateUsersCache();
     if (_selectedItem.isEmpty) {
@@ -600,12 +600,12 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
                                                                 itemName: it['id'] as String,
                                                                 currentUser: widget.currentUser,
                                                                 pendingLookup: (key) => _pendingVN.value[key],
-                                                                onToggle: (key, checked) {
+                                                                onToggle: (key, state) {
                                                                   // optimistic update: replace map to notify listeners
-                                                                  final next = Map<String, bool>.from(_pendingVN.value);
-                                                                  next[key] = checked;
+                                                                  final next = Map<String, String>.from(_pendingVN.value);
+                                                                  next[key] = state;
                                                                   _pendingVN.value = next;
-                                                                  _batcher.enqueue(key, checked);
+                                                                  _batcher.enqueueState(key, state);
                                                                 },
                                                               ),
                                                             ),
@@ -698,8 +698,8 @@ class _InlineCell extends StatefulWidget {
   final Map<String, dynamic> attendance;
   final String itemName;
   final UserEntity currentUser;
-  final bool? Function(String key)? pendingLookup;
-  final void Function(String key, bool checked)? onToggle;
+  final String? Function(String key)? pendingLookup; // returns 'present' | 'absent' | 'onLeave'
+  final void Function(String key, String state)? onToggle; // state: 'present' | 'absent' | 'onLeave'
 
   const _InlineCell({required this.placeId, required this.dateKey, required this.userId, required this.attendance, required this.itemName, required this.currentUser, this.pendingLookup, this.onToggle});
 
@@ -708,34 +708,39 @@ class _InlineCell extends StatefulWidget {
 }
 
 class _InlineCellState extends State<_InlineCell> {
-  late final ValueNotifier<bool> _checkedVN;
+  late final ValueNotifier<String> _stateVN; // 'present' | 'absent' | 'onLeave'
 
   @override
   void initState() {
     super.initState();
-    _checkedVN = ValueNotifier<bool>(_lookupChecked());
+    _stateVN = ValueNotifier<String>(_lookupState());
   }
 
   @override
   void didUpdateWidget(covariant _InlineCell oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final newVal = _lookupChecked();
-    if (newVal != _checkedVN.value) _checkedVN.value = newVal;
+    final newVal = _lookupState();
+    if (newVal != _stateVN.value) _stateVN.value = newVal;
   }
 
-  bool _lookupChecked() {
+  String _lookupState() {
     final key = '${widget.dateKey}|${widget.itemName}|${widget.userId}';
     final pending = widget.pendingLookup?.call(key);
     if (pending != null) return pending;
     final dateRec = widget.attendance[widget.dateKey] as Map<String, dynamic>?;
     final rec = dateRec == null ? null : (dateRec[widget.itemName] as Map<String, dynamic>?);
     final present = rec == null ? const <String>[] : (rec['present'] as List?)?.cast<String>() ?? const <String>[];
-    return present.contains(widget.userId);
+    final onLeave = rec == null ? const <String>[] : (rec['onLeave'] as List?)?.cast<String>() ?? const <String>[];
+    final absent = rec == null ? const <String>[] : (rec['absent'] as List?)?.cast<String>() ?? const <String>[];
+    if (present.contains(widget.userId)) return 'present';
+    if (onLeave.contains(widget.userId)) return 'onLeave';
+    if (absent.contains(widget.userId)) return 'absent';
+    return 'absent';
   }
 
   @override
   void dispose() {
-    _checkedVN.dispose();
+    _stateVN.dispose();
     super.dispose();
   }
 
@@ -743,21 +748,59 @@ class _InlineCellState extends State<_InlineCell> {
   Widget build(BuildContext context) {
     final canEdit = widget.currentUser.role.index <= UserRole.baskan.index;
     final key = '${widget.dateKey}|${widget.itemName}|${widget.userId}';
-    return ValueListenableBuilder<bool>(
-      valueListenable: _checkedVN,
-      builder: (context, checked, _) {
-        return Checkbox(
-          value: checked,
-          onChanged: canEdit
-              ? (val) {
-                  final newVal = val ?? false;
-                  // update local notifier (no setState)
-                  _checkedVN.value = newVal;
-                  // notify parent to enqueue batched save
-                  widget.onToggle?.call(key, newVal);
-                }
-              : null,
-          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    return ValueListenableBuilder<String>(
+      valueListenable: _stateVN,
+      builder: (context, state, _) {
+        Widget icon;
+        Color? bg;
+        Color? border;
+        final scheme = Theme.of(context).colorScheme;
+        if (state == 'present') {
+          icon = Icon(Icons.check, size: 16, color: scheme.onPrimary);
+          bg = scheme.primary;
+          border = scheme.primary;
+        } else if (state == 'onLeave') {
+          icon = Icon(Icons.info_outline, size: 16, color: scheme.primary);
+          bg = scheme.primary.withOpacity(0.08);
+          border = scheme.primary;
+        } else {
+          icon = const SizedBox.shrink();
+          bg = null;
+          border = Theme.of(context).dividerColor.withOpacity(0.6);
+        }
+
+        void handleTap() {
+          if (!canEdit) return;
+          String next;
+          if (state == 'absent') {
+            next = 'present';
+          } else if (state == 'present') {
+            next = 'onLeave';
+          } else {
+            next = 'absent';
+          }
+          _stateVN.value = next;
+          widget.onToggle?.call(key, next);
+        }
+
+        return Semantics(
+          button: true,
+          label: 'Attendance state: $state',
+          child: InkWell(
+            onTap: canEdit ? handleTap : null,
+            borderRadius: BorderRadius.circular(3),
+            child: Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                color: bg,
+                borderRadius: BorderRadius.circular(3),
+                border: Border.all(color: border, width: 1.5),
+              ),
+              alignment: Alignment.center,
+              child: icon,
+            ),
+          ),
         );
       },
     );
@@ -768,36 +811,36 @@ class _InlineCellState extends State<_InlineCell> {
 class _AttendanceBatcher {
   final String placeId;
   // no callback: pending markers are reconciled from incoming attendance data
-  final Map<String, bool> _buffer = {};
+  final Map<String, String> _buffer = {}; // value: 'present' | 'absent' | 'onLeave'
   final Duration _debounce = const Duration(milliseconds: 250);
   Timer? _timer;
   bool _disposed = false;
 
   _AttendanceBatcher(this.placeId);
 
-  void enqueue(String key, bool checked) {
+  void enqueueState(String key, String state) {
     if (_disposed) return;
-    _buffer[key] = checked;
+    _buffer[key] = state;
     _timer?.cancel();
     _timer = Timer(_debounce, _flush);
   }
 
   Future<void> _flush() async {
     if (_buffer.isEmpty || _disposed) return;
-    final toSend = Map<String, bool>.from(_buffer);
+    final toSend = Map<String, String>.from(_buffer);
     _buffer.clear();
     // Transform into date/item -> list of users present operations
-    // We'll call AttendanceFirestoreService.toggleAttendanceItem for each entry.
+    // We'll call AttendanceFirestoreService.setAttendanceItemState for each entry.
     final service = AttendanceFirestoreService(placeId);
     // Fire off writes in parallel but wait for them to finish.
     final futures = <Future<void>>[];
-    toSend.forEach((compositeKey, checked) {
+    toSend.forEach((compositeKey, state) {
       final parts = compositeKey.split('|');
       if (parts.length != 3) return;
       final dateId = parts[0];
       final itemId = parts[1];
       final userId = parts[2];
-      futures.add(service.toggleAttendanceItem(dateId: dateId, itemId: itemId, userId: userId, checked: checked));
+      futures.add(service.setAttendanceItemState(dateId: dateId, itemId: itemId, userId: userId, state: state));
     });
     try {
       await Future.wait(futures);
