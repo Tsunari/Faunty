@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.11.0] - 17-09-2025
+### Added
+- Added feedback functionality
+- Enhanced update check/refresh functionality
+- New update dialog
+### Fixed
+- Update JS interop for document.hidden to use getter
+
+
+
 ## [1.10.0] - 17-09-2025
 ### Added
 - New update dialog
