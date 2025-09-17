@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.10.0] - 17-09-2025
+### Added
+- New update dialog
+
+
+
 ## [1.9.0] - 17-09-2025
 ### Added
 - Added new default state for attendance table
