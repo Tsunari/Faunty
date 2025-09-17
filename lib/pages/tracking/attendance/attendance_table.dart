@@ -200,7 +200,7 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
     }
     final cols = List.generate(
       _numDays,
-      (i) => _fmt(_startDay.add(Duration(days: i))),
+      (i) => _fmt(_startDay.subtract(Duration(days: i))),
     );
     _columnsCache = cols;
     _columnsCacheNumDays = _numDays;
@@ -249,7 +249,7 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
     if (pos.pixels < threshold) {
       setState(() {
         _isExtending = true;
-        _startDay = _startDay.subtract(const Duration(days: _pageDays));
+        _startDay = _startDay.add(const Duration(days: _pageDays));
         _numDays += _pageDays;
       });
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -268,7 +268,7 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
     if (!_timeScrollCtrl.hasClients) return;
     final offset = _timeScrollCtrl.offset;
     final firstIndex = (offset / _colWidthConst).floor().clamp(0, _numDays - 1);
-    final firstDate = _startDay.add(Duration(days: firstIndex));
+    final firstDate = _startDay.subtract(Duration(days: firstIndex));
     final next = _monthAndYearFromDate(firstDate);
     if (next != _visibleMonth) {
       _visibleMonth = next;
@@ -277,21 +277,23 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
   }
 
   Future<void> _scrollToToday() async {
-    if (_today.isBefore(_startDay)) {
-      final diff = _startDay.difference(_today).inDays;
+    // In reversed order, columns cover [_startDay - (_numDays - 1), _startDay]
+    final endDate = _startDay.subtract(Duration(days: _numDays - 1));
+    if (_today.isAfter(_startDay)) {
+      final diff = _today.difference(_startDay).inDays;
       setState(() {
-        _startDay = _today.subtract(Duration(days: 5));
+        _startDay = _today.add(const Duration(days: 5));
         _numDays = (_numDays + diff + 10).clamp(_numDays, 3650);
       });
-    } else if (_today.isAfter(_startDay.add(Duration(days: _numDays - 1)))) {
-      final diff = _today.difference(_startDay.add(Duration(days: _numDays - 1))).inDays;
+    } else if (_today.isBefore(endDate)) {
+      final diff = endDate.difference(_today).inDays;
       setState(() {
         _numDays = _numDays + diff + 10;
       });
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_timeScrollCtrl.hasClients) return;
-      final targetIndex = _today.difference(_startDay).inDays;
+      final targetIndex = _startDay.difference(_today).inDays;
       final targetOffset = (targetIndex * _colWidthConst).toDouble();
       _timeScrollCtrl.animateTo(
         targetOffset,
