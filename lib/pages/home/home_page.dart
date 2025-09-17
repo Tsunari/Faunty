@@ -127,9 +127,9 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget build(BuildContext context) {
 
     if (kIsWeb) {
-      // Trigger update check once after first frame
+      // Trigger update check once after first frame (silent)
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        UpdateService.checkForUpdateAndPrompt(context);
+        UpdateService.manualCheck();
       });
     }
 

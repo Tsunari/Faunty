@@ -23,6 +23,10 @@ import 'package:faunty/tools/translation_helper.dart';
 import 'state_management/theme_provider.dart';
 import 'components/theme_cards_selector.dart';
 import 'package:flutter/foundation.dart';
+import 'tools/update_service.dart';
+
+
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,6 +43,9 @@ void main() async {
     NotificationService.init(requestPermissions: false).catchError((e) {
       if (kDebugMode) print('NotificationService init error: $e');
     });
+    if (kIsWeb) {
+      UpdateService.init(contextProvider: () => rootNavigatorKey.currentContext);
+    }
   });
   runApp(
     TranslationProvider(
@@ -58,6 +65,7 @@ class Faunty extends ConsumerWidget {
     final preset = themePresets[presetIndex];
     final isMonochrome = preset.name == 'Monochrome';
     return MaterialApp(
+      navigatorKey: rootNavigatorKey,
       builder: (context, child) => ForegroundNotificationWrapper(child: child ?? const SizedBox.shrink()),
       title: translation(context: context, 'Faunty'),
       debugShowCheckedModeBanner: false,

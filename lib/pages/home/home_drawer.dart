@@ -13,6 +13,7 @@ import '../../firestore/user_firestore_service.dart';
 import '../../models/user_entity.dart';
 import '../../tools/translation_helper.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../tools/update_service.dart';
 
 /// A modern drawer used on the Home page.
 /// Shows basic user info and a list of places that open a modern popout when tapped.
@@ -58,18 +59,36 @@ class HomeDrawer extends ConsumerWidget {
               child: Row(
                 children: [
                   Expanded(child: Text(translation(context: context, 'App version'))),
-                  // You can replace this with a dynamic version value if desired
                   FutureBuilder<PackageInfo>(
                     future: getAppInfo(),
                     builder: (context, snapshot) {
+                      Widget label;
                       if (snapshot.connectionState == ConnectionState.waiting) {
-                        return Text(translation(context: context, 'Loading...'));
+                        label = Text(translation(context: context, 'Loading...'));
+                      } else if (snapshot.hasError) {
+                        label = Text(translation(context: context, 'Version unavailable'));
+                      } else {
+                        final info = snapshot.data;
+                        label = Text(info?.version ?? '-');
                       }
-                      if (snapshot.hasError) {
-                        return Text(translation(context: context, 'Version unavailable'));
-                      }
-                      final info = snapshot.data;
-                      return Text('${info?.version ?? '-'}');
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          label,
+                          const SizedBox(width: 4),
+                          IconButton(
+                            tooltip: translation(context: context, 'Check for updates'),
+                            icon: const Icon(Icons.refresh, size: 20),
+                            onPressed: () {
+                              UpdateService.manualCheck(
+                                forceDialog: true,
+                                showUpToDateSnack: false,
+                                promptRefreshIfUpToDate: true,
+                              );
+                            },
+                          ),
+                        ],
+                      );
                     },
                   ),
                 ],
