@@ -1,3 +1,7 @@
+// Conditional export selecting web (JS interop) implementation when available.
+// For non-web targets (Android/iOS/desktop), stub is used avoiding dart:js_interop import.
+export 'update_service_stub.dart'
+if (dart.library.js_interop) 'update_service_web.dart';
 import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -9,7 +13,7 @@ import '../components/custom_snackbar.dart';
 import '../tools/translation_helper.dart';
 
 class UpdateService {
-  static const _repo = 'Tsunari/Faunty-React';
+  static const _repo = 'Tsunari/Faunty';
   static const _releasesUrl = 'https://api.github.com/repos/$_repo/releases/latest';
   static const Duration periodicInterval = Duration(hours: 3);
   static const Duration visibilityMinGap = Duration(minutes: 15);
