@@ -15,6 +15,7 @@ import '../../components/custom_chip.dart';
 import 'settings_page.dart';
 import 'package:faunty/components/language_dropdown.dart';
 import 'package:faunty/pages/more/ui_test_page.dart';
+import 'feedback/feedback_page.dart';
 
 class MorePage extends ConsumerWidget {
   const MorePage({super.key});
@@ -180,16 +181,14 @@ class MorePage extends ConsumerWidget {
         ),
         ListTile(
           leading: Icon(Icons.feedback_outlined, color: primaryColor),
-          title: Row(
-            children: [
-              Text(translation(context: context, 'Feedback')),
-              const SizedBox(width: 4),
-              CustomContainerChip(
-                label: translation(context: context, 'Under Construction'),
+          title: Text(translation(context: context, 'Feedback')),
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const FeedbackPage(),
               ),
-            ],
-          ),
-          onTap: () {},
+            );
+          },
         ),
         ListTile(
           leading: Icon(Icons.help_outline, color: primaryColor),
