@@ -3,6 +3,7 @@ import 'package:faunty/helper/logging.dart';
 import 'package:faunty/models/user_roles.dart';
 import 'package:faunty/pages/more/kantin_page.dart';
 import 'package:faunty/tools/translation_helper.dart';
+import 'package:faunty/tools/update_service.dart';
 import 'package:flutter/foundation.dart';
 import '../../notifications/custom_tokens_dialog.dart';
 import 'dart:async';
@@ -124,6 +125,14 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+
+    if (kIsWeb) {
+      // Trigger update check once after first frame
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        UpdateService.checkForUpdateAndPrompt(context);
+      });
+    }
+
     final userAsync = ref.watch(userProvider);
     return userAsync.when(
       data: (user) {
