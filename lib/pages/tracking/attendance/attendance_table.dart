@@ -6,6 +6,7 @@ import '../../../firestore/attendance_firestore_service.dart';
 import 'package:faunty/models/user_entity.dart';
 import 'package:faunty/models/user_roles.dart';
 import 'package:faunty/tools/translation_helper.dart';
+import 'package:faunty/components/custom_chip.dart';
 
 class AttendanceTable extends StatefulWidget {
   final List<UserEntity> users;
@@ -1047,18 +1048,66 @@ class _InlineCellState extends State<_InlineCell> {
     final minutes = await showDialog<int?>(
       context: context,
       builder: (ctx) {
+        void adjust(int delta) {
+          final current = int.tryParse(controller.text.trim()) ?? 0;
+          final next = (current + delta).clamp(0, 600);
+          controller.text = next.toString();
+        }
         return AlertDialog(
           title: Text(translation(context: context, 'Set lateness (minutes)')),
-          content: TextField(
-            controller: controller,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(isDense: true, hintText: translation(context: context, 'e.g. 10')),
+          content: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // decrement chips
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  InkWell(onTap: () => adjust(-5), child: const CustomChip(label: '-5', fontSize: 11)),
+                  const SizedBox(height: 6),
+                  InkWell(onTap: () => adjust(-15), child: const CustomChip(label: '-15', fontSize: 11)),
+                  const SizedBox(height: 6),
+                  InkWell(onTap: () => adjust(-30), child: const CustomChip(label: '-30', fontSize: 11)),
+                ],
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: SizedBox(
+                  height: 36,
+                  child: TextField(
+                    controller: controller,
+                    keyboardType: TextInputType.number,
+                    textAlignVertical: TextAlignVertical.center,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      hintText: translation(context: context, 'e.g. 10'),
+                      suffixIconConstraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                      suffixIcon: IconButton(
+                        tooltip: translation(context: context, 'Remove'),
+                        icon: const Icon(Icons.delete_outline),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                        onPressed: () => Navigator.pop(ctx, -1),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              // increment chips
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  InkWell(onTap: () => adjust(5), child: const CustomChip(label: '+5', fontSize: 11)),
+                  const SizedBox(height: 6),
+                  InkWell(onTap: () => adjust(15), child: const CustomChip(label: '+15', fontSize: 11)),
+                  const SizedBox(height: 6),
+                  InkWell(onTap: () => adjust(30), child: const CustomChip(label: '+30', fontSize: 11)),
+                ],
+              ),
+            ],
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, -1),
-              child: Text(translation(context: context, 'Remove')),
-            ),
             TextButton(onPressed: () => Navigator.pop(ctx, null), child: Text(translation(context: context, 'Cancel'))),
             ElevatedButton(
               onPressed: () {
