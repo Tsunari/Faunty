@@ -190,7 +190,7 @@ function Write-Section {
             Write-Section "Group commits" 4 $totalSteps
             $typeMap = @{
                 "feat" = "Added"
-                "bug" = "Fixed"
+                "fix" = "Fixed"
                 "change" = "Changed"
                 "chore" = "Changed"
             }
@@ -203,16 +203,16 @@ function Write-Section {
 
             foreach ($line in $commitLines) {
                 if ($line -match "--global") {
-                    $desc = $line -replace "--global", "" -replace "--(feat|bug|change|chore)", "" -replace "^\s*-*\s*", "" -replace "\s+$", ""
+                    $desc = $line -replace "--global", "" -replace "--(feat|fix|change|chore)", "" -replace "^\s*-*\s*", "" -replace "\s+$", ""
                     if ($desc) { $globalNotes += ("- " + ($desc.Substring(0,1).ToUpper() + $desc.Substring(1))) }
                     continue
                 }
 
                 # Use the exact expression requested
-                $typeTags = [regex]::Matches($line, "--(feat|bug|change|chore)") | ForEach-Object { $_.Groups[1].Value }
+                $typeTags = [regex]::Matches($line, "--(feat|fix|change|chore)") | ForEach-Object { $_.Groups[1].Value }
 
                 if ($typeTags.Count -gt 0) {
-                    $desc = $line -replace "--(feat|bug|change|chore)", "" -replace "^\s*-*\s*", "" -replace "\s+$", ""
+                    $desc = $line -replace "--(feat|fix|change|chore)", "" -replace "^\s*-*\s*", "" -replace "\s+$", ""
                     if (-not [string]::IsNullOrWhiteSpace($desc)) {
                         $desc = $desc.Substring(0,1).ToUpper() + $desc.Substring(1)
                         foreach ($type in $typeTags) {

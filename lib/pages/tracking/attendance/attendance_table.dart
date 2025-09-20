@@ -63,6 +63,8 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
   static const double _colWidthConst = 36.0;
   // last first-visible column index observed (used for simple virtualization)
   int _lastFirstVisibleCol = 0;
+  TabController? _tabCtrl;
+  int _selectedIndex = 0;
 
   @override
   void initState() {
@@ -110,14 +112,33 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
   _pendingVN = ValueNotifier<Map<String, String>>({});
   // build initial display name cache and record roles
   _updateUsersCache();
+    // Initialize TabController if tabs used
+    if (widget.useTabs && widget.attendanceItems.isNotEmpty) {
+      final idx = math.max(0, widget.attendanceItems.indexWhere((e) => (e['id'] == _selectedItem) || (e['name'] == _selectedItem)));
+      _selectedIndex = idx < 0 ? 0 : idx;
+      _tabCtrl = TabController(length: widget.attendanceItems.length, vsync: this, initialIndex: _selectedIndex);
+    }
     if (_selectedItem.isEmpty) {
       SharedPreferences.getInstance().then((sp) {
         final key = 'attendance_default_${widget.placeId}';
         final saved = sp.getString(key);
         if (saved != null && saved.isNotEmpty) {
-          setState(() => _selectedItem = saved);
+          setState(() {
+            _selectedItem = saved;
+            if (widget.useTabs && widget.attendanceItems.isNotEmpty) {
+              final idx = widget.attendanceItems.indexWhere((e) => (e['id'] == _selectedItem) || (e['name'] == _selectedItem));
+              _selectedIndex = idx >= 0 ? idx : 0;
+              if (_tabCtrl != null && _selectedIndex < _tabCtrl!.length) {
+                _tabCtrl!.index = _selectedIndex;
+              }
+            }
+          });
         } else if (widget.attendanceItems.isNotEmpty) {
-          setState(() => _selectedItem = widget.attendanceItems.first['id'] as String? ?? '');
+          setState(() {
+            _selectedItem = widget.attendanceItems.first['id'] as String? ?? '';
+            _selectedIndex = 0;
+            if (_tabCtrl != null) _tabCtrl!.index = 0;
+          });
         }
       });
     }
@@ -133,6 +154,7 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
     _expandedVN.dispose();
     _batcher.dispose();
     _pendingVN.dispose();
+    _tabCtrl?.dispose();
     super.dispose();
   }
 
@@ -182,6 +204,22 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
     }
 
     if (needRebuild) setState(() {});
+
+    // Rebuild TabController when items list changes
+    if (widget.useTabs) {
+      final oldLen = oldWidget.attendanceItems.length;
+      final newLen = widget.attendanceItems.length;
+      final selectionIdx = math.max(0, widget.attendanceItems.indexWhere((e) => (e['id'] == _selectedItem) || (e['name'] == _selectedItem)));
+      final nextIndex = selectionIdx >= 0 ? selectionIdx : 0;
+      if (_tabCtrl == null || oldLen != newLen) {
+        _tabCtrl?.dispose();
+        _tabCtrl = TabController(length: newLen, vsync: this, initialIndex: nextIndex.clamp(0, math.max(newLen - 1, 0)));
+        _selectedIndex = _tabCtrl!.index;
+      } else if (_tabCtrl != null && _tabCtrl!.length == newLen && _tabCtrl!.index != nextIndex) {
+        _tabCtrl!.index = nextIndex;
+        _selectedIndex = nextIndex;
+      }
+    }
   }
 
   void _updateUsersCache() {
@@ -381,32 +419,32 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
 
     return Column(
       children: [
-        if (widget.useTabs)
-          DefaultTabController(
-            length: itemsMeta.length,
-            initialIndex: math.max(0, itemsMeta.indexWhere((e) => (e['id'] == _selectedItem) || (e['name'] == _selectedItem))),
-            child: Column(
-              children: [
-                TabBar(
-                  isScrollable: true,
-                  tabAlignment: TabAlignment.center,
-                  tabs: [for (final it in itemsMeta) Tab(text: it['name'] as String? ?? '')],
-                  onTap: (idx) async {
-                    final sel = itemsMeta[idx]['id'] as String? ?? itemsMeta[idx]['name'] as String? ?? '';
-                    setState(() => _selectedItem = sel);
-                    widget.onSelectedItemChanged(sel);
-                    final sp = await SharedPreferences.getInstance();
-                    await sp.setString('attendance_default_${widget.placeId}', sel);
-                    final metaMap = await AttendanceFirestoreService(widget.placeId).getAttendanceMeta();
-                    if (metaMap.containsKey('default')) {
-                      metaMap.remove('default');
-                      await AttendanceFirestoreService(widget.placeId).setAttendanceMeta(metaMap);
-                    }
-                  },
-                ),
-                const Divider(height: 1),
-              ],
-            ),
+        if (widget.useTabs && itemsMeta.isNotEmpty)
+          Column(
+            children: [
+              TabBar(
+                controller: _tabCtrl,
+                isScrollable: true,
+                tabAlignment: TabAlignment.center,
+                tabs: [for (final it in itemsMeta) Tab(text: it['name'] as String? ?? '')],
+                onTap: (idx) async {
+                  final sel = itemsMeta[idx]['id'] as String? ?? itemsMeta[idx]['name'] as String? ?? '';
+                  setState(() {
+                    _selectedItem = sel;
+                    _selectedIndex = idx;
+                  });
+                  widget.onSelectedItemChanged(sel);
+                  final sp = await SharedPreferences.getInstance();
+                  await sp.setString('attendance_default_${widget.placeId}', sel);
+                  final metaMap = await AttendanceFirestoreService(widget.placeId).getAttendanceMeta();
+                  if (metaMap.containsKey('default')) {
+                    metaMap.remove('default');
+                    await AttendanceFirestoreService(widget.placeId).setAttendanceMeta(metaMap);
+                  }
+                },
+              ),
+              const Divider(height: 1),
+            ],
           ),
         Expanded(
           child: Row(
