@@ -171,6 +171,16 @@ class _FeedbackCard extends ConsumerWidget {
   final FeedbackReport report;
   final bool isOwn;
 
+  String _fmtDate(DateTime dt) {
+    final local = dt.toLocal();
+    final d = local.day.toString().padLeft(2, '0');
+    final m = local.month.toString().padLeft(2, '0');
+    final y = local.year;
+    final h = local.hour.toString().padLeft(2, '0');
+    final min = local.minute.toString().padLeft(2, '0');
+    return '$d.$m.$y, $h:$min';
+  }
+
   Color _typeColor(BuildContext context) {
     switch (report.type) {
       case FeedbackType.bug:
@@ -240,6 +250,21 @@ class _FeedbackCard extends ConsumerWidget {
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  const Icon(Icons.person_outline, size: 16),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      '${report.authorName} • ${_fmtDate(report.createdAt)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

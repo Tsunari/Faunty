@@ -18,6 +18,16 @@ class FeedbackDetailSheet extends ConsumerStatefulWidget {
 class _FeedbackDetailSheetState extends ConsumerState<FeedbackDetailSheet> {
   final _commentCtrl = TextEditingController();
 
+  String _fmtDate(DateTime dt) {
+    final local = dt.toLocal();
+    final d = local.day.toString().padLeft(2, '0');
+    final m = local.month.toString().padLeft(2, '0');
+    final y = local.year;
+    final h = local.hour.toString().padLeft(2, '0');
+    final min = local.minute.toString().padLeft(2, '0');
+    return '$d.$m.$y, $h:$min';
+  }
+
   @override
   void dispose() {
     _commentCtrl.dispose();
@@ -92,6 +102,22 @@ class _FeedbackDetailSheetState extends ConsumerState<FeedbackDetailSheet> {
                 )
               ],
             ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const Icon(Icons.person_outline, size: 16),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    '${report.authorName} • ${_fmtDate(report.createdAt)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
             Wrap(
               spacing: 8,
               runSpacing: 4,
