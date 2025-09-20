@@ -247,6 +247,59 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
     return cols;
   }
 
+  // Return weekdays allowed for the currently selected item (1..7)
+  List<int> _currentItemWeekdays() {
+    final itemsMeta = widget.attendanceItems;
+    if (itemsMeta.isEmpty) return const [1, 2, 3, 4, 5, 6, 7];
+    final selectedMeta = itemsMeta.firstWhere(
+      (e) => e['id'] == _selectedItem || e['name'] == _selectedItem,
+      orElse: () => itemsMeta.first,
+    );
+    final List<int> wd = ((selectedMeta['weekdays'] as List?)?.cast<int>() ?? const [1, 2, 3, 4, 5, 6, 7])
+        .where((d) => d >= 1 && d <= 7)
+        .toList();
+    if (wd.isEmpty) return const [1, 2, 3, 4, 5, 6, 7];
+    return wd;
+  }
+
+  // Filter date keys by weekdays
+  List<String> _filterColumnsByWeekdays(List<String> keys, List<int> weekdays) {
+    if (weekdays.length == 7) return keys;
+    final set = weekdays.toSet();
+    return keys.where((k) => set.contains(_parseKey(k).weekday)).toList();
+  }
+
+  List<int> _weekdaysFromItemMeta(Map<String, dynamic> it) {
+    return ((it['weekdays'] as List?)?.cast<int>() ?? const [1, 2, 3, 4, 5, 6, 7])
+        .where((d) => d >= 1 && d <= 7)
+        .toList();
+  }
+
+  int _nearestIndexForDate(List<String> cols, DateTime target) {
+    if (cols.isEmpty) return 0;
+    final key = _fmt(target);
+    int idx = cols.indexOf(key);
+    if (idx >= 0) return idx;
+    // try forward up to 7 days
+    for (int i = 1; i <= 7; i++) {
+      final fwdKey = _fmt(target.add(Duration(days: i)));
+      idx = cols.indexOf(fwdKey);
+      if (idx >= 0) return idx;
+    }
+    // try backward up to 7 days
+    for (int i = 1; i <= 7; i++) {
+      final backKey = _fmt(target.subtract(Duration(days: i)));
+      idx = cols.indexOf(backKey);
+      if (idx >= 0) return idx;
+    }
+    // fallback: clamp to closest boundary by date compare
+    // cols are descending by date: index 0 is most recent
+    // find first col whose date <= target
+    final firstLE = cols.indexWhere((e) => !_parseKey(e).isAfter(target));
+    if (firstLE >= 0) return firstLE;
+    return cols.length - 1;
+  }
+
   bool _listEquals(List<String> a, List<String> b) {
     if (identical(a, b)) return true;
     if (a.length != b.length) return false;
@@ -286,6 +339,14 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
       return;
     }
     if (pos.pixels < threshold) {
+      final prevStart = _startDay;
+      // Count how many of the newly prepended days match the current selected weekdays
+      final Set<int> weekdays = _currentItemWeekdays().toSet();
+      int addedFiltered = 0;
+      for (int d = 1; d <= _pageDays; d++) {
+        final dt = prevStart.add(Duration(days: d));
+        if (weekdays.contains(dt.weekday)) addedFiltered++;
+      }
       setState(() {
         _isExtending = true;
         _startDay = _startDay.add(const Duration(days: _pageDays));
@@ -293,7 +354,8 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
       });
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_timeScrollCtrl.hasClients) {
-          _timeScrollCtrl.jumpTo(_timeScrollCtrl.offset + _pageDays * _colWidthConst);
+          final delta = (addedFiltered * _colWidthConst);
+          _timeScrollCtrl.jumpTo(_timeScrollCtrl.offset + delta);
         }
         _isExtending = false;
         _updateVisibleMonth();
@@ -306,8 +368,13 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
   void _updateVisibleMonth() {
     if (!_timeScrollCtrl.hasClients) return;
     final offset = _timeScrollCtrl.offset;
-    final firstIndex = (offset / _colWidthConst).floor().clamp(0, _numDays - 1);
-    final firstDate = _startDay.subtract(Duration(days: firstIndex));
+    final int firstIndex = (offset / _colWidthConst).floor();
+    final List<String> allCols = _buildColumns();
+    final cols = _filterColumnsByWeekdays(allCols, _currentItemWeekdays());
+    if (cols.isEmpty) return;
+    final safeIndex = firstIndex.clamp(0, cols.length - 1);
+    final key = cols[safeIndex];
+    final firstDate = _parseKey(key);
     final next = _monthAndYearFromDate(firstDate);
     if (next != _visibleMonth) {
       _visibleMonth = next;
@@ -316,24 +383,57 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
   }
 
   Future<void> _scrollToToday() async {
-    // In reversed order, columns cover [_startDay - (_numDays - 1), _startDay]
-    final endDate = _startDay.subtract(Duration(days: _numDays - 1));
-    if (_today.isAfter(_startDay)) {
-      final diff = _today.difference(_startDay).inDays;
+    final List<int> wk = _currentItemWeekdays();
+    if (wk.isEmpty) return;
+    // Find nearest allowed date (today if allowed, else next within 6 days, else previous within 6 days)
+    DateTime target = _today;
+    if (!wk.contains(target.weekday)) {
+      bool found = false;
+      for (int i = 1; i <= 6; i++) {
+        final fwd = _today.add(Duration(days: i));
+        if (wk.contains(fwd.weekday)) {
+          target = fwd;
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        for (int i = 1; i <= 6; i++) {
+          final back = _today.subtract(Duration(days: i));
+          if (wk.contains(back.weekday)) {
+            target = back;
+            break;
+          }
+        }
+      }
+    }
+    // Ensure target is inside the current window, else extend
+    final windowStart = _startDay;
+    final windowEnd = _startDay.subtract(Duration(days: _numDays - 1));
+    if (target.isAfter(windowStart)) {
       setState(() {
-        _startDay = _today.add(const Duration(days: 5));
-        _numDays = (_numDays + diff + 10).clamp(_numDays, 3650);
+        _startDay = target.add(const Duration(days: 5));
+        // extend if needed
+        _numDays = (_numDays + target.difference(windowStart).inDays + 10).clamp(_numDays, 3650);
       });
-    } else if (_today.isBefore(endDate)) {
-      final diff = endDate.difference(_today).inDays;
+    } else if (target.isBefore(windowEnd)) {
       setState(() {
-        _numDays = _numDays + diff + 10;
+        _numDays = _numDays + windowEnd.difference(target).inDays + 10;
       });
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_timeScrollCtrl.hasClients) return;
-      final targetIndex = _startDay.difference(_today).inDays;
-      final targetOffset = (targetIndex * _colWidthConst).toDouble();
+      final cols = _filterColumnsByWeekdays(_buildColumns(), wk);
+      if (cols.isEmpty) return;
+      final key = _fmt(target);
+      int idx = cols.indexOf(key);
+      if (idx < 0) {
+        // if not found (edge of window), clamp to nearest
+        // Find first col >= target
+        idx = cols.indexWhere((e) => !_parseKey(e).isAfter(target));
+        if (idx < 0) idx = (cols.length - 1).clamp(0, cols.length - 1);
+      }
+      final targetOffset = (idx * _colWidthConst).toDouble();
       _timeScrollCtrl.animateTo(
         targetOffset,
         duration: const Duration(milliseconds: 250),
@@ -389,21 +489,14 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
   String displayNameFor(String uid) => _displayNameMap[uid] ?? uid;
   final List<String> allColumns = _buildColumns();
   // Determine selected item meta
-  final selectedMeta = itemsMeta.firstWhere(
-    (e) => e['id'] == _selectedItem || e['name'] == _selectedItem,
-    orElse: () => itemsMeta.isNotEmpty ? itemsMeta.first : {'id': 'presence', 'name': 'Presence'},
-  );
-  final List<int> selectedWeekdays = ((selectedMeta['weekdays'] as List?)?.cast<int>() ?? [1,2,3,4,5,6,7]).where((d)=>d>=1&&d<=7).toList();
   // latenessEnabled handled per-cell via item meta flag
+  final List<int> selectedWeekdays = _currentItemWeekdays();
   // Filter columns by weekdays for the selected item
-  final List<String> columns = allColumns.where((key) {
-    final dt = _parseKey(key);
-    return selectedWeekdays.contains(dt.weekday);
-  }).toList();
+  final List<String> columns = _filterColumnsByWeekdays(allColumns, selectedWeekdays);
   // virtualization window: build only visible columns plus a small buffer
   final visibleWidth = MediaQuery.of(context).size.width - 170 - 24; // availableWidth used later
   final visibleColsCount = (visibleWidth / _colWidthConst).ceil() + 4; // buffer
-  final firstVisible = _lastFirstVisibleCol.clamp(0, columns.length - 1);
+  final firstVisible = columns.isEmpty ? 0 : _lastFirstVisibleCol.clamp(0, columns.length - 1);
   final startCol = firstVisible;
   final endCol = (firstVisible + visibleColsCount).clamp(0, columns.length);
   final leftSpacerWidth = startCol * _colWidthConst;
@@ -429,6 +522,16 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
                 tabs: [for (final it in itemsMeta) Tab(text: it['name'] as String? ?? '')],
                 onTap: (idx) async {
                   final sel = itemsMeta[idx]['id'] as String? ?? itemsMeta[idx]['name'] as String? ?? '';
+                  // Anchor: compute current visible date from current filter and offset
+                  DateTime? anchorDate;
+                  if (_timeScrollCtrl.hasClients) {
+                    final allCols = _buildColumns();
+                    final currentCols = _filterColumnsByWeekdays(allCols, _currentItemWeekdays());
+                    if (currentCols.isNotEmpty) {
+                      final curIdx = (_timeScrollCtrl.offset / _colWidthConst).floor().clamp(0, currentCols.length - 1);
+                      anchorDate = _parseKey(currentCols[curIdx]);
+                    }
+                  }
                   setState(() {
                     _selectedItem = sel;
                     _selectedIndex = idx;
@@ -440,6 +543,18 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
                   if (metaMap.containsKey('default')) {
                     metaMap.remove('default');
                     await AttendanceFirestoreService(widget.placeId).setAttendanceMeta(metaMap);
+                  }
+                  // After selection, scroll to the nearest index for the same anchor date under the new filter
+                  if (anchorDate != null && _timeScrollCtrl.hasClients) {
+                    final allCols2 = _buildColumns();
+                    final newWeekdays = _weekdaysFromItemMeta(itemsMeta[idx]);
+                    final newCols = _filterColumnsByWeekdays(allCols2, newWeekdays);
+                    if (newCols.isNotEmpty) {
+                      final newIdx = _nearestIndexForDate(newCols, anchorDate);
+                      final newOffset = (newIdx * _colWidthConst).toDouble();
+                      _timeScrollCtrl.jumpTo(newOffset.clamp(0.0, _timeScrollCtrl.position.maxScrollExtent));
+                      _updateVisibleMonth();
+                    }
                   }
                 },
               ),
@@ -705,7 +820,7 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
 
   String _monthAndYearFromDate(DateTime dt) {
     const months = [
-      'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
     ];
     final yy = dt.year % 100;
     final yyStr = yy < 10 ? '0$yy' : '$yy';
