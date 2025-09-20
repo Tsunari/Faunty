@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.13.0] - 20-09-2025
+### Added
+- Stats page init
+### Changed
+- Late minutes dialog Ui enhancements
+### Fixed
+- Further fixes to scrolling issues in attendance table
+- Real chache delete refresh on update service
+- Today button and day scroll between weekdays specified tabs and default tabs
+
+
+
 ## [1.12.0] - 20-09-2025
 ### Added
 - Author and date in feedbacks shown
