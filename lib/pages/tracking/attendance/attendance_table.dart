@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:faunty/components/role_gate.dart';
 import 'dart:math' as math;
 import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -59,6 +60,8 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
   // pending optimistic changes keyed by "date|item|user" -> 'present' | 'absent' | 'onLeave'
   late final ValueNotifier<Map<String, String>> _pendingVN; // value: tri-state
   late final _AttendanceBatcher _batcher;
+  // passive users map (uid -> true)
+  final Map<String, bool> _passiveUsers = {};
   bool _isExtending = false;
   static const int _pageDays = 30;
   static const double _colWidthConst = 36.0;
@@ -113,6 +116,19 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
   _pendingVN = ValueNotifier<Map<String, String>>({});
   // build initial display name cache and record roles
   _updateUsersCache();
+    // load passive users from meta
+    AttendanceFirestoreService(widget.placeId).getAttendanceMeta().then((meta) {
+      final p = (meta['passiveUsers'] as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
+      setState(() {
+        _passiveUsers
+          ..clear()
+          ..addEntries(
+            p.entries
+                .where((e) => e.value == true)
+                .map((e) => MapEntry(e.key, true)),
+          );
+      });
+    }).catchError((_) {});
     // Initialize TabController if tabs used
     if (widget.useTabs && widget.attendanceItems.isNotEmpty) {
       final idx = math.max(0, widget.attendanceItems.indexWhere((e) => (e['id'] == _selectedItem) || (e['name'] == _selectedItem)));
@@ -645,7 +661,52 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
                                         fit: FlexFit.loose,
                                         child: SizedBox(
                                           height: rowHeight,
-                                          child: Row(children: [Expanded(child: Text(displayNameFor(userId), overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium)), Icon(expanded ? Icons.expand_less : Icons.expand_more, size: 18)]),
+                                          child: Row(children: [
+                                            Expanded(child: Text(displayNameFor(userId), overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium)),
+                                            // passive hint when collapsed
+                                            if (!expanded && (_passiveUsers[userId] == true))
+                                              Padding(
+                                                padding: const EdgeInsets.only(right: 6.0),
+                                                child: Icon(
+                                                  Icons.pause_circle_outline,
+                                                  size: 14,
+                                                  color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+                                                ),
+                                              ),
+                                            // Passive toggle shown in expanded row
+                                            if (expanded)
+                                              Row(children: [
+                                                RoleGate(
+                                                  minRole: UserRole.baskan,
+                                                  child: IconButton(
+                                                  iconSize: 18,
+                                                  padding: EdgeInsets.zero,
+                                                  constraints: const BoxConstraints.tightFor(width: 20, height: 20),
+                                                  visualDensity: VisualDensity.compact,
+                                                  splashRadius: 14,
+                                                  tooltip: 'Passive',
+                                                  onPressed: () async {
+                                                    final next = !(_passiveUsers[userId] ?? false);
+                                                    // persist without snackbar
+                                                    await AttendanceFirestoreService(widget.placeId).setUserPassive(userId, next);
+                                                    setState(() {
+                                                      if (next) {
+                                                        _passiveUsers[userId] = true;
+                                                      } else {
+                                                        _passiveUsers.remove(userId);
+                                                      }
+                                                    });
+                                                  },
+                                                  icon: Icon(
+                                                    _passiveUsers[userId] == true ? Icons.pause_circle_filled : Icons.pause_circle_outline,
+                                                    size: 18,
+                                                  ),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 4),
+                                              ]),
+                                            Icon(expanded ? Icons.expand_less : Icons.expand_more, size: 18)
+                                          ]),
                                         ),
                                       ),
                                       if (expanded)
@@ -779,12 +840,70 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
                                                                 currentUser: widget.currentUser,
                                                                 latenessEnabled: ((it['latenessEnabled'] as bool?) ?? false),
                                                                 pendingLookup: (key) => _pendingVN.value[key],
-                                                                onToggle: (key, state) {
+                                                                onToggle: (key, state) async {
                                                                   // optimistic update: replace map to notify listeners
                                                                   final next = Map<String, String>.from(_pendingVN.value);
                                                                   next[key] = state;
                                                                   _pendingVN.value = next;
                                                                   _batcher.enqueueState(key, state);
+                                                                  // If this is today's date, perform passive auto-fill for other passive users
+                                                                  if (columns[ci] == _todayKey) {
+                                                                    // compute last-known state for each passive user and enqueue writes
+                                                                    final passiveUids = _passiveUsers.keys.toList();
+                                                                    bool anyPassiveUpdated = false;
+                                                                    for (final pu in passiveUids) {
+                                                                      if (pu == userId) continue; // skip the user who triggered the change
+                                                                      final passiveKey = '${columns[ci]}|${it['id']}|$pu';
+                                                                      // If passive user's today cell already has a state, skip
+                                                                      final dateRec = attendance[columns[ci]] as Map<String, dynamic>?;
+                                                                      final rec = dateRec == null ? null : (dateRec[it['id']] as Map<String, dynamic>?);
+                                                                      final present = rec == null ? const <String>[] : (rec['present'] as List?)?.cast<String>() ?? const <String>[];
+                                                                      final onLeave = rec == null ? const <String>[] : (rec['onLeave'] as List?)?.cast<String>() ?? const <String>[];
+                                                                      final absent = rec == null ? const <String>[] : (rec['absent'] as List?)?.cast<String>() ?? const <String>[];
+                                                                      final def = rec == null ? const <String>[] : (rec['default'] as List?)?.cast<String>() ?? const <String>[];
+                                                                      final alreadyExplicit = present.contains(pu) || onLeave.contains(pu) || absent.contains(pu);
+                                                                      // Attempt only if today's state is explicitly default for this user
+                                                                      if (alreadyExplicit || !def.contains(pu)) continue;
+                                                                      // find last known state by scanning columns (descending)
+                                                                      final allCols = _buildColumns();
+                                                                      final filteredCols = _filterColumnsByWeekdays(allCols, _currentItemWeekdays());
+                                                                      String? lastState;
+                                                                      for (final ck in filteredCols) {
+                                                                        if (ck == columns[ci]) continue; // skip today
+                                                                        final drec = attendance[ck] as Map<String, dynamic>?;
+                                                                        final r = drec == null ? null : (drec[it['id']] as Map<String, dynamic>?);
+                                                                        if (r == null) continue;
+                                                                        final p = (r['present'] as List?)?.cast<String>() ?? const <String>[];
+                                                                        final l = (r['onLeave'] as List?)?.cast<String>() ?? const <String>[];
+                                                                        final a = (r['absent'] as List?)?.cast<String>() ?? const <String>[];
+                                                                         // no default check here; default is intentionally ignored
+                                                                        if (p.contains(pu)) {
+                                                                          lastState = 'present';
+                                                                          break;
+                                                                        }
+                                                                        if (l.contains(pu)) {
+                                                                          lastState = 'onLeave';
+                                                                          break;
+                                                                        }
+                                                                        if (a.contains(pu)) {
+                                                                          lastState = 'absent';
+                                                                          break;
+                                                                        }
+                                                                      }
+                                                                      // If no explicit state found, do nothing (no default fallback)
+                                                                      if (lastState != null) {
+                                                                        // optimistic pending for passive cell
+                                                                        final nextPending = Map<String, String>.from(_pendingVN.value);
+                                                                        nextPending[passiveKey] = lastState;
+                                                                        _pendingVN.value = nextPending;
+                                                                        _batcher.enqueueState(passiveKey, lastState);
+                                                                        anyPassiveUpdated = true;
+                                                                      }
+                                                                    }
+                                                                    if (anyPassiveUpdated) {
+                                                                      setState(() {});
+                                                                    }
+                                                                  }
                                                                 },
                                                               ),
                                                             ),

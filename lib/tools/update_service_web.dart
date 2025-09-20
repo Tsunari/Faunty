@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 // Web-specific implementation using package:web for DOM access.
 // Avoids direct low-level js_interop in favor of typed APIs.
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
@@ -66,9 +66,72 @@ class UpdateService {
     _visibilityPollTimer = null;
   }
 
-  static Future<void> manualCheck({ bool forceDialog = false, bool showUpToDateSnack = false, bool promptRefreshIfUpToDate = false, }) async { final bool foundNewer = await _performCheck(showDialogIfNewer: true, forceDialog: forceDialog); if (!foundNewer) { final ctx = _obtainContext(); if (ctx != null && ctx.mounted) { if (showUpToDateSnack) { showCustomSnackBar(ctx, translation(context: ctx, 'You are up to date.')); } if (promptRefreshIfUpToDate) { unawaited(showDialog<bool>( context: ctx, builder: (dCtx) => AlertDialog( title: Text(translation(context: dCtx, 'Reload page?')), content: Text(translation(context: dCtx, 'No new version found. Do you still want to refresh?')), actions: [ TextButton(onPressed: () => Navigator.of(dCtx).pop(false), child: Text(translation(context: dCtx, 'Cancel'))), ElevatedButton(onPressed: () => Navigator.of(dCtx).pop(true), child: Text(translation(context: dCtx, 'Refresh'))), ], ), ).then((accepted) { if (accepted == true && ctx.mounted) { showCustomSnackBar(ctx, translation(context: ctx, 'Refreshing...')); _reloadPage(); } })); } } } }
+  static Future<void> manualCheck({ bool forceDialog = false, bool showUpToDateSnack = false, bool promptRefreshIfUpToDate = false, }) async { 
+    final bool foundNewer = await _performCheck(showDialogIfNewer: true, forceDialog: forceDialog); 
+    if (!foundNewer) { final ctx = _obtainContext(); 
+    if (ctx != null && ctx.mounted) { 
+      if (showUpToDateSnack) { showCustomSnackBar(ctx, translation(context: ctx, 'You are up to date.')); } 
+      if (promptRefreshIfUpToDate) { 
+        unawaited(
+          showDialog<bool>( 
+            context: ctx, 
+            builder: (dCtx) => AlertDialog( 
+              title: Text(translation(context: dCtx, 'Reload page?')), 
+              content: Text(translation(context: dCtx, 'No new version found. Do you still want to refresh?')), 
+              actions: [ 
+                TextButton(
+                  onPressed: () => Navigator.of(dCtx).pop(false), 
+                  child: Text(translation(context: dCtx, 'Cancel'))
+                ), 
+                ElevatedButton(
+                  onPressed: () => Navigator.of(dCtx).pop(true), 
+                  child: Text(translation(context: dCtx, 'Refresh'))
+                ), 
+              ], 
+            ), 
+          ).then((accepted) { 
+            if (accepted == true && ctx.mounted) { showCustomSnackBar(ctx, translation(context: ctx, 'Refreshing...'));
+            _reloadPage(); } })
+        ); 
+      } 
+    } } 
+  }
 
-  static Future<bool> _performCheck({required bool showDialogIfNewer, bool forceDialog = false}) async { try { final now = DateTime.now(); final current = _cachedCurrentVersion ??= await _getCurrentVersion(); if (current == null) return false; final latestTag = await _getLatestReleaseTag(); if (latestTag == null) return false; _lastSuccessfulCheck = now; final newer = _compareVersions(latestTag, current) > 0; if (!newer) return false; if (!_shouldShowDialogFor(latestTag) && !forceDialog) return false; final ctx = _obtainContext(); if (ctx == null || !ctx.mounted) return false; final accepted = await showDialog<bool>( context: ctx, builder: (dialogCtx) => AlertDialog( title: Text(translation(context: dialogCtx, 'Update available')), content: Text(translation(context: dialogCtx, 'A new version (%s) is available. Refresh to update?').replaceFirst('%s', latestTag)), actions: [ TextButton(onPressed: () => Navigator.of(dialogCtx).pop(false), child: Text(translation(context: dialogCtx, 'Later'))), ElevatedButton(onPressed: () => Navigator.of(dialogCtx).pop(true), child: Text(translation(context: dialogCtx, 'Refresh now'))), ], ), ); if (accepted == true && ctx.mounted) { showCustomSnackBar(ctx, translation(context: ctx, 'Refreshing to update...')); _dialogShownForCurrentVersion = true; _reloadPage(); } return true; } catch (_) { return false; } }
+  static Future<bool> _performCheck({required bool showDialogIfNewer, bool forceDialog = false}) async { 
+    if (kDebugMode) return false;
+    try { 
+      final now = DateTime.now(); 
+      final current = _cachedCurrentVersion ??= await _getCurrentVersion(); 
+      if (current == null) return false; 
+      final latestTag = await _getLatestReleaseTag(); 
+      if (latestTag == null) return false; 
+      _lastSuccessfulCheck = now; 
+      final newer = _compareVersions(latestTag, current) > 0; 
+      if (!newer) return false;
+      if (!_shouldShowDialogFor(latestTag) && !forceDialog) return false;
+      final ctx = _obtainContext();
+      if (ctx == null || !ctx.mounted) return false;
+      final accepted = await showDialog<bool>(
+        context: ctx,
+        builder: (dialogCtx) => AlertDialog(
+          title: Text(translation(context: dialogCtx, 'Update available')),
+          content: Text(translation(context: dialogCtx, 'A new version (%s) is available. Refresh to update?').replaceFirst('%s', latestTag)),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(dialogCtx).pop(false), child: Text(translation(context: dialogCtx, 'Later'))),
+            ElevatedButton(onPressed: () => Navigator.of(dialogCtx).pop(true), child: Text(translation(context: dialogCtx, 'Refresh now'))),
+          ],
+        ),
+      );
+      if (accepted == true && ctx.mounted) {
+        showCustomSnackBar(ctx, translation(context: ctx, 'Refreshing to update...'));
+        _dialogShownForCurrentVersion = true;
+        _reloadPage();
+      }
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
 
   static bool _shouldShowDialogFor(String latestTag) { if (_cachedCurrentVersion == null) return false; if (_dialogShownForCurrentVersion) return false; return true; }
   static BuildContext? _obtainContext() { try { if (_contextProvider != null) return _contextProvider!(); } catch (_) {} return null; }

@@ -126,6 +126,19 @@ class AttendanceFirestoreService {
     await setAttendanceMeta(meta);
   }
 
+  /// Set or clear passive flag for a user in the attendance meta under `passiveUsers`.
+  Future<void> setUserPassive(String uid, bool enabled) async {
+    final meta = await getAttendanceMeta();
+    final Map<String, dynamic> passive = Map<String, dynamic>.from(meta['passiveUsers'] as Map<String, dynamic>? ?? <String, dynamic>{});
+    if (enabled) {
+      passive[uid] = true;
+    } else {
+      passive.remove(uid);
+    }
+    meta['passiveUsers'] = passive;
+    await setAttendanceMeta(meta);
+  }
+
   /// Atomically toggle presence for a single item field using arrayUnion/arrayRemove.
   /// This keeps writes small and avoids reading/modifying the whole document client-side.
   Future<void> toggleAttendanceItem({
@@ -140,32 +153,20 @@ class AttendanceFirestoreService {
     final onLeavePath = '$itemId.onLeave';
     final defaultPath = '$itemId.default';
     final writeBatch = FirebaseFirestore.instance.batch();
+    final Map<String, dynamic> ops = {};
     if (checked) {
-      // add to present, remove from absent
-      writeBatch.update(docRef, {presentPath: FieldValue.arrayUnion([userId])});
-      writeBatch.update(docRef, {absentPath: FieldValue.arrayRemove([userId])});
-      writeBatch.update(docRef, {onLeavePath: FieldValue.arrayRemove([userId])});
-      writeBatch.update(docRef, {defaultPath: FieldValue.arrayRemove([userId])});
+      ops[presentPath] = FieldValue.arrayUnion([userId]);
+      ops[absentPath] = FieldValue.arrayRemove([userId]);
+      ops[onLeavePath] = FieldValue.arrayRemove([userId]);
+      ops[defaultPath] = FieldValue.arrayRemove([userId]);
     } else {
-      writeBatch.update(docRef, {presentPath: FieldValue.arrayRemove([userId])});
-      writeBatch.update(docRef, {absentPath: FieldValue.arrayUnion([userId])});
-      writeBatch.update(docRef, {onLeavePath: FieldValue.arrayRemove([userId])});
-      writeBatch.update(docRef, {defaultPath: FieldValue.arrayRemove([userId])});
+      ops[presentPath] = FieldValue.arrayRemove([userId]);
+      ops[absentPath] = FieldValue.arrayUnion([userId]);
+      ops[onLeavePath] = FieldValue.arrayRemove([userId]);
+      ops[defaultPath] = FieldValue.arrayRemove([userId]);
     }
-    try {
-      await writeBatch.commit();
-    } catch (e) {
-      // If document doesn't exist yet, create it with the minimal structure
-      final initial = <String, dynamic>{
-        itemId: {
-          'present': checked ? [userId] : <String>[],
-          'absent': checked ? <String>[] : [userId],
-          'onLeave': <String>[],
-          'default': <String>[],
-        }
-      };
-      await docRef.set(initial, SetOptions(merge: true));
-    }
+    writeBatch.set(docRef, ops, SetOptions(merge: true));
+    await writeBatch.commit();
   }
 
   /// Set explicit attendance state (present | absent | onLeave) using atomic array ops.
@@ -181,37 +182,31 @@ class AttendanceFirestoreService {
     final onLeavePath = '$itemId.onLeave';
     final defaultPath = '$itemId.default';
     final writeBatch = FirebaseFirestore.instance.batch();
-
-    // Remove from all, then add to the chosen one
-    writeBatch.update(docRef, {presentPath: FieldValue.arrayRemove([userId])});
-    writeBatch.update(docRef, {absentPath: FieldValue.arrayRemove([userId])});
-    writeBatch.update(docRef, {onLeavePath: FieldValue.arrayRemove([userId])});
-    writeBatch.update(docRef, {defaultPath: FieldValue.arrayRemove([userId])});
-
+    final Map<String, dynamic> ops = {};
+    // Remove from non-selected and add to selected (avoid double transform on same field)
     if (state == 'present') {
-      writeBatch.update(docRef, {presentPath: FieldValue.arrayUnion([userId])});
+      ops[presentPath] = FieldValue.arrayUnion([userId]);
+      ops[absentPath] = FieldValue.arrayRemove([userId]);
+      ops[onLeavePath] = FieldValue.arrayRemove([userId]);
+      ops[defaultPath] = FieldValue.arrayRemove([userId]);
     } else if (state == 'absent') {
-      writeBatch.update(docRef, {absentPath: FieldValue.arrayUnion([userId])});
+      ops[presentPath] = FieldValue.arrayRemove([userId]);
+      ops[absentPath] = FieldValue.arrayUnion([userId]);
+      ops[onLeavePath] = FieldValue.arrayRemove([userId]);
+      ops[defaultPath] = FieldValue.arrayRemove([userId]);
     } else if (state == 'onLeave') {
-      writeBatch.update(docRef, {onLeavePath: FieldValue.arrayUnion([userId])});
+      ops[presentPath] = FieldValue.arrayRemove([userId]);
+      ops[absentPath] = FieldValue.arrayRemove([userId]);
+      ops[onLeavePath] = FieldValue.arrayUnion([userId]);
+      ops[defaultPath] = FieldValue.arrayRemove([userId]);
     } else if (state == 'default') {
-      writeBatch.update(docRef, {defaultPath: FieldValue.arrayUnion([userId])});
+      ops[presentPath] = FieldValue.arrayRemove([userId]);
+      ops[absentPath] = FieldValue.arrayRemove([userId]);
+      ops[onLeavePath] = FieldValue.arrayRemove([userId]);
+      ops[defaultPath] = FieldValue.arrayUnion([userId]);
     }
-
-    try {
-      await writeBatch.commit();
-    } catch (e) {
-      // If document doesn't exist yet, create it with the minimal structure
-      final initial = <String, dynamic>{
-        itemId: {
-          'present': state == 'present' ? [userId] : <String>[],
-          'absent': state == 'absent' ? [userId] : <String>[],
-          'onLeave': state == 'onLeave' ? [userId] : <String>[],
-          'default': state == 'default' ? [userId] : <String>[],
-        }
-      };
-      await docRef.set(initial, SetOptions(merge: true));
-    }
+    writeBatch.set(docRef, ops, SetOptions(merge: true));
+    await writeBatch.commit();
   }
 
   /// Set lateness minutes for a user on a given date and item.
