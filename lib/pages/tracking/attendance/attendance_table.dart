@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../firestore/attendance_firestore_service.dart';
 import 'package:faunty/models/user_entity.dart';
 import 'package:faunty/models/user_roles.dart';
+import 'package:faunty/tools/translation_helper.dart';
 
 class AttendanceTable extends StatefulWidget {
   final List<UserEntity> users;
@@ -327,7 +328,7 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
     if (usersCacheMismatch) {
       _updateUsersCache();
     }
-    final itemsMeta = widget.attendanceItems;
+  final itemsMeta = widget.attendanceItems;
     final attendance = _attendanceCache;
 
     // Prefer roster provided by attendance stream (AttendanceFirestoreService adds it),
@@ -348,7 +349,19 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
           }).map((u) => u.uid).toList();
   // helper to get display name for uid using cached map
   String displayNameFor(String uid) => _displayNameMap[uid] ?? uid;
-  final List<String> columns = _buildColumns();
+  final List<String> allColumns = _buildColumns();
+  // Determine selected item meta
+  final selectedMeta = itemsMeta.firstWhere(
+    (e) => e['id'] == _selectedItem || e['name'] == _selectedItem,
+    orElse: () => itemsMeta.isNotEmpty ? itemsMeta.first : {'id': 'presence', 'name': 'Presence'},
+  );
+  final List<int> selectedWeekdays = ((selectedMeta['weekdays'] as List?)?.cast<int>() ?? [1,2,3,4,5,6,7]).where((d)=>d>=1&&d<=7).toList();
+  // latenessEnabled handled per-cell via item meta flag
+  // Filter columns by weekdays for the selected item
+  final List<String> columns = allColumns.where((key) {
+    final dt = _parseKey(key);
+    return selectedWeekdays.contains(dt.weekday);
+  }).toList();
   // virtualization window: build only visible columns plus a small buffer
   final visibleWidth = MediaQuery.of(context).size.width - 170 - 24; // availableWidth used later
   final visibleColsCount = (visibleWidth / _colWidthConst).ceil() + 4; // buffer
@@ -363,8 +376,8 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
     final double baseDayColWidth = _colWidthConst;
     final double headingHeight = 72;
     final double availableWidth = MediaQuery.of(context).size.width - nameColWidth - 24;
-    final double dayColWidth = baseDayColWidth;
-    final double totalWidth = (columns.length * dayColWidth) > availableWidth ? columns.length * dayColWidth : availableWidth;
+  final double dayColWidth = baseDayColWidth;
+  final double totalWidth = (columns.length * dayColWidth) > availableWidth ? columns.length * dayColWidth : availableWidth;
 
     return Column(
       children: [
@@ -601,6 +614,7 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
                                                                 attendance: attendance,
                                                                 itemName: it['id'] as String,
                                                                 currentUser: widget.currentUser,
+                                                                latenessEnabled: ((it['latenessEnabled'] as bool?) ?? false),
                                                                 pendingLookup: (key) => _pendingVN.value[key],
                                                                 onToggle: (key, state) {
                                                                   // optimistic update: replace map to notify listeners
@@ -702,8 +716,9 @@ class _InlineCell extends StatefulWidget {
   final UserEntity currentUser;
   final String? Function(String key)? pendingLookup; // returns 'present' | 'absent' | 'onLeave'
   final void Function(String key, String state)? onToggle; // state: 'present' | 'absent' | 'onLeave'
+  final bool latenessEnabled;
 
-  const _InlineCell({required this.placeId, required this.dateKey, required this.userId, required this.attendance, required this.itemName, required this.currentUser, this.pendingLookup, this.onToggle});
+  const _InlineCell({required this.placeId, required this.dateKey, required this.userId, required this.attendance, required this.itemName, required this.currentUser, this.pendingLookup, this.onToggle, this.latenessEnabled = false});
 
   @override
   State<_InlineCell> createState() => _InlineCellState();
@@ -711,11 +726,13 @@ class _InlineCell extends StatefulWidget {
 
 class _InlineCellState extends State<_InlineCell> {
   late final ValueNotifier<String> _stateVN; // 'present' | 'absent' | 'onLeave' | 'default'
+  late final ValueNotifier<int?> _lateVN; // minutes
 
   @override
   void initState() {
     super.initState();
     _stateVN = ValueNotifier<String>(_lookupState());
+    _lateVN = ValueNotifier<int?>(_lookupLateMinutes());
   }
 
   @override
@@ -723,6 +740,8 @@ class _InlineCellState extends State<_InlineCell> {
     super.didUpdateWidget(oldWidget);
     final newVal = _lookupState();
     if (newVal != _stateVN.value) _stateVN.value = newVal;
+    final newLate = _lookupLateMinutes();
+    if (newLate != _lateVN.value) _lateVN.value = newLate;
   }
 
   String _lookupState() {
@@ -745,6 +764,7 @@ class _InlineCellState extends State<_InlineCell> {
   @override
   void dispose() {
     _stateVN.dispose();
+    _lateVN.dispose();
     super.dispose();
   }
 
@@ -755,10 +775,10 @@ class _InlineCellState extends State<_InlineCell> {
     return ValueListenableBuilder<String>(
       valueListenable: _stateVN,
       builder: (context, state, _) {
+        final scheme = Theme.of(context).colorScheme;
         Widget icon;
         Color? bg;
         Color? border;
-        final scheme = Theme.of(context).colorScheme;
         if (state == 'present') {
           icon = Icon(Icons.check, size: 16, color: scheme.onPrimary);
           bg = scheme.primary;
@@ -772,7 +792,6 @@ class _InlineCellState extends State<_InlineCell> {
           bg = scheme.primary.withOpacity(0.08);
           border = scheme.primary;
         } else {
-          // default state
           icon = const SizedBox.shrink();
           bg = null;
           border = Theme.of(context).dividerColor.withOpacity(0.6);
@@ -794,27 +813,112 @@ class _InlineCellState extends State<_InlineCell> {
           widget.onToggle?.call(key, next);
         }
 
-        return Semantics(
+        Widget base = Semantics(
           button: true,
           label: 'Attendance state: $state',
           child: InkWell(
             onTap: canEdit ? handleTap : null,
+            onLongPress: widget.latenessEnabled && canEdit ? () => _editLateMinutes(context) : null,
             borderRadius: BorderRadius.circular(3),
-            child: Container(
-              width: 22,
-              height: 22,
-              decoration: BoxDecoration(
-                color: bg,
-                borderRadius: BorderRadius.circular(3),
-                border: Border.all(color: border, width: 1.5),
-              ),
-              alignment: Alignment.center,
-              child: icon,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    color: bg,
+                    borderRadius: BorderRadius.circular(3),
+                    border: Border.all(color: border, width: 1.5),
+                  ),
+                  alignment: Alignment.center,
+                  child: icon,
+                ),
+                if (widget.latenessEnabled)
+                  Positioned(
+                    right: -5,
+                    top: -1,
+                    child: ValueListenableBuilder<int?>(
+                      valueListenable: _lateVN,
+                      builder: (context, minutes, __) {
+                        final has = minutes != null && minutes > 0;
+                        if (!has) return const SizedBox.shrink();
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 0),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.tertiary,
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                          child: Text(
+                            '${minutes}m',
+                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                  fontSize: 8,
+                                  color: Theme.of(context).colorScheme.onTertiary,
+                                ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+              ],
             ),
           ),
         );
+
+        return base;
       },
     );
+  }
+
+  int? _lookupLateMinutes() {
+    final dateRec = widget.attendance[widget.dateKey] as Map<String, dynamic>?;
+    final rec = dateRec == null ? null : (dateRec[widget.itemName] as Map<String, dynamic>?);
+    final lateMap = rec == null ? null : (rec['lateMinutes'] as Map<String, dynamic>?);
+    final val = lateMap == null ? null : lateMap[widget.userId];
+    if (val is int) return val;
+    if (val is num) return val.toInt();
+    return null;
+  }
+
+  Future<void> _editLateMinutes(BuildContext context) async {
+    final controller = TextEditingController(text: (_lateVN.value ?? 0).toString());
+    final minutes = await showDialog<int?>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: Text(translation(context: context, 'Set lateness (minutes)')),
+          content: TextField(
+            controller: controller,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(isDense: true, hintText: translation(context: context, 'e.g. 10')),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, -1),
+              child: Text(translation(context: context, 'Remove')),
+            ),
+            TextButton(onPressed: () => Navigator.pop(ctx, null), child: Text(translation(context: context, 'Cancel'))),
+            ElevatedButton(
+              onPressed: () {
+                final v = int.tryParse(controller.text.trim());
+                Navigator.pop(ctx, v);
+              },
+              child: Text(translation(context: context, 'Save')),
+            ),
+          ],
+        );
+      },
+    );
+    if (!mounted) return;
+    if (minutes == null) return; // Cancel only
+    final clamped = minutes <= 0 ? null : minutes.clamp(1, 600); // allow up to 10h theoretical
+    await AttendanceFirestoreService(widget.placeId).setLateMinutes(
+      dateId: widget.dateKey,
+      itemId: widget.itemName,
+      userId: widget.userId,
+      minutes: clamped is int ? clamped : null,
+    );
+    _lateVN.value = clamped is int ? clamped : null;
   }
 }
 

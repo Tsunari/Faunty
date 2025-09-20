@@ -17,6 +17,7 @@ class _AttendanceItemsPageState extends ConsumerState<AttendanceItemsPage> {
   final TextEditingController _newCtrl = TextEditingController();
   final Map<int, TextEditingController> _editCtrls = {};
   int? _editingIndex;
+  final Set<String> _settingsOpen = <String>{};
 
   @override
   void initState() {
@@ -46,6 +47,22 @@ class _AttendanceItemsPageState extends ConsumerState<AttendanceItemsPage> {
   final meta = await AttendanceFirestoreService(widget.placeId).getAttendanceMeta();
   meta['items'] = _items;
   await AttendanceFirestoreService(widget.placeId).setAttendanceMeta(meta);
+  }
+
+  List<int> _ensureWeekdays(Map<String, dynamic> item) {
+    final wd = (item['weekdays'] as List?)?.cast<int>();
+    if (wd == null || wd.isEmpty) {
+      item['weekdays'] = [1, 2, 3, 4, 5, 6, 7];
+      return item['weekdays'].cast<int>();
+    }
+    return wd;
+  }
+
+  bool _ensureLateness(Map<String, dynamic> item) {
+    if (item['latenessEnabled'] is! bool) {
+      item['latenessEnabled'] = false;
+    }
+    return item['latenessEnabled'] as bool;
   }
 
   Future<void> _addInline() async {
@@ -154,6 +171,9 @@ class _AttendanceItemsPageState extends ConsumerState<AttendanceItemsPage> {
                               itemBuilder: (context, idx) {
                                 final inEdit = _editingIndex == idx;
                                 final keyVal = ValueKey(_items[idx]['id'] as String? ?? '${_items[idx]['name']}_$idx');
+                                final item = _items[idx];
+                                final itemId = (item['id'] as String?) ?? keyVal.value.toString();
+                                final isSettingsOpen = _settingsOpen.contains(itemId);
                                 return Column(
                                   key: keyVal,
                                   children: [
@@ -175,6 +195,19 @@ class _AttendanceItemsPageState extends ConsumerState<AttendanceItemsPage> {
                                             )
                                           : Text(_items[idx]['name'] as String? ?? '', style: theme.textTheme.bodyLarge),
                                       trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                                        IconButton(
+                                          tooltip: translation(context: context, 'Settings'),
+                                          icon: const Icon(Icons.settings),
+                                          onPressed: () {
+                                            setState(() {
+                                              if (isSettingsOpen) {
+                                                _settingsOpen.remove(itemId);
+                                              } else {
+                                                _settingsOpen.add(itemId);
+                                              }
+                                            });
+                                          },
+                                        ),
                                         if (!inEdit)
                                           IconButton(icon: const Icon(Icons.edit), onPressed: () => _startEdit(idx)),
                                         if (inEdit) ...[
@@ -184,6 +217,81 @@ class _AttendanceItemsPageState extends ConsumerState<AttendanceItemsPage> {
                                         IconButton(icon: const Icon(Icons.delete), onPressed: () => _removeItem(idx)),
                                       ]),
                                     ),
+                                    if (isSettingsOpen)
+                                      Padding(
+                                        padding: const EdgeInsets.fromLTRB(56, 0, 12, 8),
+                                        child: Builder(builder: (context) {
+                                          final weekdays = _ensureWeekdays(item);
+                                          final lateness = _ensureLateness(item);
+                                          const fullLabels = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+                                          const shortLabels = ['M','T','W','T','F','S','S'];
+                                          return Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(translation(context: context, 'Weekdays'), style: theme.textTheme.bodyMedium),
+                                              const SizedBox(height: 6),
+                                              Wrap(
+                                                spacing: 8,
+                                                runSpacing: 8,
+                                                children: List.generate(7, (i) {
+                                                  final day = i + 1; // 1..7
+                                                  final selected = weekdays.contains(day);
+                                                  return Tooltip(
+                                                    message: fullLabels[i],
+                                                    child: InkWell(
+                                                      borderRadius: BorderRadius.circular(16),
+                                                      onTap: () async {
+                                                        setState(() {
+                                                          if (selected) {
+                                                            weekdays.remove(day);
+                                                          } else {
+                                                            weekdays.add(day);
+                                                          }
+                                                          weekdays.sort();
+                                                          item['weekdays'] = List<int>.from(weekdays);
+                                                        });
+                                                        await _save();
+                                                      },
+                                                      child: Container(
+                                                        width: 32,
+                                                        height: 32,
+                                                        alignment: Alignment.center,
+                                                        decoration: BoxDecoration(
+                                                          color: selected ? theme.colorScheme.primary : Colors.transparent,
+                                                          borderRadius: BorderRadius.circular(16),
+                                                          border: Border.all(color: selected ? theme.colorScheme.primary : theme.dividerColor),
+                                                        ),
+                                                        child: Text(
+                                                          shortLabels[i],
+                                                          style: theme.textTheme.labelMedium?.copyWith(
+                                                            color: selected ? theme.colorScheme.onPrimary : theme.colorScheme.onSurface,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  );
+                                                }),
+                                              ),
+                                              const SizedBox(height: 10),
+                                              Row(
+                                                children: [
+                                                  Text(translation(context: context, 'Lateness'), style: theme.textTheme.bodyMedium),
+                                                  const SizedBox(width: 12),
+                                                  Switch(
+                                                    value: lateness,
+                                                    onChanged: (val) async {
+                                                      setState(() {
+                                                        item['latenessEnabled'] = val;
+                                                      });
+                                                      await _save();
+                                                    },
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          );
+                                        }),
+                                      ),
                                     const Divider(height: 8),
                                   ],
                                 );

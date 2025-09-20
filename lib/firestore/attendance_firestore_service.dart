@@ -64,7 +64,14 @@ class AttendanceFirestoreService {
     final id = FirebaseFirestore.instance.collection('places').doc(placeId).collection('attendance').doc().id;
     final meta = await getAttendanceMeta();
     final items = (meta['items'] as List?)?.cast<Map<String, dynamic>>() ?? <Map<String, dynamic>>[];
-    items.add({'id': id, 'name': name});
+    items.add({
+      'id': id,
+      'name': name,
+      // Default to all weekdays enabled: 1=Mon ... 7=Sun
+      'weekdays': const [1, 2, 3, 4, 5, 6, 7],
+      // Default lateness disabled
+      'latenessEnabled': false,
+    });
     meta['items'] = items;
   await setAttendanceMeta(meta);
     return id;
@@ -89,6 +96,34 @@ class AttendanceFirestoreService {
     items.removeWhere((it) => it['id'] == id);
     meta['items'] = items;
   await setAttendanceMeta(meta);
+  }
+
+  /// Update weekdays for an item in meta. Expects values 1..7 (Mon..Sun)
+  Future<void> setItemWeekdays(String id, List<int> weekdays) async {
+    final meta = await getAttendanceMeta();
+    final items = (meta['items'] as List?)?.map((e) => Map<String, dynamic>.from(e as Map)).toList() ?? <Map<String, dynamic>>[];
+    for (final it in items) {
+      if (it['id'] == id) {
+        it['weekdays'] = weekdays;
+        break;
+      }
+    }
+    meta['items'] = items;
+    await setAttendanceMeta(meta);
+  }
+
+  /// Update lateness enabled flag for an item in meta.
+  Future<void> setItemLatenessEnabled(String id, bool enabled) async {
+    final meta = await getAttendanceMeta();
+    final items = (meta['items'] as List?)?.map((e) => Map<String, dynamic>.from(e as Map)).toList() ?? <Map<String, dynamic>>[];
+    for (final it in items) {
+      if (it['id'] == id) {
+        it['latenessEnabled'] = enabled;
+        break;
+      }
+    }
+    meta['items'] = items;
+    await setAttendanceMeta(meta);
   }
 
   /// Atomically toggle presence for a single item field using arrayUnion/arrayRemove.
@@ -176,6 +211,38 @@ class AttendanceFirestoreService {
         }
       };
       await docRef.set(initial, SetOptions(merge: true));
+    }
+  }
+
+  /// Set lateness minutes for a user on a given date and item.
+  /// Stores under path: `<dateId>.<itemId>.lateMinutes.<userId> = minutes`.
+  /// If `minutes == null` or `minutes <= 0`, the field is removed.
+  Future<void> setLateMinutes({
+    required String dateId,
+    required String itemId,
+    required String userId,
+    int? minutes,
+  }) async {
+    final docRef = _attendanceCollection.doc(dateId);
+    final latePath = '$itemId.lateMinutes.$userId';
+    try {
+      if (minutes == null || minutes <= 0) {
+        await docRef.update({latePath: FieldValue.delete()});
+      } else {
+        await docRef.update({latePath: minutes});
+      }
+    } catch (e) {
+      // If document or path doesn't exist yet, create minimal structure
+      if (minutes == null || minutes <= 0) {
+        // Nothing to create if deleting a non-existing field; ensure doc exists
+        await docRef.set({}, SetOptions(merge: true));
+      } else {
+        await docRef.set({
+          itemId: {
+            'lateMinutes': {userId: minutes},
+          }
+        }, SetOptions(merge: true));
+      }
     }
   }
 }
