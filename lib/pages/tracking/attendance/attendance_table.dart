@@ -180,18 +180,6 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
         _attendanceCache['roster'] = List<String>.from(incomingRoster);
       }
       needRebuild = true;
-    }
-
-    // If users list changed (by uid) we should update UI and clean up state such as expanded rows.
-    final oldUids = oldWidget.users.map((u) => u.uid).toList();
-    final newUids = widget.users.map((u) => u.uid).toList();
-    // Rebuild if uid list changed
-    if (!_listEquals(oldUids, newUids)) {
-      final existing = newUids.toSet();
-      final nextExpanded = _expandedVN.value.where((e) => existing.contains(e)).toSet();
-      _expandedVN.value = nextExpanded;
-      needRebuild = true;
-      _updateUsersCache();
     } else {
       // Uid list is same, but roles or other user properties might have changed.
       // Detect role changes by comparing uid->role signature.
@@ -355,7 +343,16 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_timeScrollCtrl.hasClients) {
           final delta = (addedFiltered * _colWidthConst);
-          _timeScrollCtrl.jumpTo(_timeScrollCtrl.offset + delta);
+          final nextOffset = _timeScrollCtrl.offset + delta;
+          _timeScrollCtrl.jumpTo(nextOffset);
+          final allCols = _buildColumns();
+          final cols = _filterColumnsByWeekdays(allCols, _currentItemWeekdays());
+          if (cols.isNotEmpty) {
+            final idx = (nextOffset / _colWidthConst).floor().clamp(0, cols.length - 1);
+            setState(() {
+              _lastFirstVisibleCol = idx;
+            });
+          }
         }
         _isExtending = false;
         _updateVisibleMonth();
@@ -496,7 +493,10 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
   // virtualization window: build only visible columns plus a small buffer
   final visibleWidth = MediaQuery.of(context).size.width - 170 - 24; // availableWidth used later
   final visibleColsCount = (visibleWidth / _colWidthConst).ceil() + 4; // buffer
-  final firstVisible = columns.isEmpty ? 0 : _lastFirstVisibleCol.clamp(0, columns.length - 1);
+  // Compute first visible index from the current horizontal scroll offset for robustness
+  final firstVisible = (columns.isEmpty || !_timeScrollCtrl.hasClients)
+      ? 0
+      : (_timeScrollCtrl.offset / _colWidthConst).floor().clamp(0, columns.length - 1);
   final startCol = firstVisible;
   final endCol = (firstVisible + visibleColsCount).clamp(0, columns.length);
   final leftSpacerWidth = startCol * _colWidthConst;
@@ -544,17 +544,26 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
                     metaMap.remove('default');
                     await AttendanceFirestoreService(widget.placeId).setAttendanceMeta(metaMap);
                   }
-                  // After selection, scroll to the nearest index for the same anchor date under the new filter
-                  if (anchorDate != null && _timeScrollCtrl.hasClients) {
-                    final allCols2 = _buildColumns();
-                    final newWeekdays = _weekdaysFromItemMeta(itemsMeta[idx]);
-                    final newCols = _filterColumnsByWeekdays(allCols2, newWeekdays);
-                    if (newCols.isNotEmpty) {
-                      final newIdx = _nearestIndexForDate(newCols, anchorDate);
-                      final newOffset = (newIdx * _colWidthConst).toDouble();
-                      _timeScrollCtrl.jumpTo(newOffset.clamp(0.0, _timeScrollCtrl.position.maxScrollExtent));
+                  // After selection, align scroll based on new filter using a post-frame clamp
+                  if (anchorDate != null) {
+                    final DateTime anchor = anchorDate;
+                    final int tappedIdx = idx;
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (!_timeScrollCtrl.hasClients) return;
+                      final allCols2 = _buildColumns();
+                      final newWeekdays = _weekdaysFromItemMeta(itemsMeta[tappedIdx]);
+                      final newCols = _filterColumnsByWeekdays(allCols2, newWeekdays);
+                      if (newCols.isEmpty) return;
+                      final newIdx = _nearestIndexForDate(newCols, anchor);
+                      final unclamped = (newIdx * _colWidthConst).toDouble();
+                      final max = _timeScrollCtrl.position.maxScrollExtent;
+                      final target = unclamped.clamp(0.0, max);
+                      setState(() {
+                        _lastFirstVisibleCol = newIdx.clamp(0, newCols.length - 1);
+                      });
+                      _timeScrollCtrl.jumpTo(target);
                       _updateVisibleMonth();
-                    }
+                    });
                   }
                 },
               ),
