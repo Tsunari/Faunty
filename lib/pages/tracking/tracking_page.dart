@@ -1,4 +1,5 @@
 import 'package:faunty/pages/tracking/attendance/attendance_viewer.dart';
+import 'package:faunty/pages/tracking/statistics/statistics_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../more/kantin_page.dart';
@@ -14,7 +15,7 @@ class TrackingPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return TabPage(
       tabs: [
-        const TabMeta('Statistics', UnderConstructionPage(label: 'Statistics'), Icons.bar_chart_outlined),
+        const TabMeta('Statistics', StatisticsPage(), Icons.bar_chart_outlined),
         const TabMeta('Attendance', AttendanceViewer(), Icons.checklist_outlined),
         const TabMeta('Custom List Tracking', UnderConstructionPage(label: 'Custom List Tracking'), Icons.list_alt_outlined),
         const TabMeta('Kantin', KantinPage(), Icons.local_cafe_outlined)
