@@ -42,10 +42,13 @@ class FeedbackPage extends ConsumerWidget {
               onSelectionChanged: (s) => ref.read(feedbackViewModeProvider.notifier).state = s.first,
             ),
           ),
-          IconButton(
-            tooltip: translation(context: context, 'Filters'),
-            icon: const Icon(Icons.filter_list_outlined),
-            onPressed: () => _showFilterSheet(context, ref),
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: IconButton(
+              tooltip: translation(context: context, 'Filters'),
+              icon: const Icon(Icons.filter_list_outlined),
+              onPressed: () => _showFilterSheet(context, ref),
+            ),
           ),
         ],
       ),
