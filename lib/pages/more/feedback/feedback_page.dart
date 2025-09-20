@@ -4,6 +4,7 @@ import 'package:faunty/state_management/user_provider.dart';
 import 'package:faunty/tools/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:faunty/models/user_roles.dart';
 import '../../../components/custom_chip.dart';
 import 'new_feedback_report_sheet.dart';
 import 'feedback_detail_sheet.dart';
@@ -28,12 +29,12 @@ class FeedbackPage extends ConsumerWidget {
               segments: [
                 ButtonSegment(
                   value: FeedbackViewMode.active,
-                  label: Text(translation(context: context, 'Active')),
+                  // label: Text(translation(context: context, 'Active')),
                   icon: const Icon(Icons.inbox_outlined, size: 16),
                 ),
                 ButtonSegment(
                   value: FeedbackViewMode.archived,
-                  label: Text(translation(context: context, 'Archived')),
+                  // label: Text(translation(context: context, 'Archived')),
                   icon: const Icon(Icons.archive_outlined, size: 16),
                 ),
               ],
@@ -61,6 +62,11 @@ class FeedbackPage extends ConsumerWidget {
               onChanged: (v) => ref.read(feedbackSearchProvider.notifier).state = v,
             ),
           ),
+          if (filteredReports.any((r) => r.pinned))
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+              child: _PinnedStrip(reports: filteredReports.where((r) => r.pinned).toList()),
+            ),
           Expanded(
             child: ref.watch(feedbackReportsProvider).when(
               loading: () => const Center(child: CircularProgressIndicator()),
@@ -72,6 +78,7 @@ class FeedbackPage extends ConsumerWidget {
                   );
                 }
                 return ListView.builder(
+                  padding: const EdgeInsets.only(top: 4),
                   itemCount: filteredReports.length,
                   itemBuilder: (context, index) {
                     final report = filteredReports[index];
@@ -166,6 +173,105 @@ class FeedbackPage extends ConsumerWidget {
   }
 }
 
+class _PinnedStrip extends ConsumerWidget {
+  const _PinnedStrip({required this.reports});
+  final List<FeedbackReport> reports;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final actions = ref.read(feedbackActionsProvider);
+    final user = ref.watch(userProvider).asData?.value;
+    final canPin = user != null && (user.role == UserRole.superuser || user.role == UserRole.hoca);
+    if (reports.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Row(
+        //   children: [
+        //     const Icon(Icons.push_pin, size: 16),
+        //     const SizedBox(width: 6),
+        //     Text(translation(context: context, 'Pinned'), style: Theme.of(context).textTheme.labelLarge),
+        //   ],
+        // ),
+        // const SizedBox(height: 8),
+        SizedBox(
+          height: 72,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: reports.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (context, index) {
+              final r = reports[index];
+              return Material(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () => showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    builder: (_) => FeedbackDetailSheet(report: r),
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    constraints: const BoxConstraints(minWidth: 180),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.push_pin, size: 16),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 120,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                r.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Icon(Icons.label_important_outline, size: 14, color: Theme.of(context).colorScheme.primary),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      r.type.label,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: Theme.of(context).textTheme.bodySmall,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (canPin) ...[
+                          const SizedBox(width: 4),
+                          IconButton(
+                            tooltip: translation(context: context, 'Unpin'),
+                            icon: const Icon(Icons.close, size: 18),
+                            onPressed: () => actions.setPinned(r, false),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _FeedbackCard extends ConsumerWidget {
   const _FeedbackCard({required this.report, required this.isOwn});
   final FeedbackReport report;
@@ -203,6 +309,7 @@ class _FeedbackCard extends ConsumerWidget {
     final actions = ref.read(feedbackActionsProvider);
     final user = ref.watch(userProvider).asData?.value;
     final upvoted = report.upvoterIds.contains(user?.uid ?? '');
+    final canPin = user != null && (user.role == UserRole.superuser || user.role == UserRole.hoca);
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -235,6 +342,12 @@ class _FeedbackCard extends ConsumerWidget {
                     CustomContainerChip(label: 'S${report.severity}')
                   ],
                   const Spacer(),
+                  if (canPin)
+                    IconButton(
+                      tooltip: report.pinned ? translation(context: context, 'Unpin') : translation(context: context, 'Pin'),
+                      onPressed: () => actions.setPinned(report, !report.pinned),
+                      icon: Icon(report.pinned ? Icons.push_pin : Icons.push_pin_outlined),
+                    ),
                   IconButton(
                     onPressed: user == null ? null : () => actions.toggleUpvote(report),
                     icon: Icon(upvoted ? Icons.favorite : Icons.favorite_border, color: upvoted ? Colors.pink : null),

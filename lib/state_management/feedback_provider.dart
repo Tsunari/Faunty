@@ -30,7 +30,7 @@ final filteredFeedbackReportsProvider = Provider<List<FeedbackReport>>((ref) {
   final viewMode = ref.watch(feedbackViewModeProvider);
   return reportsAsync.maybeWhen(
     data: (reports) {
-      return reports.where((r) {
+      final list = reports.where((r) {
         final matchesSearch = search.isEmpty || r.title.toLowerCase().contains(search) || r.description.toLowerCase().contains(search);
         final matchesType = typeFilter == null || r.type == typeFilter;
         final matchesStatus = statusFilter == null || r.status == statusFilter;
@@ -38,6 +38,7 @@ final filteredFeedbackReportsProvider = Provider<List<FeedbackReport>>((ref) {
         final inView = viewMode == FeedbackViewMode.archived ? isArchived : !isArchived;
         return matchesSearch && matchesType && matchesStatus && inView;
       }).toList();
+      return list;
     },
     orElse: () => []);
 });
@@ -116,6 +117,12 @@ class FeedbackActions {
 
   Future<void> deleteComment(String reportId, String commentId) async {
     await _serviceFor(ref).deleteComment(reportId, commentId);
+  }
+
+  Future<void> setPinned(FeedbackReport report, bool pinned) async {
+    final user = ref.read(userProvider).asData?.value;
+    if (user == null) return;
+    await _serviceFor(ref).setPinned(report.id, pinned: pinned, byUserId: user.uid);
   }
 }
 

@@ -52,6 +52,9 @@ class FeedbackReport {
   final int upvoteCount;
   final List<String> upvoterIds;
   final int? severity; // optional: 1-5 for bugs
+  final bool pinned;
+  final DateTime? pinnedAt;
+  final String? pinnedBy;
 
   FeedbackReport({
     required this.id,
@@ -66,6 +69,9 @@ class FeedbackReport {
     required this.upvoteCount,
     required this.upvoterIds,
     this.severity,
+    this.pinned = false,
+    this.pinnedAt,
+    this.pinnedBy,
   });
 
   FeedbackReport copyWith({
@@ -81,6 +87,9 @@ class FeedbackReport {
     int? upvoteCount,
     List<String>? upvoterIds,
     int? severity,
+    bool? pinned,
+    DateTime? pinnedAt,
+    String? pinnedBy,
   }) {
     return FeedbackReport(
       id: id ?? this.id,
@@ -95,6 +104,9 @@ class FeedbackReport {
       upvoteCount: upvoteCount ?? this.upvoteCount,
       upvoterIds: upvoterIds ?? this.upvoterIds,
       severity: severity ?? this.severity,
+      pinned: pinned ?? this.pinned,
+      pinnedAt: pinnedAt ?? this.pinnedAt,
+      pinnedBy: pinnedBy ?? this.pinnedBy,
     );
   }
 
@@ -111,6 +123,9 @@ class FeedbackReport {
       'upvoteCount': upvoteCount,
       'upvoterIds': upvoterIds,
       'severity': severity,
+      'pinned': pinned,
+      'pinnedAt': pinnedAt != null ? Timestamp.fromDate(pinnedAt!) : null,
+      'pinnedBy': pinnedBy,
     };
   }
 
@@ -135,6 +150,9 @@ class FeedbackReport {
       upvoteCount: data['upvoteCount'] ?? 0,
       upvoterIds: List<String>.from(data['upvoterIds'] ?? []),
       severity: data['severity'],
+      pinned: data['pinned'] ?? false,
+      pinnedAt: data['pinnedAt'] != null ? (data['pinnedAt'] as Timestamp).toDate() : null,
+      pinnedBy: data['pinnedBy'],
     );
   }
 }

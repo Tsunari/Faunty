@@ -63,6 +63,14 @@ class FeedbackFirestoreService {
     await _reportsCol.doc(reportId).update(fields);
   }
 
+  Future<void> setPinned(String reportId, {required bool pinned, required String byUserId}) async {
+    await _reportsCol.doc(reportId).update({
+      'pinned': pinned,
+      'pinnedBy': pinned ? byUserId : null,
+      'pinnedAt': pinned ? Timestamp.fromDate(DateTime.now()) : null,
+    });
+  }
+
   Future<void> deleteReport(String reportId) async {
     final commentsSnap = await _commentsCol(reportId).get();
     final batch = FirebaseFirestore.instance.batch();
