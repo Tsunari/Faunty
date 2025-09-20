@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:web/web.dart' as web;
+import 'dart:js_interop';
 import '../components/custom_snackbar.dart';
 import '../tools/translation_helper.dart';
 
@@ -86,7 +87,38 @@ class UpdateService {
   }
 }
 void _reloadPage() {
-  if (kIsWeb) {
-  try { web.window.location.reload(); } catch (_) {}
-  }
+  if (!kIsWeb) return;
+  () async {
+    try {
+      // 1) Unregister all service workers (avoid old SW caching)
+      final sw = web.window.navigator.serviceWorker;
+      try {
+        final regs = await sw.getRegistrations().toDart; // JSArray<ServiceWorkerRegistration>
+        for (final reg in regs.toDart) {
+          try { await reg.unregister().toDart; } catch (_) {}
+        }
+      } catch (_) {}
+
+      // 2) Clear CacheStorage (remove previously cached assets)
+      try {
+        final cacheStorage = web.window.caches;
+        final keysArr = await cacheStorage.keys().toDart; // JSArray<JSString>
+        for (final jsStr in keysArr.toDart) {
+          final key = jsStr.toDart;
+          try { await cacheStorage.delete(key).toDart; } catch (_) {}
+        }
+      } catch (_) {}
+
+      // 3) Force a navigation with a cache-busting query param
+      final href = web.window.location.href;
+      final uri = Uri.parse(href);
+      final ts = DateTime.now().millisecondsSinceEpoch.toString();
+      final qp = Map<String, String>.from(uri.queryParameters)..['cache-bust'] = ts;
+      final busted = uri.replace(queryParameters: qp).toString();
+      web.window.location.replace(busted);
+    } catch (_) {
+      // Fallback to normal reload
+      try { web.window.location.reload(); } catch (_) {}
+    }
+  }();
 }
