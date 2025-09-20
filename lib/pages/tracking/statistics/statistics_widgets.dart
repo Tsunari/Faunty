@@ -4,17 +4,19 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../tools/translation_helper.dart';
-import 'stats_utils.dart';
 import '../../../state_management/user_list_provider.dart';
+import 'stats_utils.dart';
 
 class StatisticsWidgets extends StatefulWidget {
 	final Map<String, dynamic> attendance;
 	final String itemId;
 	final Map<String, dynamic> itemMeta;
+	final String? selectedUser;
+	final String placeId;
 
-	const StatisticsWidgets({super.key, required this.attendance, required this.itemId, required this.itemMeta});
+	const StatisticsWidgets({super.key, required this.attendance, required this.itemId, required this.itemMeta, required this.selectedUser, required this.placeId});
 
 	@override
 	State<StatisticsWidgets> createState() => _StatisticsWidgetsState();
@@ -25,76 +27,87 @@ class _StatisticsWidgetsState extends State<StatisticsWidgets> {
 	TimeGranularity _historySpan = TimeGranularity.month;
 	String? _selectedUser;
 
+		@override
+		void initState() {
+			super.initState();
+			// Load saved user selection
+			SharedPreferences.getInstance().then((sp) {
+				final saved = sp.getString('stats_user_${widget.placeId}');
+				if (!mounted) return;
+				if (saved != null) setState(() => _selectedUser = saved);
+			});
+		}
+
 	List<int> get _weekdays => ((widget.itemMeta['weekdays'] as List?)?.cast<int>() ?? const [1, 2, 3, 4, 5, 6, 7]);
 
 	@override
 	Widget build(BuildContext context) {
-		final roster = (widget.attendance['roster'] as List?)?.cast<String>() ?? const <String>[];
 		final keys = normalizedDatesForItem(widget.attendance, widget.itemId, weekdays: _weekdays);
-			_selectedUser ??= roster.isNotEmpty ? roster.first : null;
+    final roster = (widget.attendance['roster'] as List?)?.cast<String>() ?? const <String>[];
+	_selectedUser ??= widget.selectedUser ?? (roster.isNotEmpty ? roster.first : null);
+	final String? effectiveUser = (roster.contains(_selectedUser)) ? _selectedUser : (roster.isNotEmpty ? roster.first : null);
 
-		// Overview metrics
-			final weekSeries = _computeUserRatingSeries(granularity: TimeGranularity.week);
-			final monthSeries = _computeUserRatingSeries(granularity: TimeGranularity.month);
-			final yearSeries = _computeUserRatingSeries(granularity: TimeGranularity.year);
+		final weekSeries = _computeUserRatingSeries(granularity: TimeGranularity.week, userId: effectiveUser);
+		final monthSeries = _computeUserRatingSeries(granularity: TimeGranularity.month, userId: effectiveUser);
+		final yearSeries = _computeUserRatingSeries(granularity: TimeGranularity.year, userId: effectiveUser);
 
-			final currentRating = weekSeries.isEmpty ? 0.0 : weekSeries.last.rating;
-			final monthDelta = monthSeries.length >= 2 ? (monthSeries.last.rating - monthSeries[monthSeries.length - 2].rating) : 0.0;
-			final yearDelta = yearSeries.length >= 2 ? (yearSeries.last.rating - yearSeries[yearSeries.length - 2].rating) : 0.0;
+		final currentRating = weekSeries.isEmpty ? 0.0 : weekSeries.last.rating;
+		final monthDelta = monthSeries.length >= 2 ? (monthSeries.last.rating - monthSeries[monthSeries.length - 2].rating) : 0.0;
+		final yearDelta = yearSeries.length >= 2 ? (yearSeries.last.rating - yearSeries[yearSeries.length - 2].rating) : 0.0;
 
 		return SingleChildScrollView(
-			padding: const EdgeInsets.all(12),
+			padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
 			child: Column(
 				crossAxisAlignment: CrossAxisAlignment.start,
 				children: [
-								// User selection
-											if (roster.isNotEmpty)
-												Padding(
-													padding: const EdgeInsets.only(bottom: 8.0),
-													child: Consumer(
-														builder: (context, ref, _) {
-															final usersAsync = ref.watch(usersByCurrentPlaceProvider);
-															final users = usersAsync.asData?.value;
-															final options = <DropdownMenuItem<String>>[];
-															if (users != null) {
-																final byId = {for (final u in users) u.uid: '${u.firstName} ${u.lastName}'.trim()};
-																for (final id in roster) {
-																	final label = byId[id] ?? id;
-																	options.add(DropdownMenuItem(value: id, child: Text(label)));
-																}
-															} else {
-																for (final id in roster) {
-																	options.add(DropdownMenuItem(value: id, child: Text(id)));
-																}
-															}
-															return Row(
-																children: [
-																	Text(translation(context: context, 'User'), style: Theme.of(context).textTheme.bodyMedium),
-																	const SizedBox(width: 8),
-																	DropdownButton<String>(
-																		value: _selectedUser,
-																		onChanged: (v) => setState(() => _selectedUser = v),
-																		items: options,
-																	),
-																],
-															);
-														},
+          if (roster.isNotEmpty)
+						Padding(
+							padding: const EdgeInsets.only(bottom: 8.0),
+							child: Consumer(
+								builder: (context, ref, _) {
+									final usersAsync = ref.watch(usersByCurrentPlaceProvider);
+									final users = usersAsync.asData?.value;
+									final byId = users == null ? <String, String>{} : {for (final u in users) u.uid: '${u.firstName} ${u.lastName}'.trim()};
+									final items = [
+										for (final id in roster)
+											DropdownMenuItem<String>(value: id, child: Text(byId[id] ?? id)),
+									];
+									return Row(
+										mainAxisAlignment: MainAxisAlignment.center,
+										children: [
+																Container(
+																	padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+												decoration: BoxDecoration(
+																		borderRadius: BorderRadius.circular(8),
+													border: Border.all(color: Theme.of(context).dividerColor),
+												),
+												child: DropdownButtonHideUnderline(
+													child: DropdownButton<String>(
+														value: effectiveUser,
+																			isDense: true,
+																			iconSize: 18,
+																			style: Theme.of(context).textTheme.bodySmall,
+																			onChanged: (v) async {
+																				setState(() => _selectedUser = v);
+																				final sp = await SharedPreferences.getInstance();
+																				if (v != null) await sp.setString('stats_user_${widget.placeId}', v);
+																			},
+														items: items,
+														alignment: Alignment.center,
 													),
 												),
-
-								_OverviewCard(
+											),
+										],
+									);
+								},
+							),
+						),
+					_OverviewCard(
 						rating: currentRating,
 						monthDelta: monthDelta,
 						yearDelta: yearDelta,
 						total: keys.length,
 					),
-								Padding(
-									padding: const EdgeInsets.only(top: 6.0),
-									child: Text(
-										translation(context: context, 'Rating is the percent of attended scheduled days in the latest period. Month/Year are changes vs previous period.'),
-										style: Theme.of(context).textTheme.bodySmall,
-									),
-								),
 					const SizedBox(height: 16),
 					_SectionHeader(
 									title: translation(context: context, 'Rating'),
@@ -103,12 +116,12 @@ class _StatisticsWidgetsState extends State<StatisticsWidgets> {
 					const SizedBox(height: 8),
 								Padding(
 									padding: const EdgeInsets.symmetric(horizontal: 8.0),
-									child: _RatingChart(
+										child: _RatingChart(
 										attendance: widget.attendance,
 										itemId: widget.itemId,
 										weekdays: _weekdays,
 										granularity: _ratingSpan,
-										selectedUser: _selectedUser,
+											selectedUser: effectiveUser,
 									),
 								),
 					const SizedBox(height: 24),
@@ -119,12 +132,12 @@ class _StatisticsWidgetsState extends State<StatisticsWidgets> {
 					const SizedBox(height: 8),
 								Padding(
 									padding: const EdgeInsets.symmetric(horizontal: 8.0),
-									child: _HistoryBars(
+										child: _HistoryBars(
 										attendance: widget.attendance,
 										itemId: widget.itemId,
 										weekdays: _weekdays,
 										granularity: _historySpan,
-										selectedUser: _selectedUser,
+											selectedUser: effectiveUser,
 									),
 								),
 								Padding(
@@ -137,63 +150,68 @@ class _StatisticsWidgetsState extends State<StatisticsWidgets> {
 					const SizedBox(height: 24),
 								_SectionHeader(title: translation(context: context, 'Calendar')),
 					const SizedBox(height: 8),
-								_CalendarGrid(attendance: widget.attendance, itemId: widget.itemId, weekdays: _weekdays, selectedUser: _selectedUser),
+								_CalendarGrid(attendance: widget.attendance, itemId: widget.itemId, weekdays: _weekdays, selectedUser: effectiveUser),
 					const SizedBox(height: 24),
 								_SectionHeader(title: translation(context: context, 'Best Streaks')),
 					const SizedBox(height: 8),
-								_SeriesList(attendance: widget.attendance, itemId: widget.itemId, weekdays: _weekdays, selectedUser: _selectedUser),
+								_SeriesList(attendance: widget.attendance, itemId: widget.itemId, weekdays: _weekdays, selectedUser: effectiveUser),
 					const SizedBox(height: 24),
 								_SectionHeader(title: translation(context: context, 'Frequency')),
 					const SizedBox(height: 8),
-								_HeatmapBubbles(attendance: widget.attendance, itemId: widget.itemId, weekdays: _weekdays, selectedUser: _selectedUser),
+								_HeatmapBubbles(attendance: widget.attendance, itemId: widget.itemId, weekdays: _weekdays, selectedUser: effectiveUser),
 					const SizedBox(height: 24),
 				],
 			),
 		);
 	}
 
-				// --------- Per-user computations ---------
-				List<RatingPoint> _computeUserRatingSeries({required TimeGranularity granularity}) {
-					final k = normalizedDatesForItem(widget.attendance, widget.itemId, weekdays: _weekdays);
-					if (k.isEmpty) return const [];
-					final buckets = <String, List<String>>{};
-					for (final dayKey in k) {
-						final dt = parseDateKey(dayKey);
-						DateTime start;
-						switch (granularity) {
-							case TimeGranularity.week:
-								start = dt.subtract(Duration(days: dt.weekday - 1));
-								break;
-							case TimeGranularity.month:
-								start = DateTime(dt.year, dt.month, 1);
-								break;
-							case TimeGranularity.quarter:
-								final q = ((dt.month - 1) ~/ 3) * 3 + 1;
-								start = DateTime(dt.year, q, 1);
-								break;
-							case TimeGranularity.year:
-								start = DateTime(dt.year, 1, 1);
-								break;
-						}
-						(buckets[formatDateKey(start)] ??= <String>[]).add(dayKey);
-					}
-					final entries = buckets.entries.toList()
-						..sort((a, b) => parseDateKey(a.key).compareTo(parseDateKey(b.key)));
-					final points = <RatingPoint>[];
+  // --------- Per-user computations ---------
+  List<RatingPoint> _computeUserRatingSeries({required TimeGranularity granularity, required String? userId}) {
+  	final k = normalizedDatesForItem(widget.attendance, widget.itemId, weekdays: _weekdays);
+  	if (k.isEmpty) return const [];
+  	final buckets = <String, List<String>>{};
+  	for (final dayKey in k) {
+  		final dt = parseDateKey(dayKey);
+  		DateTime start;
+  		switch (granularity) {
+  			case TimeGranularity.week:
+  				start = dt.subtract(Duration(days: dt.weekday - 1));
+  				break;
+  			case TimeGranularity.month:
+  				start = DateTime(dt.year, dt.month, 1);
+  				break;
+  			case TimeGranularity.quarter:
+  				final q = ((dt.month - 1) ~/ 3) * 3 + 1;
+  				start = DateTime(dt.year, q, 1);
+  				break;
+  			case TimeGranularity.year:
+  				start = DateTime(dt.year, 1, 1);
+  				break;
+  		}
+  		(buckets[formatDateKey(start)] ??= <String>[]).add(dayKey);
+  	}
+  	final entries = buckets.entries.toList()
+  		..sort((a, b) => parseDateKey(a.key).compareTo(parseDateKey(b.key)));
+  	final points = <RatingPoint>[];
 					for (final e in entries) {
 						final keys = e.value;
 						int positive = 0;
+						int considered = 0;
 						for (final dk in keys) {
 							final rec = (widget.attendance[dk] as Map?)?[widget.itemId] as Map?;
-							final present = ((rec?['present'] as List?)?.cast<String>() ?? const <String>[]).contains(_selectedUser);
-							final onLeave = ((rec?['onLeave'] as List?)?.cast<String>() ?? const <String>[]).contains(_selectedUser);
+							if (rec == null) continue;
+							final isDefault = ((rec['default'] as List?)?.cast<String>() ?? const <String>[]).contains(userId);
+							if (isDefault) continue; // ignore default entirely
+							considered++;
+							final present = ((rec['present'] as List?)?.cast<String>() ?? const <String>[]).contains(userId);
+							final onLeave = ((rec['onLeave'] as List?)?.cast<String>() ?? const <String>[]).contains(userId);
 							if (present || onLeave) positive++;
 						}
-						final rating = keys.isEmpty ? 0.0 : positive / keys.length;
+						final rating = considered == 0 ? 0.0 : positive / considered;
 						points.add(RatingPoint(parseDateKey(e.key), rating));
 					}
-					return points;
-				}
+  	return points;
+  }
 }
 
 class _OverviewCard extends StatelessWidget {
@@ -246,7 +264,7 @@ class _OverviewCard extends StatelessWidget {
 	}
 
 	static String _pct(double v) => '${(v * 100).round()}%';
-	static String _signedPct(double v) => (v >= 0 ? '+' : '') + '${(v * 100).round()}%';
+	static String _signedPct(double v) => '${v >= 0 ? '+' : ''}${(v * 100).round()}%';
 }
 
 class _Metric extends StatelessWidget {
@@ -280,7 +298,10 @@ class _SectionHeader extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 8.0),
           child: Row(
             children: [
-              Expanded(child: Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold))),
+              Expanded(child: Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.primary
+                ))),
               if (trailing != null) trailing!,
             ],
           ),
@@ -300,12 +321,24 @@ class _SpanDropdown extends StatelessWidget {
 			onChanged: (v) {
 				if (v != null) onChanged(v);
 			},
-					items: [
-						DropdownMenuItem(value: TimeGranularity.week, child: Text(translation('Week'))),
-						DropdownMenuItem(value: TimeGranularity.month, child: Text(translation('Month'))),
-						DropdownMenuItem(value: TimeGranularity.quarter, child: Text(translation('Quarter'))),
-						DropdownMenuItem(value: TimeGranularity.year, child: Text(translation('Year'))),
-					],
+			items: [
+				DropdownMenuItem(value: TimeGranularity.week, child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(translation('Week')),
+                )),
+				DropdownMenuItem(value: TimeGranularity.month, child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(translation('Month')),
+                )),
+				DropdownMenuItem(value: TimeGranularity.quarter, child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(translation('Quarter')),
+                )),
+				DropdownMenuItem(value: TimeGranularity.year, child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(translation('Year')),
+                )),
+			],
 		);
 	}
 }
@@ -322,13 +355,14 @@ class _RatingChart extends StatelessWidget {
 	Widget build(BuildContext context) {
 			// Per-user series
 			final locale = Localizations.localeOf(context).toString();
-			final series = (context.findAncestorStateOfType<_StatisticsWidgetsState>()?._computeUserRatingSeries(granularity: granularity)) ?? const <RatingPoint>[];
+			final series = (context.findAncestorStateOfType<_StatisticsWidgetsState>()?._computeUserRatingSeries(granularity: granularity, userId: selectedUser)) ?? const <RatingPoint>[];
 		if (series.isEmpty) {
 				return SizedBox(height: 180, child: Center(child: Text(translation(context: context, 'No data'))));
 		}
 		final spots = <FlSpot>[];
 		for (int i = 0; i < series.length; i++) {
-			spots.add(FlSpot(i.toDouble(), series[i].rating * 100));
+			final y = (series[i].rating * 100).roundToDouble();
+			spots.add(FlSpot(i.toDouble(), y));
 		}
 			String fmt(DateTime d) {
 				switch (granularity) {
@@ -355,8 +389,6 @@ class _RatingChart extends StatelessWidget {
 					gridData: FlGridData(show: true, horizontalInterval: 20, drawVerticalLine: false),
 					titlesData: FlTitlesData(
 						leftTitles: AxisTitles(
-								axisNameWidget: Text(translation('%')),
-							axisNameSize: 18,
 							sideTitles: SideTitles(showTitles: true, reservedSize: 36, interval: 20, getTitlesWidget: (v, _) => Text('${v.toInt()}%')),
 						),
 						bottomTitles: AxisTitles(
@@ -377,7 +409,19 @@ class _RatingChart extends StatelessWidget {
 						rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
 						topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
 					),
-					lineTouchData: LineTouchData(enabled: true),
+					lineTouchData: LineTouchData(
+						enabled: true,
+						touchTooltipData: LineTouchTooltipData(
+							getTooltipItems: (touchedSpots) {
+								return touchedSpots
+									.map((s) => LineTooltipItem(
+										'${s.y.toInt()}%',
+										Theme.of(context).textTheme.labelLarge ?? const TextStyle(color: Colors.white),
+									))
+									.toList();
+							},
+						),
+					),
 					lineBarsData: [
 						LineChartBarData(
 							spots: spots,
@@ -441,8 +485,6 @@ class _HistoryBars extends StatelessWidget {
 					gridData: FlGridData(show: true, drawVerticalLine: false),
 					titlesData: FlTitlesData(
 						leftTitles: AxisTitles(
-								axisNameWidget: Text(translation('Days')),
-								axisNameSize: 18,
 								sideTitles: SideTitles(showTitles: true, reservedSize: 36, getTitlesWidget: (v, _) => Text(v.toInt().toString())),
 						),
 						bottomTitles: AxisTitles(
@@ -500,6 +542,8 @@ class _HistoryBars extends StatelessWidget {
 				int p = 0, l = 0;
 				for (final day in e.value) {
 					final rec = (attendance[day] as Map?)?[itemId] as Map?;
+					final isDefault = ((rec?['default'] as List?)?.cast<String>() ?? const <String>[]).contains(userId);
+					if (isDefault) continue; // ignore default
 					final pres = ((rec?['present'] as List?)?.cast<String>() ?? const <String>[]).contains(userId);
 					final leave = ((rec?['onLeave'] as List?)?.cast<String>() ?? const <String>[]).contains(userId);
 					if (pres) p += 1;
@@ -520,88 +564,126 @@ class _CalendarGrid extends StatelessWidget {
 
 	@override
 	Widget build(BuildContext context) {
-			// Per-user active days
-			final all = normalizedDatesForItem(attendance, itemId, weekdays: weekdays);
-			final Set<String> active = {
-				for (final k in all)
-					if (() {
-						final rec = (attendance[k] as Map?)?[itemId] as Map?;
-						final p = ((rec?['present'] as List?)?.cast<String>() ?? const <String>[]).contains(selectedUser);
-						final l = ((rec?['onLeave'] as List?)?.cast<String>() ?? const <String>[]).contains(selectedUser);
-						return p || l;
-					}())
-						k
-			};
-		if (active.isEmpty) return SizedBox(height: 120, child: Center(child: Text(translation(context: context, 'No data'))));
-		// Group by month
-		final Map<String, List<String>> byMonth = {};
-		for (final k in active) {
-			final d = parseDateKey(k);
-			final id = '${d.year}-${d.month.toString().padLeft(2, '0')}'
-					' ${DateFormat('MMM', Localizations.localeOf(context).toString()).format(DateTime(d.year, d.month))}';
-			(byMonth[id] ??= <String>[]).add(k);
+		final dayKeys = normalizedDatesForItem(attendance, itemId, weekdays: weekdays);
+		if (dayKeys.isEmpty) return SizedBox(height: 120, child: Center(child: Text(translation(context: context, 'No data'))));
+
+		final locale = Localizations.localeOf(context).toString();
+		final scheduledDays = dayKeys.map(parseDateKey).toList();
+		// Determine continuous range (include other days)
+		scheduledDays.sort();
+		final minDate = scheduledDays.first;
+		final maxDate = scheduledDays.last;
+		final rangeStart = minDate.subtract(Duration(days: minDate.weekday - 1)); // Monday
+		final rangeEnd = maxDate.add(Duration(days: 7 - maxDate.weekday)); // Sunday
+
+		// Build weekly columns
+		final List<DateTime> weekStarts = [];
+		for (DateTime w = DateTime(rangeStart.year, rangeStart.month, rangeStart.day);
+			w.isBefore(rangeEnd) || w.isAtSameMomentAs(rangeEnd);
+			w = w.add(const Duration(days: 7))) {
+			weekStarts.add(w);
 		}
-		final entries = byMonth.entries.toList()
-			..sort((a, b) {
-				final ad = parseDateKey(a.value.first);
-				final bd = parseDateKey(b.value.first);
-				return ad.compareTo(bd);
-			});
-		return Wrap(
-			spacing: 10,
-			runSpacing: 10,
-			children: [
-				for (final e in entries)
-					_MonthBlock(title: e.key, dayKeys: e.value..sort())
-			],
-		);
-	}
-}
 
-class _MonthBlock extends StatelessWidget {
-	final String title;
-	final List<String> dayKeys;
-	const _MonthBlock({required this.title, required this.dayKeys});
+		// Build colors directly from attendance values per date
 
-	@override
-	Widget build(BuildContext context) {
-		final firstDay = parseDateKey(dayKeys.first);
-		final lastOfMonth = DateTime(firstDay.year, firstDay.month + 1, 0);
-		final totalDays = lastOfMonth.day;
-		final active = dayKeys.toSet();
-		return Card(
-			child: Padding(
-				padding: const EdgeInsets.all(8.0),
+		Color bgFor(DateTime d) {
+			final key = formatDateKey(d);
+			final rec = (attendance[key] as Map?)?[itemId] as Map?;
+			if (rec == null) {
+				return Colors.transparent; // other day: no fill
+			}
+			final present = ((rec['present'] as List?)?.cast<String>() ?? const <String>[]).contains(selectedUser);
+			final leave = ((rec['onLeave'] as List?)?.cast<String>() ?? const <String>[]).contains(selectedUser);
+			final absent = ((rec['absent'] as List?)?.cast<String>() ?? const <String>[]).contains(selectedUser);
+			final def = ((rec['default'] as List?)?.cast<String>() ?? const <String>[]).contains(selectedUser);
+			if (present) return Theme.of(context).colorScheme.primary.withOpacity(0.9);
+			if (leave) return Colors.blueAccent.withOpacity(0.9);
+			if (absent) return Theme.of(context).colorScheme.error.withOpacity(0.9);
+			if (def) return Colors.transparent; // default: no fill
+			return Colors.transparent; // other
+		}
+
+		Color textColorFor(Color bg) {
+			// Simple luminance check for readability
+			if (bg.opacity == 0) return Theme.of(context).colorScheme.onSurface;
+			return bg.computeLuminance() < 0.5 ? Colors.white : Theme.of(context).colorScheme.onSurface;
+		}
+
+		Border? borderFor(Color bg) {
+			if (bg.opacity == 0) return Border.all(color: Theme.of(context).dividerColor.withOpacity(0.6));
+			return null;
+		}
+
+		const double cellSize = 24;
+		const double hGap = 3;
+		const double vGap = 3;
+		final double columnWidth = cellSize + hGap * 2;
+
+		return SizedBox(
+			height: 7 * (cellSize + vGap) + 28,
+			child: SingleChildScrollView(
+				scrollDirection: Axis.horizontal,
 				child: Column(
 					crossAxisAlignment: CrossAxisAlignment.start,
 					children: [
-						Text(title, style: Theme.of(context).textTheme.titleMedium),
-						const SizedBox(height: 6),
-						Wrap(
-							spacing: 4,
-							runSpacing: 4,
+						// Month labels row
+						Row(
 							children: [
-								for (int d = 1; d <= totalDays; d++)
-									_DayDot(active: active.contains(formatDateKey(DateTime(firstDay.year, firstDay.month, d))))
+								for (int wi = 0; wi < weekStarts.length; wi++)
+									SizedBox(
+										width: columnWidth,
+										child: () {
+											final start = weekStarts[wi];
+											final days = [for (int d = 0; d < 7; d++) start.add(Duration(days: d))];
+											final hasMonthStart = days.any((d) => d.day == 1);
+											if (!hasMonthStart) return const SizedBox.shrink();
+											return Center(
+												child: Text(
+													DateFormat('MMM', locale).format(days.firstWhere((d) => d.day == 1, orElse: () => start)),
+													style: Theme.of(context).textTheme.bodySmall,
+												),
+											);
+									}(),
+								),
+							],
+						),
+						// Grid rows (7 days stacked per column)
+						Row(
+							crossAxisAlignment: CrossAxisAlignment.start,
+							children: [
+								for (final ws in weekStarts)
+									SizedBox(
+										width: columnWidth,
+										child: Column(
+											children: [
+												for (int d = 0; d < 7; d++)
+													Padding(
+														padding: EdgeInsets.symmetric(vertical: vGap / 2, horizontal: hGap),
+														child: Builder(builder: (context) {
+															final date = ws.add(Duration(days: d));
+															final bg = bgFor(date);
+															final tc = textColorFor(bg);
+															return Container(
+																width: cellSize,
+																height: cellSize,
+																decoration: BoxDecoration(
+																	color: bg,
+																	borderRadius: BorderRadius.circular(5),
+																	border: borderFor(bg),
+																),
+																alignment: Alignment.center,
+																child: Text('${date.day}', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: tc, fontWeight: FontWeight.w700)),
+															);
+														}),
+													),
+											],
+										),
+									),
 							],
 						),
 					],
 				),
 			),
-		);
-	}
-}
-
-class _DayDot extends StatelessWidget {
-	final bool active;
-	const _DayDot({required this.active});
-	@override
-	Widget build(BuildContext context) {
-		final c = active ? Theme.of(context).colorScheme.primary : Theme.of(context).dividerColor;
-		return Container(
-			width: 18,
-			height: 18,
-			decoration: BoxDecoration(color: c.withOpacity(active ? 0.9 : 0.08), borderRadius: BorderRadius.circular(4), border: Border.all(color: c, width: 1)),
 		);
 	}
 }
@@ -659,8 +741,14 @@ class _SeriesList extends StatelessWidget {
 			for (final k in keys) {
 				final dt = parseDateKey(k);
 				final rec = (attendance[k] as Map?)?[itemId] as Map?;
-				final positive = ((rec?['present'] as List?)?.cast<String>() ?? const <String>[]).contains(userId) ||
-						((rec?['onLeave'] as List?)?.cast<String>() ?? const <String>[]).contains(userId);
+				final isDefault = ((rec?['default'] as List?)?.cast<String>() ?? const <String>[]).contains(userId);
+				final present = ((rec?['present'] as List?)?.cast<String>() ?? const <String>[]).contains(userId);
+				final leave = ((rec?['onLeave'] as List?)?.cast<String>() ?? const <String>[]).contains(userId);
+				final positive = present || leave;
+				if (isDefault) {
+					// ignore default: neither break nor extend; just skip
+					continue;
+				}
 				if (positive) {
 					if (runStart == null) {
 						runStart = dt;

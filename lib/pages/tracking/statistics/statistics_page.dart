@@ -4,7 +4,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../state_management/user_provider.dart';
 import '../../../state_management/attendance_provider.dart';
 import '../../../tools/translation_helper.dart';
-import '../attendance/attendance_items_page.dart';
 import 'statistics_widgets.dart';
 
 class StatisticsPage extends ConsumerStatefulWidget {
@@ -30,7 +29,7 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
     final attendanceAsync = ref.watch(attendanceProvider(user.placeId));
     final metaAsync = ref.watch(attendanceMetaProvider(user.placeId));
     if (!attendanceAsync.hasValue) return const Center(child: CircularProgressIndicator());
-    final attendance = attendanceAsync.value ?? <String, dynamic>{};
+  final attendance = attendanceAsync.value ?? <String, dynamic>{};
     final meta = metaAsync.asData?.value ?? <String, dynamic>{};
     final items = (meta['items'] as List?)?.map((e) => Map<String, dynamic>.from(e as Map)).toList() ?? <Map<String, dynamic>>[];
 
@@ -52,36 +51,30 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
         title: Text(translation(context: context, 'Statistics')),
         actions: [
           if (items.isNotEmpty)
-            DropdownButton<String>(
-              value: items.any((e) => e['id'] == _selectedItem) ? _selectedItem : null,
-              underline: const SizedBox.shrink(),
-              onChanged: (val) async {
-                if (val == null) return;
-                if (!mounted) return;
-                setState(() => _selectedItem = val);
-                final sp = await SharedPreferences.getInstance();
-                await sp.setString('stats_default_${user.placeId}', val);
-              },
-              items: [
-                for (final it in items)
-                  DropdownMenuItem(
-                    value: it['id'] as String,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
-                      child: Text(it['name'] as String? ?? ''),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: DropdownButton<String>(
+                value: items.any((e) => e['id'] == _selectedItem) ? _selectedItem : null,
+                underline: const SizedBox.shrink(),
+                onChanged: (val) async {
+                  if (val == null) return;
+                  if (!mounted) return;
+                  setState(() => _selectedItem = val);
+                  final sp = await SharedPreferences.getInstance();
+                  await sp.setString('stats_default_${user.placeId}', val);
+                },
+                items: [
+                  for (final it in items)
+                    DropdownMenuItem(
+                      value: it['id'] as String,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
+                        child: Text(it['name'] as String? ?? ''),
+                      ),
                     ),
-                  ),
-              ],
-            ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            tooltip: translation(context: context, 'Manage'),
-            onPressed: () async {
-              await Navigator.of(context).push(MaterialPageRoute(builder: (_) => AttendanceItemsPage(placeId: user.placeId)));
-              if (!mounted) return;
-              setState(() {});
-            },
-          )
+                ],
+              ),
+            )
         ],
       ),
       body: _selectedItem.isEmpty || items.isEmpty
@@ -90,6 +83,8 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
               attendance: attendance,
               itemId: _selectedItem,
               itemMeta: items.firstWhere((e) => e['id'] == _selectedItem, orElse: () => items.first),
+              selectedUser: null,
+              placeId: user.placeId,
             ),
     );
   }
