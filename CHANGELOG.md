@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.14.0] - 20-09-2025
+### Added
+- Functionality to set user as "passive" in attendance so that the last state is copied to today on attendance check
+### Changed
+- Hosting script change
+- Statistics page enhancements
+- UI enhancements
+
+
+
 ## [1.13.0] - 20-09-2025
 ### Added
 - Stats page init
