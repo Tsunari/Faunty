@@ -20,6 +20,7 @@ class FirestoreQuotaService {
   final int flushThreshold;
   final double samplingMultiplier; // e.g. 2.5
   final Duration periodicFlushInterval;
+  final bool enabled;
 
   static const _prefsKeyReads = 'quota_buffer_reads';
   static const _prefsKeyWrites = 'quota_buffer_writes';
@@ -41,10 +42,20 @@ class FirestoreQuotaService {
     this.flushThreshold = 100,
     this.samplingMultiplier = 2.5,
     this.periodicFlushInterval = const Duration(seconds: 30),
+    this.enabled = true,
   }) : _db = firestore ?? FirebaseFirestore.instance;
+
+  /// Convenience disabled constructor
+  FirestoreQuotaService.disabled({FirebaseFirestore? firestore})
+      : _db = firestore ?? FirebaseFirestore.instance,
+        flushThreshold = 100,
+        samplingMultiplier = 2.5,
+        periodicFlushInterval = const Duration(seconds: 30),
+        enabled = false;
 
   /// Must be called once at app startup to initialize prefs and start listeners.
   Future<void> init() async {
+    if (!enabled) return;
     _prefs = await SharedPreferences.getInstance();
     _bufferedReads = _prefs?.getInt(_prefsKeyReads) ?? 0;
     _bufferedWrites = _prefs?.getInt(_prefsKeyWrites) ?? 0;
@@ -81,6 +92,7 @@ class FirestoreQuotaService {
   /// Returns whether the Firestore usage has been disabled for the day
   /// according to the cached config. If the config isn't loaded yet, returns false.
   bool isDisabled() {
+    if (!enabled) return true;
     if (_cachedConfig == null) return false;
     final disabled = _cachedConfig!['disabledUntil'];
     if (disabled == null) return false;
@@ -96,7 +108,7 @@ class FirestoreQuotaService {
   /// Record a read operation. Uses probabilistic sampling to reduce write volume.
   /// For multiplier=2.5, sampling probability = 1/2.5 = 0.4.
   Future<void> recordRead() async {
-    if (isDisabled()) return; // do not record when disabled
+    if (!enabled || isDisabled()) return; // do not record when disabled
 
     final p = 1.0 / samplingMultiplier;
     if (_random.nextDouble() < p) {
@@ -107,14 +119,14 @@ class FirestoreQuotaService {
   }
 
   Future<void> recordWrite() async {
-    if (isDisabled()) return;
+    if (!enabled || isDisabled()) return;
     _bufferedWrites++;
     await _persistBuffers();
     if (_bufferedWrites >= flushThreshold) await _flushBuffer();
   }
 
   Future<void> recordDelete() async {
-    if (isDisabled()) return;
+    if (!enabled || isDisabled()) return;
     _bufferedDeletes++;
     await _persistBuffers();
     if (_bufferedDeletes >= flushThreshold) await _flushBuffer();
@@ -129,7 +141,7 @@ class FirestoreQuotaService {
 
   /// Flush if any buffer reached threshold, or if force==true.
   Future<void> flushIfNeeded({bool force = false}) async {
-    if (isDisabled()) return;
+    if (!enabled || isDisabled()) return;
     if (!force && _bufferedReads < flushThreshold && _bufferedWrites < flushThreshold && _bufferedDeletes < flushThreshold) return;
     await _flushBuffer();
   }
@@ -137,6 +149,7 @@ class FirestoreQuotaService {
   Future<void> flushNow() async => _flushBuffer();
 
   Future<void> _flushBuffer() async {
+    if (!enabled) return;
     if (_prefs == null) _prefs = await SharedPreferences.getInstance();
 
     final int toFlushReads = _bufferedReads;
