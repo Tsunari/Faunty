@@ -1,5 +1,5 @@
-# Faunty 2.0 - Release Script
-# Cleans, builds, and deploys the web app to Firebase Hosting (dev or production)
+# Faunty - Release Hosting Script
+# Builds, and deploys the web app to Firebase Hosting (dev or production)
 
 function Show-Selector {
     param (
@@ -44,9 +44,9 @@ switch ($envChoice) {
 
 Write-Host "🚀 Starting Faunty 2.0 Release..." -ForegroundColor Cyan
 
-# Step 1: Clean previous build artifacts
-Write-Host "`n🧹 Cleaning build folder..." -ForegroundColor Yellow
-flutter clean
+# # Step 1: Clean previous build artifacts
+# Write-Host "`n🧹 Cleaning build folder..." -ForegroundColor Yellow
+# flutter clean
 
 # Step 2: Get dependencies
 Write-Host "`n📦 Fetching Flutter packages..." -ForegroundColor Yellow
