@@ -140,13 +140,13 @@ class _StatisticsWidgetsState extends State<StatisticsWidgets> {
 											selectedUser: effectiveUser,
 									),
 								),
-								Padding(
-									padding: const EdgeInsets.only(top: 6.0),
-									child: Text(
-										translation(context: context, 'Stacked bars show attended days per period: Present (bottom) + On leave (top).'),
-										style: Theme.of(context).textTheme.bodySmall,
-									),
-								),
+								// Padding(
+								// 	padding: const EdgeInsets.only(top: 6.0),
+								// 	child: Text(
+								// 		translation(context: context, 'Stacked bars show attended days per period: Present (bottom) + On leave (top).'),
+								// 		style: Theme.of(context).textTheme.bodySmall,
+								// 	),
+								// ),
 					const SizedBox(height: 24),
 								_SectionHeader(title: translation(context: context, 'Calendar')),
 					const SizedBox(height: 8),
@@ -707,7 +707,13 @@ class _SeriesList extends StatelessWidget {
 							padding: const EdgeInsets.symmetric(vertical: 8.0),
 							child: Row(
 								children: [
-									SizedBox(width: 90, child: Text(formatDateKey(runs[i].start), textAlign: TextAlign.right)),
+									SizedBox(
+										width: 90,
+										child: Text(
+											DateFormat('dd.MM.yyyy', Localizations.localeOf(context).toString()).format(runs[i].start),
+											textAlign: TextAlign.right,
+										),
+									),
 									const SizedBox(width: 8),
 									Expanded(
 										child: LayoutBuilder(
@@ -724,7 +730,12 @@ class _SeriesList extends StatelessWidget {
 										),
 									),
 									const SizedBox(width: 8),
-									SizedBox(width: 90, child: Text(formatDateKey(runs[i].end))),
+									SizedBox(
+										width: 90,
+										child: Text(
+											DateFormat('dd.MM.yyyy', Localizations.localeOf(context).toString()).format(runs[i].end),
+										),
+									),
 								],
 							),
 						),
@@ -810,19 +821,19 @@ class _HeatmapBubbles extends StatelessWidget {
 			String wdLabel(int wd) {
 			switch (wd) {
 					case DateTime.monday:
-						return translation('Mon.');
+						return translation('Mo');
 					case DateTime.tuesday:
-						return translation('Tue.');
+						return translation('Tue');
 					case DateTime.wednesday:
-						return translation('Wed.');
+						return translation('Wed');
 					case DateTime.thursday:
-						return translation('Thu.');
+						return translation('Thu');
 					case DateTime.friday:
-						return translation('Fri.');
+						return translation('Fr');
 					case DateTime.saturday:
-						return translation('Sat.');
+						return translation('Sat');
 					case DateTime.sunday:
-						return translation('Sun.');
+						return translation('Sun');
 				default:
 					return '';
 			}
@@ -833,7 +844,7 @@ class _HeatmapBubbles extends StatelessWidget {
 				children: [
 					for (int wd = 1; wd <= 7; wd++)
 						Padding(
-							padding: const EdgeInsets.symmetric(vertical: 4.0),
+							padding: const EdgeInsets.fromLTRB(0, 4.0, 8.0, 4.0),
 							child: Center(
 								child: Row(
 									mainAxisSize: MainAxisSize.min,
@@ -859,21 +870,24 @@ class _HeatmapBubbles extends StatelessWidget {
 					const SizedBox(height: 8),
 					// Month labels under the heatmap, centered
 					Center(
-						child: Row(
-							mainAxisSize: MainAxisSize.min,
-							children: [
-								const SizedBox(width: 36 + 4),
-								for (final m in months)
-									SizedBox(
-										width: 28,
-										child: Text(
-											DateFormat('MMM', locale).format(m),
-											textAlign: TextAlign.center,
-											style: Theme.of(context).textTheme.bodySmall,
-										),
-									),
-							],
-						),
+						child: Padding(
+							padding: const EdgeInsets.only(right: 8.0),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(width: 36 + 4),
+                    for (final m in months)
+                      SizedBox(
+                        width: 28,
+                        child: Text(
+                          DateFormat('MMM', locale).format(m),
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
 					),
 				],
 			);
