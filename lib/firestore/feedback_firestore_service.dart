@@ -3,12 +3,9 @@ import 'package:faunty/models/feedback_comment.dart';
 import 'package:faunty/models/feedback_report.dart';
 
 class FeedbackFirestoreService {
-  final String placeId;
-  FeedbackFirestoreService(this.placeId);
+  FeedbackFirestoreService();
 
   CollectionReference<Map<String, dynamic>> get _reportsCol => FirebaseFirestore.instance
-      .collection('places')
-      .doc(placeId)
       .collection('feedback_reports');
 
   CollectionReference<Map<String, dynamic>> _commentsCol(String reportId) => _reportsCol.doc(reportId).collection('comments');

@@ -12,9 +12,7 @@ final feedbackTypeFilterProvider = StateProvider<FeedbackType?>((ref) => null);
 final feedbackStatusFilterProvider = StateProvider<FeedbackStatus?>((ref) => null);
 
 FeedbackFirestoreService _serviceFor(Ref ref) {
-  final user = ref.watch(userProvider).asData?.value;
-  final placeId = user?.placeId ?? 'unknown';
-  return FeedbackFirestoreService(placeId);
+  return FeedbackFirestoreService();
 }
 
 final feedbackReportsProvider = StreamProvider<List<FeedbackReport>>((ref) {
