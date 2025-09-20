@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.12.0] - 20-09-2025
+### Added
+- Author and date in feedbacks shown
+- Functionality to pin feedback reports
+- Lateness toggle for each item to be able to set a lateness time in attendance
+- Weekdays selection for attendance table per item
+### Changed
+- Easy way to enable disable firebase quota service
+- Migrate feedback reports to global collection
+- Padding to icon button in feedback page
+### Fixed
+- Bug fix for selected tab semi persistence on navigation
+
+
+
 ## [1.11.0] - 17-09-2025
 ### Added
 - Added feedback functionality
