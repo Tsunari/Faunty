@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.14.1] - 21-09-2025
+### Fixed
+- Attendance table firestore and explicit fixes
+
+
+
 ## [1.14.0] - 20-09-2025
 ### Added
 - Functionality to set user as "passive" in attendance so that the last state is copied to today on attendance check
