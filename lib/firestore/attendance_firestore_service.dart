@@ -148,24 +148,25 @@ class AttendanceFirestoreService {
     required bool checked,
   }) async {
     final docRef = _attendanceCollection.doc(dateId);
-    final presentPath = '$itemId.present';
-    final absentPath = '$itemId.absent';
-    final onLeavePath = '$itemId.onLeave';
-    final defaultPath = '$itemId.default';
+    // use Paths in future for performance if needed
+    // final presentPath = '$itemId.present';
+    // final absentPath = '$itemId.absent';
+    // final onLeavePath = '$itemId.onLeave';
+    // final defaultPath = '$itemId.default';
     final writeBatch = FirebaseFirestore.instance.batch();
-    final Map<String, dynamic> ops = {};
+    final Map<String, dynamic> nested = {};
     if (checked) {
-      ops[presentPath] = FieldValue.arrayUnion([userId]);
-      ops[absentPath] = FieldValue.arrayRemove([userId]);
-      ops[onLeavePath] = FieldValue.arrayRemove([userId]);
-      ops[defaultPath] = FieldValue.arrayRemove([userId]);
+      nested['present'] = FieldValue.arrayUnion([userId]);
+      nested['absent'] = FieldValue.arrayRemove([userId]);
+      nested['onLeave'] = FieldValue.arrayRemove([userId]);
+      nested['default'] = FieldValue.arrayRemove([userId]);
     } else {
-      ops[presentPath] = FieldValue.arrayRemove([userId]);
-      ops[absentPath] = FieldValue.arrayUnion([userId]);
-      ops[onLeavePath] = FieldValue.arrayRemove([userId]);
-      ops[defaultPath] = FieldValue.arrayRemove([userId]);
+      nested['present'] = FieldValue.arrayRemove([userId]);
+      nested['absent'] = FieldValue.arrayUnion([userId]);
+      nested['onLeave'] = FieldValue.arrayRemove([userId]);
+      nested['default'] = FieldValue.arrayRemove([userId]);
     }
-    writeBatch.set(docRef, ops, SetOptions(merge: true));
+    writeBatch.set(docRef, {itemId: nested}, SetOptions(merge: true));
     await writeBatch.commit();
   }
 
@@ -177,35 +178,28 @@ class AttendanceFirestoreService {
     required String state, // 'present' | 'absent' | 'onLeave' | 'default'
   }) async {
     final docRef = _attendanceCollection.doc(dateId);
-    final presentPath = '$itemId.present';
-    final absentPath = '$itemId.absent';
-    final onLeavePath = '$itemId.onLeave';
-    final defaultPath = '$itemId.default';
+    // use Paths in future for performance if needed
+    // final presentPath = '$itemId.present';
+    // final absentPath = '$itemId.absent';
+    // final onLeavePath = '$itemId.onLeave';
+    // final defaultPath = '$itemId.default';
     final writeBatch = FirebaseFirestore.instance.batch();
-    final Map<String, dynamic> ops = {};
-    // Remove from non-selected and add to selected (avoid double transform on same field)
+    final Map<String, dynamic> nested = {
+      'present': FieldValue.arrayRemove([userId]),
+      'absent': FieldValue.arrayRemove([userId]),
+      'onLeave': FieldValue.arrayRemove([userId]),
+      'default': FieldValue.arrayRemove([userId]),
+    };
     if (state == 'present') {
-      ops[presentPath] = FieldValue.arrayUnion([userId]);
-      ops[absentPath] = FieldValue.arrayRemove([userId]);
-      ops[onLeavePath] = FieldValue.arrayRemove([userId]);
-      ops[defaultPath] = FieldValue.arrayRemove([userId]);
+      nested['present'] = FieldValue.arrayUnion([userId]);
     } else if (state == 'absent') {
-      ops[presentPath] = FieldValue.arrayRemove([userId]);
-      ops[absentPath] = FieldValue.arrayUnion([userId]);
-      ops[onLeavePath] = FieldValue.arrayRemove([userId]);
-      ops[defaultPath] = FieldValue.arrayRemove([userId]);
+      nested['absent'] = FieldValue.arrayUnion([userId]);
     } else if (state == 'onLeave') {
-      ops[presentPath] = FieldValue.arrayRemove([userId]);
-      ops[absentPath] = FieldValue.arrayRemove([userId]);
-      ops[onLeavePath] = FieldValue.arrayUnion([userId]);
-      ops[defaultPath] = FieldValue.arrayRemove([userId]);
+      nested['onLeave'] = FieldValue.arrayUnion([userId]);
     } else if (state == 'default') {
-      ops[presentPath] = FieldValue.arrayRemove([userId]);
-      ops[absentPath] = FieldValue.arrayRemove([userId]);
-      ops[onLeavePath] = FieldValue.arrayRemove([userId]);
-      ops[defaultPath] = FieldValue.arrayUnion([userId]);
+      nested['default'] = FieldValue.arrayUnion([userId]);
     }
-    writeBatch.set(docRef, ops, SetOptions(merge: true));
+    writeBatch.set(docRef, {itemId: nested}, SetOptions(merge: true));
     await writeBatch.commit();
   }
 

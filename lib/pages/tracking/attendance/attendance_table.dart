@@ -860,10 +860,9 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
                                                                       final present = rec == null ? const <String>[] : (rec['present'] as List?)?.cast<String>() ?? const <String>[];
                                                                       final onLeave = rec == null ? const <String>[] : (rec['onLeave'] as List?)?.cast<String>() ?? const <String>[];
                                                                       final absent = rec == null ? const <String>[] : (rec['absent'] as List?)?.cast<String>() ?? const <String>[];
-                                                                      final def = rec == null ? const <String>[] : (rec['default'] as List?)?.cast<String>() ?? const <String>[];
                                                                       final alreadyExplicit = present.contains(pu) || onLeave.contains(pu) || absent.contains(pu);
-                                                                      // Attempt only if today's state is explicitly default for this user
-                                                                      if (alreadyExplicit || !def.contains(pu)) continue;
+                                                                      // Attempt when today's state is not explicitly set (implicit or explicit default)
+                                                                      if (alreadyExplicit) continue;
                                                                       // find last known state by scanning columns (descending)
                                                                       final allCols = _buildColumns();
                                                                       final filteredCols = _filterColumnsByWeekdays(allCols, _currentItemWeekdays());
