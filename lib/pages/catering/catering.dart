@@ -1,6 +1,5 @@
 import 'package:faunty/components/custom_app_bar.dart';
 import 'package:faunty/components/role_gate.dart';
-import 'package:faunty/components/custom_chip.dart';
 import 'package:faunty/globals.dart';
 import 'package:faunty/models/user_roles.dart';
 import 'package:faunty/tools/translation_helper.dart';
@@ -9,6 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'catering_organisation.dart';
 import '../../state_management/catering_provider.dart';
 import '../../state_management/user_list_provider.dart';
+import 'widgets/catering_classic_view.dart';
+import 'widgets/catering_modern_view.dart';
 
 final List<String> meals = ['Breakfast', 'Lunch', 'Dinner'];
 
@@ -20,10 +21,10 @@ class CateringPage extends ConsumerStatefulWidget {
 }
 
 class _CateringPageState extends ConsumerState<CateringPage> {
+  bool _modernView = true;
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final now = DateTime.now();
     final monday = now.subtract(Duration(days: now.weekday - 1));
     final days = [
@@ -64,106 +65,42 @@ class _CateringPageState extends ConsumerState<CateringPage> {
             return Scaffold(
               appBar: CustomAppBar(
                 title: translation(context: context, 'Catering'),
+                actions: [
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: IconButton(
+                      tooltip: _modernView
+                          ? translation(context: context, 'Switch to classic view')
+                          : translation(context: context, 'Switch to modern view'),
+                      icon: Icon(_modernView ? Icons.view_list : Icons.auto_awesome),
+                      onPressed: () => setState(() => _modernView = !_modernView),
+                    ),
+                  ),
+                ],
               ),
               body: Center(
                 child: SizedBox(
                   width: MediaQuery.of(context).size.width,
                   child: hasAnyUser
-                      ? ListView.builder(
-                          physics: const BouncingScrollPhysics(),
-                          scrollDirection: Axis.vertical,
-                          itemCount: visibleDays.length,
-                          itemBuilder: (context, idx) {
-                            final dayIdx = visibleDays[idx];
-                            final date = monday.add(Duration(days: dayIdx));
-                            return Card(
-                              color: isDark ? Colors.grey[850] : null,
-                              margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                              child: Padding(
-                                padding: const EdgeInsets.all(12.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Container(
-                                      width: double.infinity,
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: isDark ? Colors.grey[800] : Colors.blue.shade50,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Text(
-                                        '${days[dayIdx]}, ${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year}',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    if (uniformDays[dayIdx])
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(vertical: 4.0),
-                                        child: Row(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            SizedBox(
-                                              width: 100,
-                                              child: Text(
-                                                translation(context: context, 'All meals'),
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.w500
-                                                ),
-                                              ),
-                                            ),
-                                            Expanded(
-                                              child: Wrap(
-                                                spacing: 8,
-                                                runSpacing: 4,
-                                                children: weekPlan[dayIdx][0].map((user) => CustomChip(
-                                                      label: user,
-                                                    )).toList(),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      )
-                                    else
-                                      ...List.generate(meals.length, (mealIdx) =>
-                                        weekPlan[dayIdx][mealIdx].isNotEmpty
-                                            ? Padding(
-                                                padding: const EdgeInsets.symmetric(vertical: 4.0),
-                                                child: Row(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  children: [
-                                                    SizedBox(
-                                                      width: 100,
-                                                      child: Text(
-                                                        mealsTranslated[mealIdx],
-                                                        style: TextStyle(
-                                                          fontWeight: FontWeight.w500
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    Expanded(
-                                                      child: Wrap(
-                                                        spacing: 8,
-                                                        runSpacing: 4,
-                                                        children: weekPlan[dayIdx][mealIdx].map((user) => CustomChip(
-                                                              label: user,
-                                                            )).toList(),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              )
-                                            : const SizedBox.shrink(),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        )
+                      ? (_modernView
+                          ? CateringModernView(
+                              weekPlan: weekPlan,
+                              uniformDays: uniformDays,
+                              visibleDays: visibleDays,
+                              monday: monday,
+                              dayNames: days,
+                              meals: meals,
+                              mealsTranslated: mealsTranslated,
+                            )
+                          : CateringClassicView(
+                              weekPlan: weekPlan,
+                              uniformDays: uniformDays,
+                              visibleDays: visibleDays,
+                              monday: monday,
+                              dayNames: days,
+                              meals: meals,
+                              mealsTranslated: mealsTranslated,
+                            ))
                       : Padding(
                           padding: const EdgeInsets.symmetric(vertical: 64.0, horizontal: 24.0),
                           child: Column(
@@ -174,7 +111,7 @@ class _CateringPageState extends ConsumerState<CateringPage> {
                               const SizedBox(height: 24),
                               Text(
                                 translation(context: context, 'No catering assignments yet!'),
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -185,7 +122,7 @@ class _CateringPageState extends ConsumerState<CateringPage> {
                                 minRole: UserRole.baskan,
                                 child: Text(
                                   translation(context: context, 'Tap the edit button below to assign users to meals for the week.'),
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontSize: 16,
                                   ),
                                   textAlign: TextAlign.center,
