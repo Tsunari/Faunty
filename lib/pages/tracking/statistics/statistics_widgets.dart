@@ -397,7 +397,10 @@ class _RatingChart extends StatelessWidget {
 								reservedSize: 28,
 								interval: math.max(1, (series.length / 6).floor()).toDouble(),
 								getTitlesWidget: (value, meta) {
-									final idx = value.toInt();
+									// Only show labels that align closely with integer indices (actual data points)
+									final nearest = value.round();
+									if ((value - nearest).abs() > 0.01) return const SizedBox.shrink();
+									final idx = nearest;
 									if (idx < 0 || idx >= bottomLabels.length) return const SizedBox.shrink();
 									return Padding(
 										padding: const EdgeInsets.only(top: 6.0),
