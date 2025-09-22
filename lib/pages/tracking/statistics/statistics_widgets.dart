@@ -456,9 +456,13 @@ class _HistoryBars extends StatelessWidget {
 		}
 			final groups = <BarChartGroupData>[];
 			final monthLabels = <String>[];
+			final totals = <int>[];
+			final presentCounts = <int>[];
+			final leaveCounts = <int>[];
 			for (int i = 0; i < bars.length; i++) {
 				final b = bars[i];
-				final total = (b.present + b.onLeave).toDouble();
+				final totalCount = b.present + b.onLeave;
+				final total = totalCount.toDouble();
 				groups.add(
 					BarChartGroupData(
 						x: i,
@@ -469,12 +473,19 @@ class _HistoryBars extends StatelessWidget {
 								width: 16,
 								rodStackItems: [
 									BarChartRodStackItem(0, b.present.toDouble(), Theme.of(context).colorScheme.primary),
-									BarChartRodStackItem(b.present.toDouble(), total, Theme.of(context).colorScheme.tertiary),
+									BarChartRodStackItem(
+                    b.present.toDouble(), 
+                    total, 
+                    Theme.of(context).colorScheme.primary.withValues(alpha: 128),
+                  ),
 								],
 							),
 						],
 					),
 				);
+				totals.add(totalCount);
+				presentCounts.add(b.present);
+				leaveCounts.add(b.onLeave);
 				final m = DateFormat('MMM', Localizations.localeOf(context).toString()).format(b.start);
 				final yearSuffix = granularity == TimeGranularity.year ? '${b.start.year}' : '';
 				monthLabels.add('$m${yearSuffix.isNotEmpty ? '\n$yearSuffix' : ''}');
@@ -506,7 +517,31 @@ class _HistoryBars extends StatelessWidget {
 							),
 						),
 						rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-						topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+						topTitles: AxisTitles(
+							sideTitles: SideTitles(
+								showTitles: true,
+								reservedSize: 24,
+								interval: 1,
+								getTitlesWidget: (value, meta) {
+									final i = value.toInt();
+									if (i < 0 || i >= totals.length) return const SizedBox.shrink();
+									final presentColor = Theme.of(context).colorScheme.primary;
+									final leaveColor = Theme.of(context).colorScheme.primary.withValues(alpha: 128);
+									final textStyle = Theme.of(context).textTheme.bodySmall;
+									return Padding(
+										padding: const EdgeInsets.only(bottom: 6.0),
+										child: Row(
+											mainAxisSize: MainAxisSize.min,
+											children: [
+												Text('${presentCounts[i]}', style: textStyle?.copyWith(color: presentColor)),
+												const SizedBox(width: 6),
+												Text('${leaveCounts[i]}', style: textStyle?.copyWith(color: leaveColor)),
+											],
+										),
+									);
+								},
+							),
+						),
 					),
 								// Disable touch to avoid rare IndexError on web hover in fl_chart
 								barTouchData: BarTouchData(enabled: false),
