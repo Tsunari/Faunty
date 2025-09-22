@@ -19,6 +19,7 @@ class CateringOrganisationPage extends ConsumerStatefulWidget {
 class _CateringOrganisationPageState extends ConsumerState<CateringOrganisationPage> {
   List<List<List<String>>>? localWeekPlan;
   bool isSaving = false;
+  List<bool>? uniformDays;
 
   @override
   void didChangeDependencies() {
@@ -29,6 +30,13 @@ class _CateringOrganisationPageState extends ConsumerState<CateringOrganisationP
       if (localWeekPlan == null || !_deepEquals(localWeekPlan!, firestorePlan)) {
         // Only update if different (prevents overwriting local edits)
         localWeekPlan = firestorePlan.map((day) => day.map((meal) => List<String>.from(meal)).toList()).toList();
+      }
+    }
+    final uniformAsync = ref.watch(cateringUniformDaysProvider);
+    if (uniformAsync is AsyncData<List<bool>>) {
+      final firestoreUniform = uniformAsync.value;
+      if (uniformDays == null || !_boolListEquals(uniformDays!, firestoreUniform)) {
+        uniformDays = List<bool>.from(firestoreUniform);
       }
     }
   }
@@ -43,6 +51,14 @@ class _CateringOrganisationPageState extends ConsumerState<CateringOrganisationP
           if (a[i][j][k] != b[i][j][k]) return false;
         }
       }
+    }
+    return true;
+  }
+  
+  bool _boolListEquals(List<bool> a, List<bool> b) {
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
     }
     return true;
   }
@@ -66,7 +82,7 @@ class _CateringOrganisationPageState extends ConsumerState<CateringOrganisationP
     final users = widget.users;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    if (localWeekPlan == null) {
+    if (localWeekPlan == null || uniformDays == null) {
       // Show loading until Firestore data is available
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -113,6 +129,41 @@ class _CateringOrganisationPageState extends ConsumerState<CateringOrganisationP
                                     ),
                                   ),
                                   const Spacer(),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        translation(context: context, 'All'),
+                                        style: TextStyle(color: theme.colorScheme.onSurface),
+                                      ),
+                                      Transform.scale(
+                                        scale: 0.7,
+                                        child: Switch.adaptive(
+                                          padding: const EdgeInsets.all(0),
+                                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                          value: uniformDays![dayIdx],
+                                          onChanged: (val) async {
+                                            setState(() {
+                                              uniformDays![dayIdx] = val;
+                                              if (val) {
+                                                // unify users across meals for this day
+                                                final all = <String>[];
+                                                for (final mealUsers in localWeekPlan![dayIdx]) {
+                                                  for (final u in mealUsers) {
+                                                    if (!all.contains(u)) all.add(u);
+                                                  }
+                                                }
+                                                for (int m = 0; m < widget.meals.length; m++) {
+                                                  localWeekPlan![dayIdx][m] = List<String>.from(all);
+                                                }
+                                              }
+                                            });
+                                            final service = ref.read(cateringFirestoreServiceProvider);
+                                            await service.setUniformDay(dayIdx, val);
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                   IconButton(
                                     icon: Icon(
                                       Icons.delete_outline,
@@ -152,101 +203,195 @@ class _CateringOrganisationPageState extends ConsumerState<CateringOrganisationP
                                   ),
                                 ],
                               ),
-                              // Stacked drop zones: 3 vertically, label inside the drag box
-                              Column(
-                                children: List.generate(widget.meals.length, (mealIdx) {
-                                  final mealName = widget.mealsTranslated[mealIdx];
-                                  final usersForMeal = localWeekPlan![dayIdx][mealIdx];
-                                  return Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 6.0),
-                                    child: DragTarget<String>(
-                                      builder: (context, candidateData, rejectedData) {
-                                        return Container(
-                                          constraints: const BoxConstraints(minHeight: 54),
-                                          width: double.infinity,
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                          decoration: BoxDecoration(
-                                            color: theme.colorScheme.background,
-                                            borderRadius: BorderRadius.circular(12),
-                                            border: Border.all(color: isDark ? Colors.white24 : Colors.grey),
-                                          ),
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Row(
-                                                children: [
-                                                  Icon(Icons.restaurant_menu, size: 18, color: isDark ? Colors.white54 : Colors.black45),
-                                                  const SizedBox(width: 6),
-                                                  Expanded(
-                                                    child: Text(
-                                                      mealName,
-                                                      style: TextStyle(
-                                                        fontWeight: FontWeight.w500,
-                                                        color: isDark ? Colors.white70 : Colors.black87,
+                              // Drop zones: either single combined (uniform) or per-meal
+                              if (uniformDays![dayIdx])
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 6.0),
+                                  child: DragTarget<String>(
+                                    builder: (context, candidateData, rejectedData) {
+                                      final usersAll = localWeekPlan![dayIdx][0];
+                                      return Container(
+                                        constraints: const BoxConstraints(minHeight: 54),
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                        decoration: BoxDecoration(
+                                          color: theme.colorScheme.background,
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(color: isDark ? Colors.white24 : Colors.grey),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Icon(Icons.calendar_today, size: 18, color: isDark ? Colors.white54 : Colors.black45),
+                                                const SizedBox(width: 6),
+                                                Expanded(
+                                                  child: Text(
+                                                    translation(context: context, 'All meals'),
+                                                    style: TextStyle(
+                                                      fontWeight: FontWeight.w500,
+                                                      color: isDark ? Colors.white70 : Colors.black87,
+                                                    ),
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 4),
+                                            usersAll.isNotEmpty
+                                                ? Wrap(
+                                                    spacing: 4,
+                                                    runSpacing: 4,
+                                                    children: usersAll.map((user) => Container(
+                                                      margin: const EdgeInsets.only(bottom: 2),
+                                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                                      decoration: BoxDecoration(
+                                                        color: theme.colorScheme.primary.withOpacity(isDark ? 0.18 : 0.08),
+                                                        borderRadius: BorderRadius.circular(12),
                                                       ),
-                                                      overflow: TextOverflow.ellipsis,
+                                                      child: Row(
+                                                        spacing: 4,
+                                                        children: [
+                                                          GestureDetector(
+                                                            onTap: () {
+                                                              setState(() {
+                                                                for (int m = 0; m < widget.meals.length; m++) {
+                                                                  localWeekPlan![dayIdx][m].remove(user);
+                                                                }
+                                                              });
+                                                            },
+                                                            child: Icon(Icons.remove_circle_outline, size: 18, color: isDark ? Colors.red[200] : Colors.red[700]),
+                                                          ),
+                                                          Expanded(
+                                                            child: Text(
+                                                              user,
+                                                              style: TextStyle(color: isDark ? Colors.white : null),
+                                                              overflow: TextOverflow.ellipsis,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    )).toList(),
+                                                  )
+                                                : Padding(
+                                                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                                    child: Center(
+                                                      child: Text(
+                                                        translation(context: context, 'Drag here for whole day'),
+                                                        style: TextStyle(color: isDark ? Colors.white54 : Colors.black54),
+                                                      ),
                                                     ),
                                                   ),
-                                                ],
-                                              ),
-                                              const SizedBox(height: 4),
-                                              usersForMeal.isNotEmpty
-                                                  ? Wrap(
-                                                      spacing: 4,
-                                                      runSpacing: 4,
-                                                      children: usersForMeal.map((user) => Container(
-                                                        margin: const EdgeInsets.only(bottom: 2),
-                                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                                        decoration: BoxDecoration(
-                                                          color: theme.colorScheme.primary.withOpacity(isDark ? 0.18 : 0.08),
-                                                          borderRadius: BorderRadius.circular(12),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                    onAccept: (user) {
+                                      setState(() {
+                                        for (int m = 0; m < widget.meals.length; m++) {
+                                          final list = localWeekPlan![dayIdx][m];
+                                          if (!list.contains(user)) list.add(user);
+                                        }
+                                      });
+                                    },
+                                  ),
+                                )
+                              else
+                                Column(
+                                  children: List.generate(widget.meals.length, (mealIdx) {
+                                    final mealName = widget.mealsTranslated[mealIdx];
+                                    final usersForMeal = localWeekPlan![dayIdx][mealIdx];
+                                    return Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 6.0),
+                                      child: DragTarget<String>(
+                                        builder: (context, candidateData, rejectedData) {
+                                          return Container(
+                                            constraints: const BoxConstraints(minHeight: 54),
+                                            width: double.infinity,
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                            decoration: BoxDecoration(
+                                              color: theme.colorScheme.background,
+                                              borderRadius: BorderRadius.circular(12),
+                                              border: Border.all(color: isDark ? Colors.white24 : Colors.grey),
+                                            ),
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Row(
+                                                  children: [
+                                                    Icon(Icons.restaurant_menu, size: 18, color: isDark ? Colors.white54 : Colors.black45),
+                                                    const SizedBox(width: 6),
+                                                    Expanded(
+                                                      child: Text(
+                                                        mealName,
+                                                        style: TextStyle(
+                                                          fontWeight: FontWeight.w500,
+                                                          color: isDark ? Colors.white70 : Colors.black87,
                                                         ),
-                                                        child: Row(
-                                                          spacing: 4,
-                                                          children: [
-                                                            GestureDetector(
-                                                              onTap: () {
-                                                                setState(() {
-                                                                    usersForMeal.remove(user);
-                                                                });
-                                                              },
-                                                              child: Icon(Icons.remove_circle_outline, size: 18, color: isDark ? Colors.red[200] : Colors.red[700]),
-                                                            ),
-                                                            Expanded(
-                                                              child: Text(
-                                                                user, 
-                                                                style: TextStyle(color: isDark ? Colors.white : null),
-                                                                overflow: TextOverflow.ellipsis,
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      )).toList(),
-                                                    )
-                                                  : Padding(
-                                                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                                                      child: Center(
-                                                        child: Text(
-                                                          'Drag here for $mealName',
-                                                          style: TextStyle(color: isDark ? Colors.white54 : Colors.black54),
-                                                        ),
+                                                        overflow: TextOverflow.ellipsis,
                                                       ),
                                                     ),
-                                            ],
-                                          ),
-                                        );
-                                      },
-                                      onAccept: (user) {
-                                        setState(() {
-                                          if (!usersForMeal.contains(user)) {
-                                            usersForMeal.add(user);
-                                          }
-                                        });
-                                      },
-                                    ),
-                                  );
-                                }),
-                              ),
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 4),
+                                                usersForMeal.isNotEmpty
+                                                    ? Wrap(
+                                                        spacing: 4,
+                                                        runSpacing: 4,
+                                                        children: usersForMeal.map((user) => Container(
+                                                          margin: const EdgeInsets.only(bottom: 2),
+                                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                                          decoration: BoxDecoration(
+                                                            color: theme.colorScheme.primary.withOpacity(isDark ? 0.18 : 0.08),
+                                                            borderRadius: BorderRadius.circular(12),
+                                                          ),
+                                                          child: Row(
+                                                            spacing: 4,
+                                                            children: [
+                                                              GestureDetector(
+                                                                onTap: () {
+                                                                  setState(() {
+                                                                      usersForMeal.remove(user);
+                                                                  });
+                                                                },
+                                                                child: Icon(Icons.remove_circle_outline, size: 18, color: isDark ? Colors.red[200] : Colors.red[700]),
+                                                              ),
+                                                              Expanded(
+                                                                child: Text(
+                                                                  user, 
+                                                                  style: TextStyle(color: isDark ? Colors.white : null),
+                                                                  overflow: TextOverflow.ellipsis,
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        )).toList(),
+                                                      )
+                                                    : Padding(
+                                                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                                        child: Center(
+                                                          child: Text(
+                                                            translation(context: context, 'Drag here for {mealName}').replaceFirst('{mealName}', mealName),
+                                                            style: TextStyle(color: isDark ? Colors.white54 : Colors.black54),
+                                                          ),
+                                                        ),
+                                                      ),
+                                              ],
+                                            ),
+                                          );
+                                        },
+                                        onAccept: (user) {
+                                          setState(() {
+                                            if (!usersForMeal.contains(user)) {
+                                              usersForMeal.add(user);
+                                            }
+                                          });
+                                        },
+                                      ),
+                                    );
+                                  }),
+                                ),
                             ],
                           ),
                         ),

@@ -17,6 +17,33 @@ class CateringFirestoreService {
         .doc('weekPlan');
   }
 
+  /// Stream a list of 7 booleans indicating whether each day
+  /// uses a uniform assignment across all meals.
+  Stream<List<bool>> watchUniformDays() {
+    return _docRef.snapshots().map((snapshot) {
+      final data = snapshot.data() as Map<String, dynamic>?;
+      final raw = data == null ? null : data['uniformDays'] as Map<String, dynamic>?;
+      final List<bool> days = List<bool>.generate(7, (i) {
+        final v = raw == null ? null : raw['$i'];
+        if (v is bool) return v;
+        if (v is num) return v != 0; // tolerate legacy numeric flags
+        return false;
+      });
+      return days;
+    });
+  }
+
+  /// Set the uniform flag for a given day. Stored under 'uniformDays' map.
+  Future<void> setUniformDay(int day, bool value) async {
+    await _db.runTransaction((tx) async {
+      final snap = await tx.get(_docRef);
+      final data = snap.data() as Map<String, dynamic>? ?? {};
+      final uniform = Map<String, dynamic>.from(data['uniformDays'] ?? {});
+      uniform['$day'] = value;
+      tx.set(_docRef, {'uniformDays': uniform}, SetOptions(merge: true));
+    });
+  }
+
   Stream<List<List<List<String>>>> watchWeekPlan() {
     return _docRef.snapshots().map((snapshot) {
       final data = snapshot.data() as Map<String, dynamic>?;
@@ -49,7 +76,7 @@ class CateringFirestoreService {
         flat['${day}_$meal'] = List<String>.from(weekPlan[day][meal]);
       }
     }
-    await _docRef.set({'weekPlan': flat});
+    await _docRef.set({'weekPlan': flat}, SetOptions(merge: true));
   }
 
   String _slotKey(int day, int meal) => '${day}_$meal';

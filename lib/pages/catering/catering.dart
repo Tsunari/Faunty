@@ -43,8 +43,10 @@ class _CateringPageState extends ConsumerState<CateringPage> {
       data: (userList) {
         final userNames = userList.map((u) => '${u.firstName} ${u.lastName}').toList();
         final weekPlanAsync = ref.watch(cateringWeekPlanProvider);
+        final uniformAsync = ref.watch(cateringUniformDaysProvider);
         return weekPlanAsync.when(
           data: (weekPlan) {
+            final uniformDays = uniformAsync.asData?.value ?? List<bool>.filled(7, false);
             // Only show days with at least one user in any meal
             List<int> visibleDays = [];
             bool hasAnyUser = false;
@@ -98,36 +100,64 @@ class _CateringPageState extends ConsumerState<CateringPage> {
                                       ),
                                     ),
                                     const SizedBox(height: 8),
-                                    ...List.generate(meals.length, (mealIdx) =>
-                                      weekPlan[dayIdx][mealIdx].isNotEmpty
-                                          ? Padding(
-                                              padding: const EdgeInsets.symmetric(vertical: 4.0),
-                                              child: Row(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  SizedBox(
-                                                    width: 100,
-                                                    child: Text(
-                                                      mealsTranslated[mealIdx],
-                                                      style: TextStyle(
-                                                        fontWeight: FontWeight.w500
+                                    if (uniformDays[dayIdx])
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(vertical: 4.0),
+                                        child: Row(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            SizedBox(
+                                              width: 100,
+                                              child: Text(
+                                                translation(context: context, 'All meals'),
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w500
+                                                ),
+                                              ),
+                                            ),
+                                            Expanded(
+                                              child: Wrap(
+                                                spacing: 8,
+                                                runSpacing: 4,
+                                                children: weekPlan[dayIdx][0].map((user) => CustomChip(
+                                                      label: user,
+                                                    )).toList(),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    else
+                                      ...List.generate(meals.length, (mealIdx) =>
+                                        weekPlan[dayIdx][mealIdx].isNotEmpty
+                                            ? Padding(
+                                                padding: const EdgeInsets.symmetric(vertical: 4.0),
+                                                child: Row(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    SizedBox(
+                                                      width: 100,
+                                                      child: Text(
+                                                        mealsTranslated[mealIdx],
+                                                        style: TextStyle(
+                                                          fontWeight: FontWeight.w500
+                                                        ),
                                                       ),
                                                     ),
-                                                  ),
-                                                  Expanded(
-                                                    child: Wrap(
-                                                      spacing: 8,
-                                                      runSpacing: 4,
-                                                      children: weekPlan[dayIdx][mealIdx].map((user) => CustomChip(
-                                                            label: user,
-                                                          )).toList(),
+                                                    Expanded(
+                                                      child: Wrap(
+                                                        spacing: 8,
+                                                        runSpacing: 4,
+                                                        children: weekPlan[dayIdx][mealIdx].map((user) => CustomChip(
+                                                              label: user,
+                                                            )).toList(),
+                                                      ),
                                                     ),
-                                                  ),
-                                                ],
-                                              ),
-                                            )
-                                          : const SizedBox.shrink(),
-                                    ),
+                                                  ],
+                                                ),
+                                              )
+                                            : const SizedBox.shrink(),
+                                      ),
                                   ],
                                 ),
                               ),

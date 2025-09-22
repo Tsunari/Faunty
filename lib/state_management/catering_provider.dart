@@ -15,3 +15,8 @@ final cateringWeekPlanProvider = StreamProvider<List<List<List<String>>>>((ref) 
   final service = ref.watch(cateringFirestoreServiceProvider);
   return service.watchWeekPlan();
 });
+
+final cateringUniformDaysProvider = StreamProvider<List<bool>>((ref) {
+  final service = ref.watch(cateringFirestoreServiceProvider);
+  return service.watchUniformDays();
+});
