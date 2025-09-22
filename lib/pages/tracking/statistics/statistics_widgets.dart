@@ -473,9 +473,7 @@ class _HistoryBars extends StatelessWidget {
 								width: 16,
 								rodStackItems: [
 									BarChartRodStackItem(0, b.present.toDouble(), Theme.of(context).colorScheme.primary),
-									BarChartRodStackItem(
-                    b.present.toDouble(), 
-                    total, 
+									BarChartRodStackItem(b.present.toDouble(), total, 
                     Theme.of(context).colorScheme.primary.withValues(alpha: 128),
                   ),
 								],
@@ -534,8 +532,8 @@ class _HistoryBars extends StatelessWidget {
 											mainAxisSize: MainAxisSize.min,
 											children: [
 												Text('${presentCounts[i]}', style: textStyle?.copyWith(color: presentColor)),
-												const SizedBox(width: 6),
-												Text('${leaveCounts[i]}', style: textStyle?.copyWith(color: leaveColor)),
+												// const SizedBox(width: 6),
+												// Text('${leaveCounts[i]}', style: textStyle?.copyWith(color: leaveColor)),
 											],
 										),
 									);
