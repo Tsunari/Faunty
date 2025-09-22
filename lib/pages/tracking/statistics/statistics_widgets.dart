@@ -839,57 +839,84 @@ class _HeatmapBubbles extends StatelessWidget {
 			}
 		}
 
-			return Column(
-				crossAxisAlignment: CrossAxisAlignment.stretch,
-				children: [
-					for (int wd = 1; wd <= 7; wd++)
-						Padding(
-							padding: const EdgeInsets.fromLTRB(0, 4.0, 8.0, 4.0),
-							child: Center(
-								child: Row(
-									mainAxisSize: MainAxisSize.min,
-									children: [
-										SizedBox(width: 36, child: Align(alignment: Alignment.centerRight, child: Text(wdLabel(wd)))),
-										const SizedBox(width: 4),
-										for (final mk in monthKeys)
-											SizedBox(
-												width: 28,
-												height: 20,
-												child: Center(
-													child: _Bubble(
-														size: _bubbleSize(data[wd]![mk]!, maxCount),
-														color: Theme.of(context).colorScheme.primary,
-														faded: data[wd]![mk] == 0,
+			return LayoutBuilder(
+				builder: (context, constraints) {
+					const double labelWidth = 36;
+					const double gap = 4;
+					const double colWidth = 28;
+					// Keep in sync with the right padding used in rows below
+					const double rowRightPad = 8.0;
+					final double avail = constraints.maxWidth.isFinite ? constraints.maxWidth : double.infinity;
+					int colsToShow = monthKeys.length;
+					if (avail.isFinite) {
+						// Subtract the weekday label + gap and the right padding from available width
+						final usable = math.max(0, avail - (labelWidth + gap) - rowRightPad);
+						// Initial estimate of how many columns fit
+						int fit = (usable / colWidth).floor();
+						colsToShow = fit.clamp(1, monthKeys.length);
+						// Verify and adjust to avoid any off-by-one overflow
+						double totalWidthFor(int cols) => labelWidth + gap + cols * colWidth + rowRightPad;
+						while (colsToShow > 1 && totalWidthFor(colsToShow) > avail) {
+							colsToShow--;
+						}
+					}
+					final start = monthKeys.length - colsToShow;
+					final visibleKeys = monthKeys.sublist(start);
+					final visibleMonths = months.sublist(start);
+
+					return Column(
+						crossAxisAlignment: CrossAxisAlignment.stretch,
+						children: [
+							for (int wd = 1; wd <= 7; wd++)
+								Padding(
+									padding: const EdgeInsets.fromLTRB(0, 4.0, 8.0, 4.0),
+									child: Center(
+										child: Row(
+											mainAxisSize: MainAxisSize.min,
+											children: [
+												SizedBox(width: labelWidth, child: Align(alignment: Alignment.centerRight, child: Text(wdLabel(wd)))),
+												const SizedBox(width: gap),
+												for (final mk in visibleKeys)
+													SizedBox(
+														width: colWidth,
+														height: 20,
+														child: Center(
+															child: _Bubble(
+																size: _bubbleSize(data[wd]![mk]!, maxCount),
+																color: Theme.of(context).colorScheme.primary,
+																faded: data[wd]![mk] == 0,
+															),
+														),
+													),
+											],
+										),
+									),
+							),
+							const SizedBox(height: 8),
+							// Month labels under the heatmap
+							Center(
+								child: Padding(
+									padding: const EdgeInsets.only(right: 8.0),
+									child: Row(
+										mainAxisSize: MainAxisSize.min,
+										children: [
+											const SizedBox(width: labelWidth + gap),
+											for (final m in visibleMonths)
+												SizedBox(
+													width: colWidth,
+													child: Text(
+														DateFormat('MMM', locale).format(m),
+														textAlign: TextAlign.center,
+														style: Theme.of(context).textTheme.bodySmall,
 													),
 												),
-											),
-									],
+										],
+									),
 								),
 							),
-						),
-					const SizedBox(height: 8),
-					// Month labels under the heatmap, centered
-					Center(
-						child: Padding(
-							padding: const EdgeInsets.only(right: 8.0),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const SizedBox(width: 36 + 4),
-                    for (final m in months)
-                      SizedBox(
-                        width: 28,
-                        child: Text(
-                          DateFormat('MMM', locale).format(m),
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-					),
-				],
+						],
+					);
+				},
 			);
 	}
 
