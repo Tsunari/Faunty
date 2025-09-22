@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.15.0] - 22-09-2025
+### Added
+- Add uniform days functionality to catering service and UI
+- Modern view in catering
+- Show amount on top of history stack bar stats
+### Changed
+- Hide starting and ending x axis label in rating chart stats widget
+### Fixed
+- Fix overflow in frequency stats widget
+
+
+
 ## [1.14.1] - 21-09-2025
 ### Fixed
 - Attendance table firestore and explicit fixes
