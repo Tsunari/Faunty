@@ -11,6 +11,7 @@ import '../models/user_roles.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:faunty/tools/translation_helper.dart';
 import 'package:faunty/components/language_dropdown.dart';
+import 'package:faunty/components/custom_snackbar.dart';
 import '../state_management/user_provider.dart';
 import '../state_management/firestore_quota_provider.dart';
 
@@ -188,6 +189,41 @@ class _LoginPageState extends ConsumerState<LoginPage> with SingleTickerProvider
         _isLoading = false;
         _error = e.toString();
       });
+    }
+  }
+
+  Future<void> _sendPasswordReset(String email) async {
+    if (!mounted) return;
+    if (email.isEmpty) {
+      showCustomSnackBar(context, translation(context: context, 'Please enter your email address to reset your password.'));
+      return;
+    }
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      if (!mounted) return;
+      showCustomSnackBar(context, translation(context: context, 'Password reset email sent. Please check your inbox.'));
+    } on FirebaseAuthException catch (e) {
+      printError('Password reset error: $e');
+      String msg;
+      switch (e.code) {
+        case 'user-not-found':
+          msg = translation(context: context, 'No account found for this email.');
+          break;
+        case 'invalid-email':
+          msg = translation(context: context, 'Please enter a valid email address.');
+          break;
+        case 'network-request-failed':
+          msg = translation(context: context, 'No internet connection. Please check your network and try again.');
+          break;
+        default:
+          msg = translation(context: context, 'Failed to send password reset email. Please try again.');
+      }
+      if (!mounted) return;
+      showCustomSnackBar(context, msg);
+    } catch (e) {
+      printError('Password reset error: $e');
+      if (!mounted) return;
+      showCustomSnackBar(context, translation(context: context, 'Failed to send password reset email. Please try again.'));
     }
   }
 
@@ -414,6 +450,7 @@ class _LoginPageState extends ConsumerState<LoginPage> with SingleTickerProvider
                               onTogglePassword: () => setState(() => _showPassword = !_showPassword),
                               onToggleConfirmPassword: () => setState(() => _showConfirmPassword = !_showConfirmPassword),
                               onLogin: _login,
+                              onForgotPassword: () => _sendPasswordReset(_emailController.text.trim()),
                             ),
                           ),
                           SizeTransition(
@@ -547,6 +584,7 @@ class _LoginFormFields extends StatelessWidget {
   final VoidCallback onTogglePassword;
   final VoidCallback onToggleConfirmPassword;
   final VoidCallback onLogin;
+  final VoidCallback? onForgotPassword;
 
   const _LoginFormFields({
     required this.isRegisterMode,
@@ -560,6 +598,7 @@ class _LoginFormFields extends StatelessWidget {
     required this.onTogglePassword,
     required this.onToggleConfirmPassword,
     required this.onLogin,
+    this.onForgotPassword,
   });
 
   @override
@@ -649,6 +688,20 @@ class _LoginFormFields extends StatelessWidget {
             },
           ),
         ),
+        // Forgot password button (only in login mode)
+        if (!isRegisterMode) ...[
+          const SizedBox(height: 8),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: _LoginPageState._formMaxWidth),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: onForgotPassword,
+                child: Text(translation(context: context, 'Forgot password?')),
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: 16),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: _LoginPageState._formMaxWidth),
