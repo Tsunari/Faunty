@@ -10,6 +10,7 @@ class CateringClassicView extends StatelessWidget {
   final List<String> dayNames;
   final List<String> meals;
   final List<String> mealsTranslated;
+  final Map<String, String> slotNames;
 
   const CateringClassicView({
     super.key,
@@ -20,6 +21,7 @@ class CateringClassicView extends StatelessWidget {
     required this.dayNames,
     required this.meals,
     required this.mealsTranslated,
+    required this.slotNames,
   });
 
   @override
@@ -69,43 +71,45 @@ class CateringClassicView extends StatelessWidget {
                           child: Wrap(
                             spacing: 8,
                             runSpacing: 4,
-                            children: weekPlan[dayIdx][0]
-                                .map((user) => CustomChip(label: user))
-                                .toList(),
+                            children: () {
+                              final users = <String>{};
+                              for (final slot in weekPlan[dayIdx]) for (final u in slot) users.add(u);
+                              return users.map((user) => CustomChip(label: user)).toList();
+                            }(),
                           ),
                         ),
                       ],
                     ),
                   )
                 else
-                  ...List.generate(meals.length, (mealIdx) =>
-                      weekPlan[dayIdx][mealIdx].isNotEmpty
-                          ? Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4.0),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  SizedBox(
-                                    width: 100,
-                                    child: Text(
-                                      mealsTranslated[mealIdx],
-                                      style: const TextStyle(fontWeight: FontWeight.w500),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: Wrap(
-                                      spacing: 8,
-                                      runSpacing: 4,
-                                      children: weekPlan[dayIdx][mealIdx]
-                                          .map((user) => CustomChip(label: user))
-                                          .toList(),
-                                    ),
-                                  ),
-                                ],
+                  ...List.generate(weekPlan[dayIdx].length, (mealIdx) {
+                      if (weekPlan[dayIdx][mealIdx].isEmpty) return const SizedBox.shrink();
+                      final title = mealIdx < mealsTranslated.length
+                          ? mealsTranslated[mealIdx]
+                          : (slotNames['${dayIdx}_$mealIdx'] ?? '${translation(context: context, 'Assignment')} ${mealIdx + 1}');
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4.0),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              width: 100,
+                              child: Text(
+                                title,
+                                style: const TextStyle(fontWeight: FontWeight.w500),
                               ),
-                            )
-                          : const SizedBox.shrink(),
-                    ),
+                            ),
+                            Expanded(
+                              child: Wrap(
+                                spacing: 8,
+                                runSpacing: 4,
+                                children: weekPlan[dayIdx][mealIdx].map((user) => CustomChip(label: user)).toList(),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
               ],
             ),
           ),

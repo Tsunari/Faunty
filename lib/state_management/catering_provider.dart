@@ -20,3 +20,9 @@ final cateringUniformDaysProvider = StreamProvider<List<bool>>((ref) {
   final service = ref.watch(cateringFirestoreServiceProvider);
   return service.watchUniformDays();
 });
+
+/// Provide a stream of slot names (map of 'day_meal' -> display name)
+final cateringSlotNamesProvider = StreamProvider<Map<String, String>>((ref) {
+  final service = ref.watch(cateringFirestoreServiceProvider);
+  return service.watchSlotNames();
+});

@@ -11,6 +11,7 @@ class CateringModernView extends StatelessWidget {
   final List<String> dayNames;
   final List<String> meals;
   final List<String> mealsTranslated;
+  final Map<String, String> slotNames;
 
   const CateringModernView({
     super.key,
@@ -21,6 +22,7 @@ class CateringModernView extends StatelessWidget {
     required this.dayNames,
     required this.meals,
     required this.mealsTranslated,
+    required this.slotNames,
   });
 
   @override
@@ -76,15 +78,24 @@ class CateringModernView extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       if (uniformDays[dayIdx])
+                        // aggregate across all slots for the day
                         _CompactSection(
                           badge: translation(context: context, 'All meals'),
-                          children: weekPlan[dayIdx][0].map((u) => CustomChip(label: u)).toList(),
+                          children: () {
+                            final users = <String>{};
+                            for (final slot in weekPlan[dayIdx]) {
+                              for (final u in slot) users.add(u);
+                            }
+                            return users.map((u) => CustomChip(label: u)).toList();
+                          }(),
                         )
                       else ...[
-                        for (int mealIdx = 0; mealIdx < meals.length; mealIdx++)
+                        for (int mealIdx = 0; mealIdx < weekPlan[dayIdx].length; mealIdx++)
                           if (weekPlan[dayIdx][mealIdx].isNotEmpty)
                             _CompactSection(
-                              badge: mealsTranslated[mealIdx],
+                              badge: mealIdx < mealsTranslated.length
+                                  ? mealsTranslated[mealIdx]
+                                  : (slotNames['${dayIdx}_$mealIdx'] ?? '${translation(context: context, 'Assignment')} ${mealIdx + 1}'),
                               children: weekPlan[dayIdx][mealIdx]
                                   .map((u) => CustomChip(label: u))
                                   .toList(),

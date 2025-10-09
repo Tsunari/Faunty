@@ -28,9 +28,12 @@ class _CateringPageState extends ConsumerState<CateringPage> {
     final now = DateTime.now();
     final monday = now.subtract(Duration(days: now.weekday - 1));
     final days = [
-      translation(context: context, 'Monday'), translation(context: context, 'Tuesday'),
-      translation(context: context, 'Wednesday'), translation(context: context, 'Thursday'),
-      translation(context: context, 'Friday'), translation(context: context, 'Saturday'),
+      translation(context: context, 'Monday'),
+      translation(context: context, 'Tuesday'),
+      translation(context: context, 'Wednesday'),
+      translation(context: context, 'Thursday'),
+      translation(context: context, 'Friday'),
+      translation(context: context, 'Saturday'),
       translation(context: context, 'Sunday')
     ];
     final mealsTranslated = [
@@ -44,6 +47,7 @@ class _CateringPageState extends ConsumerState<CateringPage> {
       data: (userList) {
         final userNames = userList.map((u) => '${u.firstName} ${u.lastName}').toList();
         final weekPlanAsync = ref.watch(cateringWeekPlanProvider);
+        final slotNamesAsync = ref.watch(cateringSlotNamesProvider);
         final uniformAsync = ref.watch(cateringUniformDaysProvider);
         return weekPlanAsync.when(
           data: (weekPlan) {
@@ -53,7 +57,7 @@ class _CateringPageState extends ConsumerState<CateringPage> {
             bool hasAnyUser = false;
             for (int day = 0; day < 7; day++) {
               bool hasUser = false;
-              for (int meal = 0; meal < meals.length; meal++) {
+              for (int meal = 0; meal < weekPlan[day].length; meal++) {
                 if (weekPlan[day][meal].isNotEmpty) {
                   hasUser = true;
                   hasAnyUser = true;
@@ -91,6 +95,7 @@ class _CateringPageState extends ConsumerState<CateringPage> {
                               dayNames: days,
                               meals: meals,
                               mealsTranslated: mealsTranslated,
+                              slotNames: slotNamesAsync.asData?.value ?? {},
                             )
                           : CateringClassicView(
                               weekPlan: weekPlan,
@@ -100,6 +105,7 @@ class _CateringPageState extends ConsumerState<CateringPage> {
                               dayNames: days,
                               meals: meals,
                               mealsTranslated: mealsTranslated,
+                              slotNames: slotNamesAsync.asData?.value ?? {},
                             ))
                       : Padding(
                           padding: const EdgeInsets.symmetric(vertical: 64.0, horizontal: 24.0),
@@ -169,3 +175,4 @@ class _CateringPageState extends ConsumerState<CateringPage> {
     );
   }
 }
+
