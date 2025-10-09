@@ -413,50 +413,91 @@ class _CateringOrganisationPageState extends ConsumerState<CateringOrganisationP
                   child: Text('Users', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
                 Expanded(
-                  child: ListView(
-                    children: users.map((user) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
-                      child: Draggable<String>(
-                        data: user,
-                        feedback: Material(
-                          color: Colors.transparent,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.surface,
-                              borderRadius: BorderRadius.circular(12),
+                  child: Builder(
+                    builder: (ctx) {
+                      // compute which users are already assigned somewhere in the localWeekPlan
+                      final assignedUsers = <String>{};
+                      for (final day in localWeekPlan!) {
+                        for (final meal in day) {
+                          for (final u in meal) {
+                            assignedUsers.add(u);
+                          }
+                        }
+                      }
+
+                      return ListView(
+                        children: users.map((user) {
+                          final isAssigned = assignedUsers.contains(user);
+                          final textColor = isAssigned
+                              ? theme.colorScheme.onSurface.withOpacity(0.6)
+                              : theme.colorScheme.primary;
+                          final opacity = isAssigned ? 0.55 : 1.0;
+
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
+                            child: LongPressDraggable<String>(
+                              data: user,
+                              feedback: Material(
+                                color: Colors.transparent,
+                                child: Opacity(
+                                  opacity: opacity,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.surface,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(user, style: TextStyle(color: textColor)),
+                                  ),
+                                ),
+                              ),
+                              childWhenDragging: Opacity(
+                                opacity: 0.5,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.primary.withOpacity(isDark ? 0.18 : 0.08),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(user, style: TextStyle(color: theme.colorScheme.primary)),
+                                ),
+                              ),
+                              // LongPressDraggable starts the drag after a long press, which avoids accidental drags while scrolling on mobile
+                              child: Opacity(
+                                opacity: opacity,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.surface,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          user,
+                                          style: TextStyle(
+                                            color: textColor,
+                                            fontSize: 17, // slightly larger
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      if (isAssigned)
+                                        Padding(
+                                          padding: const EdgeInsets.only(left: 6.0),
+                                          child: Icon(Icons.check_circle_outline, size: 16, color: textColor),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ),
                             ),
-                            child: Text(user, style: TextStyle(color: theme.colorScheme.primary)),
-                          ),
-                        ),
-                        childWhenDragging: Opacity(
-                          opacity: 0.5,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primary.withOpacity(isDark ? 0.18 : 0.08),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(user, style: TextStyle(color: theme.colorScheme.primary)),
-                          ),
-                        ),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surface,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            user,
-                            style: TextStyle(
-                              color: theme.colorScheme.primary,
-                              fontSize: 17, // slightly larger
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ),
-                    )).toList(),
+                          );
+                        }).toList(),
+                      );
+                    },
                   ),
                 ),
               ],
