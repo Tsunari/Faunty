@@ -8,6 +8,8 @@ import 'cleaning_assign.dart';
 import '../../components/custom_app_bar.dart';
 import '../../components/custom_chip.dart';
 import '../../state_management/cleaning_provider.dart';
+import '../../state_management/user_list_provider.dart';
+import '../../models/user_entity.dart';
 
 class CleaningPage extends ConsumerWidget {
   const CleaningPage({super.key});
@@ -15,6 +17,48 @@ class CleaningPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cleaningDataAsync = ref.watch(cleaningDataProvider);
+    // Resolve users for the current place to map UIDs to names
+    final usersAsync = ref.watch(usersByCurrentPlaceProvider);
+    final usersForPlace = usersAsync.asData?.value ?? <UserEntity>[];
+
+    String formatAssigneeLabel(String entry) {
+      // Accepted formats:
+      // - "uid_first_last" (legacy)
+      // - "uid first last" (some data entries)
+      // - "uid" only (fallback)
+      // - Placeholder: "ph_uid_first_last" or "ph uid first last" -> skip 'ph' prefix
+      // Prefer resolving real name by UID from users provider.
+      final tokens = entry.split(RegExp(r'[ _]')).where((t) => t.isNotEmpty).toList();
+      if (tokens.isEmpty) return entry;
+      // If placeholder prefix present, UID is the second token
+      final hasPhPrefix = tokens.first.toLowerCase() == 'ph';
+      final uidToken = hasPhPrefix && tokens.length >= 2 ? tokens[1] : tokens[0];
+
+      final matching = usersForPlace.where((u) => u.uid == uidToken);
+      if (matching.isNotEmpty) {
+        final u = matching.first;
+        final full = '${u.firstName} ${u.lastName}'.trim();
+        if (full.isNotEmpty) return full;
+      }
+      // Fallbacks based on embedded name in the entry
+      final underscore = entry.split('_');
+      if (underscore.isNotEmpty) {
+        final hasPh = underscore.first.toLowerCase() == 'ph';
+        final nameStart = hasPh ? 2 : 1;
+        if (underscore.length >= nameStart + 2) {
+          return '${underscore[nameStart]} ${underscore[nameStart + 1]}';
+        }
+      }
+      final space = entry.split(' ');
+      if (space.isNotEmpty) {
+        final hasPh = space.first.toLowerCase() == 'ph';
+        final nameStart = hasPh ? 2 : 1;
+        if (space.length >= nameStart + 2) {
+          return '${space[nameStart]} ${space[nameStart + 1]}';
+        }
+      }
+      return entry; // ultimate fallback
+    }
 
     return Scaffold(
       appBar: CustomAppBar(
@@ -38,10 +82,10 @@ class CleaningPage extends ConsumerWidget {
                   Container(
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.onPrimary,
-                      border: Border.all(color: Theme.of(context).dividerColor, width: 1.2),
+                      border: Border.all(color: Theme.of(context).dividerColor, width: 1.0),
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                    margin: const EdgeInsets.only(bottom: 0),
+                    margin: const EdgeInsets.symmetric(horizontal: 8.0),
                     child: Row(
                       children: [
                         Expanded(
@@ -151,11 +195,6 @@ class CleaningPage extends ConsumerWidget {
                                 return Container(
                                   decoration: BoxDecoration(
                                     color: Theme.of(context).colorScheme.surface,
-                                    border: Border(
-                                      left: BorderSide(color: Theme.of(context).dividerColor, width: 1.2),
-                                      right: BorderSide(color: Theme.of(context).dividerColor, width: 1.2),
-                                      bottom: BorderSide(color: Theme.of(context).dividerColor, width: 1.2),
-                                    ),
                                   ),
                                   padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 12.0),
                                   child: Row(
@@ -171,19 +210,12 @@ class CleaningPage extends ConsumerWidget {
                                       Expanded(
                                         flex: 5,
                                         child: assigned.isNotEmpty
-                                            ? Padding(
-                                                padding: const EdgeInsets.only(left: 12.0),
-                                                child: Wrap(
-                                                  spacing: 8,
-                                                  runSpacing: 4,
-                                                  children: assigned
-                                                      .map((entry) {
-                                                        final parts = entry.split('_');
-                                                        final label = parts.length >= 3 ? '${parts[1]} ${parts[2]}' : entry;
-                                                        return CustomChip(label: label);
-                                                      })
-                                                      .toList(),
-                                                ),
+                                            ? Wrap(
+                                                spacing: 8,
+                                                runSpacing: 4,
+                                                children: assigned
+                                                    .map((entry) => CustomChip(label: formatAssigneeLabel(entry)))
+                                                    .toList(),
                                               )
                                             : Text(translation(context: context, 'No users assigned'), style: TextStyle(color: Colors.grey)),
                                       ),
@@ -205,22 +237,19 @@ class CleaningPage extends ConsumerWidget {
                                     decoration: BoxDecoration(
                                       color: Theme.of(context).colorScheme.surface,
                                       border: Border.all(color: Theme.of(context).dividerColor, width: 1.0),
-                                      borderRadius: BorderRadius.circular(8.0),
                                     ),
-                                    child: Column(
-                                      children: children
-                                          .map((w) => Column(
-                                                children: [
-                                                  // each child already is a Container-like row; keep padding
-                                                  Padding(padding: const EdgeInsets.symmetric(vertical: 0.0), child: w),
-                                                  // divider between items
-                                                  const Divider(height: 1, thickness: 1),
-                                                ],
-                                              ))
-                                          .toList(),
-                                    ),
+                                    child: Builder(builder: (context) {
+                                      return Column(
+                                        children: [
+                                          for (int i = 0; i < children.length; i++) ...[
+                                            Padding(padding: const EdgeInsets.symmetric(vertical: 0.0), child: children[i]),
+                                            if (i < children.length - 1) const Divider(height: 1, thickness: 1),
+                                          ],
+                                        ],
+                                      );
+                                    }),
                                   ),
-                                  const SizedBox(height: 24),
+                                  const SizedBox(height: 16),
                                 ],
                               );
                             }).toList(),
@@ -248,11 +277,6 @@ class CleaningPage extends ConsumerWidget {
                                 return Container(
                                   decoration: BoxDecoration(
                                     color: Theme.of(context).colorScheme.surface,
-                                    border: Border(
-                                      left: BorderSide(color: Theme.of(context).dividerColor, width: 1.2),
-                                      right: BorderSide(color: Theme.of(context).dividerColor, width: 1.2),
-                                      bottom: BorderSide(color: Theme.of(context).dividerColor, width: 1.2),
-                                    ),
                                   ),
                                   padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 12.0),
                                   child: Row(
@@ -268,19 +292,12 @@ class CleaningPage extends ConsumerWidget {
                                       Expanded(
                                         flex: 5,
                                         child: assigned.isNotEmpty
-                                            ? Padding(
-                                                padding: const EdgeInsets.only(left: 12.0),
-                                                child: Wrap(
-                                                  spacing: 8,
-                                                  runSpacing: 4,
-                                                  children: assigned
-                                                      .map((entry) {
-                                                        final parts = entry.split('_');
-                                                        final label = parts.length >= 3 ? '${parts[1]} ${parts[2]}' : entry;
-                                                        return CustomChip(label: label);
-                                                      })
-                                                      .toList(),
-                                                ),
+                                            ? Wrap(
+                                                spacing: 8,
+                                                runSpacing: 4,
+                                                children: assigned
+                                                    .map((entry) => CustomChip(label: formatAssigneeLabel(entry)))
+                                                    .toList(),
                                               )
                                             : Text(translation(context: context, 'No users assigned'), style: TextStyle(color: Colors.grey)),
                                       ),
@@ -298,20 +315,19 @@ class CleaningPage extends ConsumerWidget {
                                     decoration: BoxDecoration(
                                       color: Theme.of(context).colorScheme.surface,
                                       border: Border.all(color: Theme.of(context).dividerColor, width: 1.0),
-                                      borderRadius: BorderRadius.circular(8.0),
                                     ),
-                                    child: Column(
-                                      children: children
-                                          .map((w) => Column(
-                                                children: [
-                                                  Padding(padding: const EdgeInsets.symmetric(vertical: 0.0), child: w),
-                                                  const Divider(height: 1, thickness: 1),
-                                                ],
-                                              ))
-                                          .toList(),
-                                    ),
+                                    child: Builder(builder: (context) {
+                                      return Column(
+                                        children: [
+                                          for (int i = 0; i < children.length; i++) ...[
+                                            Padding(padding: const EdgeInsets.symmetric(vertical: 0.0), child: children[i]),
+                                            if (i < children.length - 1) const Divider(height: 1, thickness: 1),
+                                          ],
+                                        ],
+                                      );
+                                    }),
                                   ),
-                                  const SizedBox(height: 12),
+                                  const SizedBox(height: 16),
                                 ],
                               );
                             }),

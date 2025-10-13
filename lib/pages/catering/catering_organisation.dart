@@ -85,6 +85,200 @@ class _CateringOrganisationPageState extends ConsumerState<CateringOrganisationP
     return translated ? daysTranslated[weekday % 7] : days[weekday % 7];
   }
 
+  // Builds the exact drag target slot used for per-meal assignments (also reused in uniform mode for custom slots)
+  Widget _buildMealSlot(int dayIdx, int mealIdx) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final defaultMeal = mealIdx < widget.mealsTranslated.length ? widget.mealsTranslated[mealIdx] : null;
+    final mealKey = '${dayIdx}_$mealIdx';
+    final mealName = slotNames![mealKey] ?? defaultMeal ?? '${translation(context: context, 'Assignment')} ${mealIdx + 1}';
+    final usersForMeal = localWeekPlan![dayIdx][mealIdx];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: DragTarget<String>(
+        builder: (context, candidateData, rejectedData) {
+          return Container(
+            constraints: const BoxConstraints(minHeight: 54),
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.background,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: isDark ? Colors.white24 : Colors.grey),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.restaurant_menu, size: 18, color: isDark ? Colors.white54 : Colors.black45),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        mealName,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w500,
+                          color: isDark ? Colors.white70 : Colors.black87,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    // allow renaming custom slots (only for non-default meals)
+                    if (mealIdx >= widget.meals.length)
+                      IconButton(
+                        icon: Icon(Icons.edit, size: 18, color: theme.colorScheme.onSurface),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: () async {
+                          final controller = TextEditingController(text: slotNames!['${dayIdx}_$mealIdx'] ?? '');
+                          final res = await showDialog<String?>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: Text(translation(context: context, 'Rename assignment')),
+                              content: TextField(controller: controller, decoration: InputDecoration(hintText: translation(context: context, 'Name'))),
+                              actions: [
+                                TextButton(onPressed: () => Navigator.pop(ctx, null), child: Text(translation(context: context, 'Cancel'))),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+                                  child: Text(translation(context: context, 'Save')),
+                                ),
+                                // Delete button for custom slot
+                                TextButton(
+                                  onPressed: () async {
+                                    final confirmDel = await showConfirmDialog(
+                                      context: ctx,
+                                      title: translation(context: context, 'Delete assignment'),
+                                      content: Text(translation(context: context, 'Are you sure you want to delete this assignment slot?')),
+                                      confirmText: translation(context: context, 'Delete'),
+                                    );
+                                    if (confirmDel == true) Navigator.pop(ctx, '__DELETE__');
+                                  },
+                                  child: Text(
+                                    translation(context: context, 'Delete'),
+                                    style: TextStyle(color: Colors.red[700]),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (res != null) {
+                            if (res == '__DELETE__') {
+                              // remove the slot and renumber subsequent slots for that day
+                              setState(() {
+                                // remove the meal slot from the list
+                                localWeekPlan![dayIdx].removeAt(mealIdx);
+                                // rebuild slotNames for that day by shifting keys
+                                final newSlotNames = Map<String, String>.from(slotNames!);
+                                // remove the entry for the deleted slot
+                                newSlotNames.remove('${dayIdx}_$mealIdx');
+                                // shift subsequent keys down
+                                int i = mealIdx + 1;
+                                while (true) {
+                                  final oldKey = '${dayIdx}_$i';
+                                  if (!newSlotNames.containsKey(oldKey)) break;
+                                  final val = newSlotNames.remove(oldKey)!;
+                                  newSlotNames['${dayIdx}_${i - 1}'] = val;
+                                  i++;
+                                }
+                                // apply new slotNames
+                                slotNames = newSlotNames;
+                              });
+                            } else {
+                              setState(() {
+                                if (res.isEmpty) slotNames!.remove('${dayIdx}_$mealIdx');
+                                else slotNames!['${dayIdx}_$mealIdx'] = res;
+                              });
+                            }
+                            // persist slot names immediately so renames/deletes are saved
+                            try {
+                              final service = ref.read(cateringFirestoreServiceProvider);
+                              await service.setSlotNames(Map<String, String>.from(slotNames ?? {}));
+                              if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(translation(context: context, 'Saved'))),
+                              );
+                            } catch (e) {
+                              if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(translation(context: context, 'Failed to save'))),
+                              );
+                            }
+                          }
+                        },
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                usersForMeal.isNotEmpty
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // show slot title for custom slots
+                          if (mealIdx >= widget.meals.length)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 6.0),
+                              child: Text(
+                                mealName,
+                                style: TextStyle(fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface),
+                              ),
+                            ),
+                          Wrap(
+                            spacing: 4,
+                            runSpacing: 4,
+                            children: usersForMeal.map((user) {
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 2),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primary.withOpacity(isDark ? 0.18 : 0.08),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  children: [
+                                    GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          usersForMeal.remove(user);
+                                        });
+                                      },
+                                      child: Icon(Icons.remove_circle_outline, size: 18, color: isDark ? Colors.red[200] : Colors.red[700]),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      user,
+                                      style: TextStyle(color: isDark ? Colors.white : null),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ],
+                      )
+                    : Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Center(
+                          child: Text(
+                            translation(context: context, 'Drag here for {mealName}').replaceFirst('{mealName}', mealName),
+                            style: TextStyle(color: isDark ? Colors.white54 : Colors.black54),
+                          ),
+                        ),
+                      ),
+              ],
+            ),
+          );
+        },
+        onAccept: (user) {
+          setState(() {
+            if (!usersForMeal.contains(user)) {
+              usersForMeal.add(user);
+            }
+          });
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final users = widget.users;
@@ -240,119 +434,23 @@ class _CateringOrganisationPageState extends ConsumerState<CateringOrganisationP
                               if (uniformDays![dayIdx])
                                 Padding(
                                   padding: const EdgeInsets.symmetric(vertical: 6.0),
-                              child: DragTarget<String>(
-                                    builder: (context, candidateData, rejectedData) {
-                                      // aggregate users across all slots (including custom ones)
-                                      final usersAllSet = <String>{};
-                                      for (final slot in localWeekPlan![dayIdx]) {
-                                        for (final u in slot) usersAllSet.add(u);
-                                      }
-                                      final usersAll = usersAllSet.toList();
-                                      return Container(
-                                        constraints: const BoxConstraints(minHeight: 54),
-                                        width: double.infinity,
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                        decoration: BoxDecoration(
-                                          color: theme.colorScheme.background,
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(color: isDark ? Colors.white24 : Colors.grey),
-                                        ),
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                Icon(Icons.calendar_today, size: 18, color: isDark ? Colors.white54 : Colors.black45),
-                                                const SizedBox(width: 6),
-                                                Expanded(
-                                                  child: Text(
-                                                    translation(context: context, 'All meals'),
-                                                    style: TextStyle(
-                                                      fontWeight: FontWeight.w500,
-                                                      color: isDark ? Colors.white70 : Colors.black87,
-                                                    ),
-                                                    overflow: TextOverflow.ellipsis,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 4),
-                                            usersAll.isNotEmpty
-                                                ? Wrap(
-                                                    spacing: 4,
-                                                    runSpacing: 4,
-                                                    children: usersAll.map((user) {
-                                                      return Container(
-                                                        margin: const EdgeInsets.only(bottom: 2),
-                                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                                        decoration: BoxDecoration(
-                                                          color: theme.colorScheme.primary.withOpacity(isDark ? 0.18 : 0.08),
-                                                          borderRadius: BorderRadius.circular(12),
-                                                        ),
-                                                        child: Row(
-                                                          children: [
-                                                            GestureDetector(
-                                                              onTap: () {
-                                                                setState(() {
-                                                                  // remove user from all slots in that day
-                                                                  for (int m = 0; m < localWeekPlan![dayIdx].length; m++) {
-                                                                    localWeekPlan![dayIdx][m].remove(user);
-                                                                  }
-                                                                });
-                                                              },
-                                                              child: Icon(Icons.remove_circle_outline, size: 18, color: isDark ? Colors.red[200] : Colors.red[700]),
-                                                            ),
-                                                            const SizedBox(width: 6),
-                                                            Text(
-                                                              user,
-                                                              style: TextStyle(color: isDark ? Colors.white : null),
-                                                              overflow: TextOverflow.ellipsis,
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      );
-                                                    }).toList(),
-                                                  )
-                                                : Padding(
-                                                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                                                    child: Center(
-                                                      child: Text(
-                                                        translation(context: context, 'Drag here for whole day'),
-                                                        style: TextStyle(color: isDark ? Colors.white54 : Colors.black54),
-                                                      ),
-                                                    ),
-                                                  ),
-                                          ],
-                                        ),
-                                      );
-                                    },
-                                    onAccept: (user) {
-                                      setState(() {
-                                        for (int m = 0; m < widget.meals.length; m++) {
-                                          final list = localWeekPlan![dayIdx][m];
-                                          if (!list.contains(user)) list.add(user);
-                                        }
-                                        // also add to any custom slots for the day
-                                        for (int m = widget.meals.length; m < localWeekPlan![dayIdx].length; m++) {
-                                          final list = localWeekPlan![dayIdx][m];
-                                          if (!list.contains(user)) list.add(user);
-                                        }
-                                      });
-                                    },
-                                  ),
-                                )
-                              else
-                                Column(
-                                  children: List.generate(localWeekPlan![dayIdx].length, (mealIdx) {
-                                    final defaultMeal = mealIdx < widget.mealsTranslated.length ? widget.mealsTranslated[mealIdx] : null;
-                                    final mealKey = '${dayIdx}_$mealIdx';
-                                    final mealName = slotNames![mealKey] ?? defaultMeal ?? '${translation(context: context, 'Assignment')} ${mealIdx + 1}';
-                                    final usersForMeal = localWeekPlan![dayIdx][mealIdx];
-                                    return Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 6.0),
-                                      child: DragTarget<String>(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      // Aggregated drag target for the whole day
+                                      DragTarget<String>(
                                         builder: (context, candidateData, rejectedData) {
-                                                return Container(
+                                          // Show users assigned to ALL default meals (intersection), ignoring custom slots
+                                          List<String> usersAll = [];
+                                          final defaultCount = widget.meals.length;
+                                          if (defaultCount > 0) {
+                                            Set<String> inter = localWeekPlan![dayIdx][0].toSet();
+                                            for (int m = 1; m < defaultCount; m++) {
+                                              inter = inter.intersection(localWeekPlan![dayIdx][m].toSet());
+                                            }
+                                            usersAll = inter.toList();
+                                          }
+                                          return Container(
                                             constraints: const BoxConstraints(minHeight: 54),
                                             width: double.infinity,
                                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -366,11 +464,11 @@ class _CateringOrganisationPageState extends ConsumerState<CateringOrganisationP
                                               children: [
                                                 Row(
                                                   children: [
-                                                    Icon(Icons.restaurant_menu, size: 18, color: isDark ? Colors.white54 : Colors.black45),
+                                                    Icon(Icons.calendar_today, size: 18, color: isDark ? Colors.white54 : Colors.black45),
                                                     const SizedBox(width: 6),
                                                     Expanded(
                                                       child: Text(
-                                                              mealName,
+                                                        translation(context: context, 'All meals'),
                                                         style: TextStyle(
                                                           fontWeight: FontWeight.w500,
                                                           color: isDark ? Colors.white70 : Colors.black87,
@@ -378,142 +476,50 @@ class _CateringOrganisationPageState extends ConsumerState<CateringOrganisationP
                                                         overflow: TextOverflow.ellipsis,
                                                       ),
                                                     ),
-                                                    // allow renaming custom slots (only for non-default meals)
-                                                    if (mealIdx >= widget.meals.length)
-                                                      IconButton(
-                                                        icon: Icon(Icons.edit, size: 18, color: theme.colorScheme.onSurface),
-                                                        padding: EdgeInsets.zero,
-                                                        constraints: const BoxConstraints(),
-                                                        onPressed: () async {
-                                                          final controller = TextEditingController(text: slotNames!['${dayIdx}_$mealIdx'] ?? '');
-                                                          final res = await showDialog<String?>(
-                                                            context: context,
-                                                            builder: (ctx) => AlertDialog(
-                                                              title: Text(translation(context: context, 'Rename assignment')),
-                                                              content: TextField(controller: controller, decoration: InputDecoration(hintText: translation(context: context, 'Name'))),
-                                                              actions: [
-                                                                TextButton(onPressed: () => Navigator.pop(ctx, null), child: Text(translation(context: context, 'Cancel'))),
-                                                                TextButton(
-                                                                  onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-                                                                  child: Text(translation(context: context, 'Save')),
-                                                                ),
-                                                                // Delete button for custom slot
-                                                                TextButton(
-                                                                  onPressed: () async {
-                                                                    final confirmDel = await showConfirmDialog(
-                                                                      context: ctx,
-                                                                      title: translation(context: context, 'Delete assignment'),
-                                                                      content: Text(translation(context: context, 'Are you sure you want to delete this assignment slot?')),
-                                                                      confirmText: translation(context: context, 'Delete'),
-                                                                    );
-                                                                    if (confirmDel == true) Navigator.pop(ctx, '__DELETE__');
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 4),
+                                                usersAll.isNotEmpty
+                                                    ? Wrap(
+                                                        spacing: 4,
+                                                        runSpacing: 4,
+                                                        children: usersAll.map((user) {
+                                                          return Container(
+                                                            margin: const EdgeInsets.only(bottom: 2),
+                                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                                            decoration: BoxDecoration(
+                                                              color: theme.colorScheme.primary.withOpacity(isDark ? 0.18 : 0.08),
+                                                              borderRadius: BorderRadius.circular(12),
+                                                            ),
+                                                            child: Row(
+                                                              children: [
+                                                                GestureDetector(
+                                                                  onTap: () {
+                                                                    setState(() {
+                                                                      // remove user from all default meals only (do not touch custom slots)
+                                                                      for (int m = 0; m < widget.meals.length; m++) {
+                                                                        localWeekPlan![dayIdx][m].remove(user);
+                                                                      }
+                                                                    });
                                                                   },
-                                                                  child: Text(
-                                                                    translation(context: context, 'Delete'),
-                                                                    style: TextStyle(color: Colors.red[700]),
-                                                                  ),
+                                                                  child: Icon(Icons.remove_circle_outline, size: 18, color: isDark ? Colors.red[200] : Colors.red[700]),
+                                                                ),
+                                                                const SizedBox(width: 6),
+                                                                Text(
+                                                                  user,
+                                                                  style: TextStyle(color: isDark ? Colors.white : null),
+                                                                  overflow: TextOverflow.ellipsis,
                                                                 ),
                                                               ],
                                                             ),
                                                           );
-                                                          if (res != null) {
-                                                            if (res == '__DELETE__') {
-                                                              // remove the slot and renumber subsequent slots for that day
-                                                              setState(() {
-                                                                // remove the meal slot from the list
-                                                                localWeekPlan![dayIdx].removeAt(mealIdx);
-                                                                // rebuild slotNames for that day by shifting keys
-                                                                final newSlotNames = Map<String, String>.from(slotNames!);
-                                                                // remove the entry for the deleted slot
-                                                                newSlotNames.remove('${dayIdx}_$mealIdx');
-                                                                // shift subsequent keys down
-                                                                int i = mealIdx + 1;
-                                                                while (true) {
-                                                                  final oldKey = '${dayIdx}_$i';
-                                                                  if (!newSlotNames.containsKey(oldKey)) break;
-                                                                  final val = newSlotNames.remove(oldKey)!;
-                                                                  newSlotNames['${dayIdx}_${i - 1}'] = val;
-                                                                  i++;
-                                                                }
-                                                                // apply new slotNames
-                                                                slotNames = newSlotNames;
-                                                              });
-                                                            } else {
-                                                              setState(() {
-                                                                if (res.isEmpty) slotNames!.remove('${dayIdx}_$mealIdx');
-                                                                else slotNames!['${dayIdx}_$mealIdx'] = res;
-                                                              });
-                                                            }
-                                                            // persist slot names immediately so renames/deletes are saved
-                                                            try {
-                                                              final service = ref.read(cateringFirestoreServiceProvider);
-                                                              await service.setSlotNames(Map<String, String>.from(slotNames ?? {}));
-                                                              if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(
-                                                                SnackBar(content: Text(translation(context: context, 'Saved'))),
-                                                              );
-                                                            } catch (e) {
-                                                              if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(
-                                                                SnackBar(content: Text(translation(context: context, 'Failed to save'))),
-                                                              );
-                                                            }
-                                                          }
-                                                        },
-                                                      ),
-                                                  ],
-                                                ),
-                                                const SizedBox(height: 4),
-                                                usersForMeal.isNotEmpty
-                                                    ? Column(
-                                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                                        children: [
-                                                          // show slot title for custom slots
-                                                          if (mealIdx >= widget.meals.length)
-                                                            Padding(
-                                                              padding: const EdgeInsets.only(bottom: 6.0),
-                                                              child: Text(
-                                                                mealName,
-                                                                style: TextStyle(fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface),
-                                                              ),
-                                                            ),
-                                                          Wrap(
-                                                            spacing: 4,
-                                                            runSpacing: 4,
-                                                            children: usersForMeal.map((user) {
-                                                              return Container(
-                                                                margin: const EdgeInsets.only(bottom: 2),
-                                                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                                                decoration: BoxDecoration(
-                                                                  color: theme.colorScheme.primary.withOpacity(isDark ? 0.18 : 0.08),
-                                                                  borderRadius: BorderRadius.circular(12),
-                                                                ),
-                                                                child: Row(
-                                                                  children: [
-                                                                    GestureDetector(
-                                                                      onTap: () {
-                                                                        setState(() {
-                                                                          usersForMeal.remove(user);
-                                                                        });
-                                                                      },
-                                                                      child: Icon(Icons.remove_circle_outline, size: 18, color: isDark ? Colors.red[200] : Colors.red[700]),
-                                                                    ),
-                                                                    const SizedBox(width: 6),
-                                                                    Text(
-                                                                      user,
-                                                                      style: TextStyle(color: isDark ? Colors.white : null),
-                                                                      overflow: TextOverflow.ellipsis,
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                              );
-                                                            }).toList(),
-                                                          ),
-                                                        ],
+                                                        }).toList(),
                                                       )
                                                     : Padding(
                                                         padding: const EdgeInsets.symmetric(vertical: 8.0),
                                                         child: Center(
                                                           child: Text(
-                                                            translation(context: context, 'Drag here for {mealName}').replaceFirst('{mealName}', mealName),
+                                                            translation(context: context, 'Drag here for whole day'),
                                                             style: TextStyle(color: isDark ? Colors.white54 : Colors.black54),
                                                           ),
                                                         ),
@@ -524,14 +530,29 @@ class _CateringOrganisationPageState extends ConsumerState<CateringOrganisationP
                                         },
                                         onAccept: (user) {
                                           setState(() {
-                                            if (!usersForMeal.contains(user)) {
-                                              usersForMeal.add(user);
+                                            // Add to all default meals only; do not add to custom slots
+                                            for (int m = 0; m < widget.meals.length; m++) {
+                                              final list = localWeekPlan![dayIdx][m];
+                                              if (!list.contains(user)) list.add(user);
                                             }
                                           });
                                         },
                                       ),
-                                    );
-                                  }),
+                                      // Show custom assignment slots too when All is enabled, using the exact same slot widget
+                                      if (localWeekPlan![dayIdx].length > widget.meals.length) ...[
+                                        const SizedBox(height: 8),
+                                        for (int mealIdx = widget.meals.length; mealIdx < localWeekPlan![dayIdx].length; mealIdx++)
+                                          _buildMealSlot(dayIdx, mealIdx),
+                                      ],
+                                    ],
+                                  ),
+                                )
+                              else
+                                Column(
+                                  children: List.generate(
+                                    localWeekPlan![dayIdx].length,
+                                    (mealIdx) => _buildMealSlot(dayIdx, mealIdx),
+                                  ),
                                 ),
                             ],
                           ),

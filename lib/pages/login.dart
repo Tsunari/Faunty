@@ -688,20 +688,6 @@ class _LoginFormFields extends StatelessWidget {
             },
           ),
         ),
-        // Forgot password button (only in login mode)
-        if (!isRegisterMode) ...[
-          const SizedBox(height: 8),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: _LoginPageState._formMaxWidth),
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: onForgotPassword,
-                child: Text(translation(context: context, 'Forgot password?')),
-              ),
-            ),
-          ),
-        ],
         const SizedBox(height: 16),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: _LoginPageState._formMaxWidth),
@@ -754,7 +740,20 @@ class _LoginFormFields extends StatelessWidget {
               }
             },
           ),
-        ),
+        ),     // Forgot password button (only in login mode)
+        if (!isRegisterMode) ...[
+          const SizedBox(height: 8),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: _LoginPageState._formMaxWidth),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: onForgotPassword,
+                child: Text(translation(context: context, 'Forgot password?')),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
