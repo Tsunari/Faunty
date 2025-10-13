@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.16.0] - 13-10-2025
+### Fixed
+- Fix omar stuff and cleaning uid format for placeholders
+
+
+
 ## [1.15.0] - 22-09-2025
 ### Added
 - Add uniform days functionality to catering service and UI
