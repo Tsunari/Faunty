@@ -95,7 +95,7 @@ class _UsersPageState extends ConsumerState<UsersPage> {
                 ),
               ),
               RoleGate(
-                minRole: UserRole.hoca,
+                minRole: UserRole.baskan,
                 child: Padding(
                   padding: const EdgeInsets.only(right: 8.0),
                   child: IconButton(
