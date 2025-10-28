@@ -1,6 +1,7 @@
 param(
     [Alias('hosting')][switch]$HostingOnly,
-    [switch]$force
+    [switch]$force,
+    [switch]$confirm
 )
 
 # Helper: Prompt for version bump
@@ -258,6 +259,16 @@ function Write-Section {
             }
             Set-Content -Path $changelogPath -Value $final -Encoding UTF8
             #endregion Step 8
+
+            if ($confirm) {
+                #region Confirmation before continuing
+                $confirmation = Read-Host "Version bumped to $newVersion$buildSuffix and changelog updated. Continue with release? (y/n)"
+                if ($confirmation -notmatch '^(y|yes)$') {
+                    Write-Host "Release aborted by user." -ForegroundColor Yellow
+                    exit 0
+                }
+                #endregion Confirmation before continuing
+            }
 
             #region Step 9: Commit and push
             Write-Section "Commit and push" 7 $totalSteps
