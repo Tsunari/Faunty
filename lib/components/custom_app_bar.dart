@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:faunty/components/custom_snackbar.dart';
 import 'package:faunty/pages/pdf/pdf_preview_page.dart';
 import 'package:faunty/tools/pdf_generator/base_pdf_layout.dart';
 import 'package:faunty/tools/translation_helper.dart';
@@ -40,7 +41,19 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           tooltip: translation(context: context, 'Generate PDF'),
           onPressed: () async {
             final data = await onGeneratePdf!();
+
             if (!context.mounted) {
+              return;
+            }
+
+            final hasContent = data.isNotEmpty &&
+                data.values.any((rows) => rows.isNotEmpty);
+
+            if (!hasContent) {
+              showCustomSnackBar(
+                context,
+                translation(context: context, 'Nothing to export.'),
+              );
               return;
             }
 

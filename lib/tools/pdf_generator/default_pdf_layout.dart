@@ -24,7 +24,7 @@ class DefaultPdfLayout extends BasePdfLayout {
                 ),
               ),
             ),
-            pw.Table.fromTextArray(
+            pw.TableHelper.fromTextArray(
               headerStyle: pw.TextStyle(
                 fontWeight: pw.FontWeight.bold,
                 color: PdfColors.white,
@@ -53,7 +53,7 @@ class DefaultPdfLayout extends BasePdfLayout {
             ),
           ],
         );
-      }).toList(),
+      }),
     ];
   }
 }
