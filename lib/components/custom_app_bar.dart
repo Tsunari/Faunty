@@ -1,17 +1,24 @@
-
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:faunty/components/custom_snackbar.dart';
+import 'package:faunty/pages/pdf/pdf_preview_page.dart';
+import 'package:faunty/tools/pdf_generator/base_pdf_layout.dart';
+import 'package:faunty/tools/translation_helper.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final List<Widget>? actions;
   final bool useModern;
+  final Future<Map<String, List<Map<String, dynamic>>>> Function()? onGeneratePdf;
+  final BasePdfLayout? pdfLayout;
 
   const CustomAppBar({
     super.key,
     required this.title,
     this.actions,
     this.useModern = true,
+    this.onGeneratePdf,
+    this.pdfLayout,
   });
 
   @override
@@ -25,6 +32,45 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.1),
       );
     }
+
+    List<Widget> allActions = actions?.toList() ?? [];
+    if (onGeneratePdf != null) {
+      allActions.add(
+        IconButton(
+          icon: const Icon(Icons.picture_as_pdf),
+          tooltip: translation(context: context, 'Generate PDF'),
+          onPressed: () async {
+            final data = await onGeneratePdf!();
+
+            if (!context.mounted) {
+              return;
+            }
+
+            final hasContent = data.isNotEmpty &&
+                data.values.any((rows) => rows.isNotEmpty);
+
+            if (!hasContent) {
+              showCustomSnackBar(
+                context,
+                translation(context: context, 'Nothing to export.'),
+              );
+              return;
+            }
+
+            await Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => PdfPreviewPage(
+                  title: title,
+                  data: data,
+                  layout: pdfLayout,
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    }
+
     // Modern AppBar style
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -56,7 +102,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                   color: theme.colorScheme.onSurface,
                 ),
               ),
-              actions: actions?.map((w) => w).toList(),
+              actions: allActions.isNotEmpty ? allActions : null,
               centerTitle: true,
               automaticallyImplyLeading: true,
             ),
