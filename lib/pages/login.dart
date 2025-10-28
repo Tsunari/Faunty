@@ -117,7 +117,7 @@ class _LoginPageState extends ConsumerState<LoginPage> with SingleTickerProvider
 
   Future<void> _fetchPlaces() async {
     // Ensure at least one place exists before fetching
-    await PlaceFirestoreService.ensureAtLeastOnePlaceExists();
+    // await PlaceFirestoreService.ensureAtLeastOnePlaceExists();
     try {
       final snapshot = await FirebaseFirestore.instance.collection('places').get();
       printInfo('Fetched places: ${snapshot.docs.length}');
