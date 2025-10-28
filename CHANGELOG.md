@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.17.0] - 28-10-2025
+### Added
+- Pdf generation preview page
+- Pdf list generation
+- Release script enhancement with optional confirmation
+### Changed
+- Add guard to pdf preview to handle no data to export
+- Create user for baskan
+- Remove ensureplace logic
+### Fixed
+- Remove redundant subheader in catering layout
+
+
+
 ## [1.16.0] - 13-10-2025
 ### Fixed
 - Fix omar stuff and cleaning uid format for placeholders
