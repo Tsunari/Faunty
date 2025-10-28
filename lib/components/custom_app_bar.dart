@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:faunty/pages/pdf/pdf_preview_page.dart';
 import 'package:faunty/tools/pdf_generator/base_pdf_layout.dart';
-import 'package:faunty/tools/pdf_generator/pdf_generator.dart';
 import 'package:faunty/tools/translation_helper.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -40,7 +40,19 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           tooltip: translation(context: context, 'Generate PDF'),
           onPressed: () async {
             final data = await onGeneratePdf!();
-            await PdfGenerator.generateAndPrintPdf(title: title, data: data, layout: pdfLayout);
+            if (!context.mounted) {
+              return;
+            }
+
+            await Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => PdfPreviewPage(
+                  title: title,
+                  data: data,
+                  layout: pdfLayout,
+                ),
+              ),
+            );
           },
         ),
       );

@@ -61,7 +61,7 @@ class ProgramPdfLayout extends BasePdfLayout {
       ];
 
       widgets.add(
-        pw.Table.fromTextArray(
+        pw.TableHelper.fromTextArray(
           headerStyle: pw.TextStyle(
             fontWeight: pw.FontWeight.bold,
             color: PdfColors.white,

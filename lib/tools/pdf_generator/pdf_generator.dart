@@ -1,6 +1,9 @@
+import 'dart:typed_data';
+
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+
 import 'base_pdf_layout.dart';
 import 'default_pdf_layout.dart';
 
@@ -9,23 +12,61 @@ class PdfGenerator {
     required String title,
     required Map<String, List<Map<String, dynamic>>> data,
     BasePdfLayout? layout,
+    bool showFooter = true,
   }) async {
     final pdfLayout = layout ?? DefaultPdfLayout();
-    final theme = await pdfLayout.getTheme();
+
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async =>
+          _buildDocument(
+            title: title,
+            data: data,
+            layout: pdfLayout,
+            pageFormat: format,
+            showFooter: showFooter,
+          ).then((doc) => doc.save()),
+    );
+  }
+
+  static Future<Uint8List> generatePdfBytes({
+    required String title,
+    required Map<String, List<Map<String, dynamic>>> data,
+    BasePdfLayout? layout,
+    PdfPageFormat? pageFormat,
+    bool showFooter = true,
+  }) async {
+    final pdfLayout = layout ?? DefaultPdfLayout();
+    final document = await _buildDocument(
+      title: title,
+      data: data,
+      layout: pdfLayout,
+      pageFormat: pageFormat ?? PdfPageFormat.a4,
+      showFooter: showFooter,
+    );
+
+    return document.save();
+  }
+
+  static Future<pw.Document> _buildDocument({
+    required String title,
+    required Map<String, List<Map<String, dynamic>>> data,
+    required BasePdfLayout layout,
+    required PdfPageFormat pageFormat,
+    required bool showFooter,
+  }) async {
+    final theme = await layout.getTheme();
     final pdf = pw.Document(theme: theme);
 
     pdf.addPage(
       pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
+        pageFormat: pageFormat,
         margin: const pw.EdgeInsets.all(32),
-        header: (context) => pdfLayout.buildHeader(context, title),
-        footer: (context) => pdfLayout.buildFooter(context),
-        build: (context) => pdfLayout.buildContent(context, data),
+        header: (context) => layout.buildHeader(context, title),
+        footer: showFooter ? (context) => layout.buildFooter(context) : null,
+        build: (context) => layout.buildContent(context, data),
       ),
     );
 
-    await Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => pdf.save(),
-    );
+    return pdf;
   }
 }
