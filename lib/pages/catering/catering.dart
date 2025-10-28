@@ -2,6 +2,7 @@ import 'package:faunty/components/custom_app_bar.dart';
 import 'package:faunty/components/role_gate.dart';
 import 'package:faunty/globals.dart';
 import 'package:faunty/models/user_roles.dart';
+import 'package:faunty/tools/pdf_generator/catering_pdf_layout.dart';
 import 'package:faunty/tools/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -69,6 +70,51 @@ class _CateringPageState extends ConsumerState<CateringPage> {
             return Scaffold(
               appBar: CustomAppBar(
                 title: translation(context: context, 'Catering'),
+                pdfLayout: CateringPdfLayout(),
+                onGeneratePdf: () async {
+                  final Map<String, List<Map<String, dynamic>>> pdfData = {};
+                  for (int day = 0; day < 7; day++) {
+                    final dayName = days[day];
+                    final entries = weekPlan[day];
+                    final hasAssignments = entries.any((meal) => meal.isNotEmpty);
+                    if (!hasAssignments) {
+                      continue;
+                    }
+
+                    final isUniformDay = day < uniformDays.length ? uniformDays[day] : false;
+
+                    if (isUniformDay) {
+                      final uniqueAssignees = entries
+                          .expand((meal) => meal)
+                          .where((name) => name.trim().isNotEmpty)
+                          .toSet()
+                          .toList();
+                      if (uniqueAssignees.isEmpty) {
+                        continue;
+                      }
+                      pdfData[dayName] = [
+                        {
+                          'Assignees': uniqueAssignees.join(', '),
+                        }
+                      ];
+                    } else {
+                      final dayEntries = <Map<String, dynamic>>[];
+                      for (int meal = 0; meal < entries.length; meal++) {
+                        if (entries[meal].isEmpty || meal >= mealsTranslated.length) {
+                          continue;
+                        }
+                        dayEntries.add({
+                          'Meal': mealsTranslated[meal],
+                          'Assignees': entries[meal].join(', '),
+                        });
+                      }
+                      if (dayEntries.isNotEmpty) {
+                        pdfData[dayName] = dayEntries;
+                      }
+                    }
+                  }
+                  return pdfData;
+                },
                 actions: [
                   Padding(
                     padding: const EdgeInsets.all(8.0),

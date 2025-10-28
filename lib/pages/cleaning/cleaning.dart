@@ -63,6 +63,25 @@ class CleaningPage extends ConsumerWidget {
     return Scaffold(
       appBar: CustomAppBar(
         title: translation(context: context, 'Cleaning'),
+        onGeneratePdf: () async {
+          final Map<String, List<Map<String, dynamic>>> pdfData = {};
+          final placesMap = (cleaningDataAsync.value?['places'] as Map<String, dynamic>?) ?? <String, dynamic>{};
+          
+          for (var entry in placesMap.entries) {
+            final placeName = entry.value['name'] ?? entry.key;
+            final assignees = (entry.value['assignees'] as List?)?.cast<String>() ?? [];
+            if (assignees.isNotEmpty) {
+              if(pdfData['Cleaning Assignments'] == null) {
+                pdfData['Cleaning Assignments'] = [];
+              }
+              pdfData['Cleaning Assignments']!.add({
+                'Place': placeName,
+                'Assignees': assignees.map(formatAssigneeLabel).join(', '),
+              });
+            }
+          }
+          return pdfData;
+        },
         actions: [],
       ),
       body: cleaningDataAsync.when(

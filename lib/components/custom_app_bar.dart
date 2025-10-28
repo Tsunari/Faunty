@@ -1,17 +1,23 @@
-
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:faunty/tools/pdf_generator/base_pdf_layout.dart';
+import 'package:faunty/tools/pdf_generator/pdf_generator.dart';
+import 'package:faunty/tools/translation_helper.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final List<Widget>? actions;
   final bool useModern;
+  final Future<Map<String, List<Map<String, dynamic>>>> Function()? onGeneratePdf;
+  final BasePdfLayout? pdfLayout;
 
   const CustomAppBar({
     super.key,
     required this.title,
     this.actions,
     this.useModern = true,
+    this.onGeneratePdf,
+    this.pdfLayout,
   });
 
   @override
@@ -25,6 +31,21 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.1),
       );
     }
+
+    List<Widget> allActions = actions?.toList() ?? [];
+    if (onGeneratePdf != null) {
+      allActions.add(
+        IconButton(
+          icon: const Icon(Icons.picture_as_pdf),
+          tooltip: translation(context: context, 'Generate PDF'),
+          onPressed: () async {
+            final data = await onGeneratePdf!();
+            await PdfGenerator.generateAndPrintPdf(title: title, data: data, layout: pdfLayout);
+          },
+        ),
+      );
+    }
+
     // Modern AppBar style
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -56,7 +77,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                   color: theme.colorScheme.onSurface,
                 ),
               ),
-              actions: actions?.map((w) => w).toList(),
+              actions: allActions.isNotEmpty ? allActions : null,
               centerTitle: true,
               automaticallyImplyLeading: true,
             ),

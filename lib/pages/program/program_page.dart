@@ -1,6 +1,7 @@
 import 'package:faunty/components/role_gate.dart';
 import 'package:faunty/globals.dart';
 import 'package:faunty/models/user_roles.dart';
+import 'package:faunty/tools/pdf_generator/program_pdf_layout.dart';
 import 'package:faunty/tools/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -60,6 +61,22 @@ class _ProgramPageState extends ConsumerState<ProgramPage> {
         return Scaffold(
           appBar: CustomAppBar(
             title: translation(context: context, 'Program'),
+            pdfLayout: ProgramPdfLayout(),
+            onGeneratePdf: () async {
+              final Map<String, List<Map<String, dynamic>>> pdfData = {};
+              for (final dayName in weekDays) {
+                final entries = weekProgram[dayName] ?? [];
+                if (entries.isEmpty) {
+                  continue;
+                }
+                pdfData[dayName] = entries.map((e) => {
+                  'From': e['from'],
+                  'To': e['to'],
+                  'Event': e['event'],
+                }).toList();
+              }
+              return pdfData;
+            },
           ),
           body: Center(
             child: SizedBox(
