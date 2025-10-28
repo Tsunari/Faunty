@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
 
+import 'package:faunty/components/custom_snackbar.dart';
 import 'package:faunty/tools/pdf_generator/base_pdf_layout.dart';
 import 'package:faunty/tools/pdf_generator/pdf_generator.dart';
 import 'package:faunty/tools/translation_helper.dart';
@@ -30,6 +31,7 @@ class _PdfPreviewPageState extends State<PdfPreviewPage> {
     final previewTitle = translation(context: context, 'PDF Preview');
     final toggleLabel = translation(context: context, 'Show footer');
   final fileName = _buildFileName(widget.title);
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -42,6 +44,67 @@ class _PdfPreviewPageState extends State<PdfPreviewPage> {
         initialPageFormat: PdfPageFormat.a4,
         pdfFileName: fileName,
         canDebug: false,
+        enableScrollToPage: true,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+        previewPageMargin: const EdgeInsets.symmetric(vertical: 12),
+        scrollViewDecoration: BoxDecoration(
+          color: theme.colorScheme.surfaceVariant.withOpacity(0.08),
+        ),
+        pdfPreviewPageDecoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: theme.shadowColor.withOpacity(0.12),
+              blurRadius: 18,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        loadingWidget: const Center(child: CircularProgressIndicator()),
+        shareActionExtraSubject: widget.title,
+        shareActionExtraBody: translation(
+          context: context,
+          'Generated via Faunty PDF export.',
+        ),
+        onPrinted: (ctx) {
+          showCustomSnackBar(
+            ctx,
+            translation(context: ctx, 'PDF sent to printer.'),
+          );
+        },
+        onShared: (ctx) {
+          showCustomSnackBar(
+            ctx,
+            translation(context: ctx, 'PDF shared successfully.'),
+          );
+        },
+        onPrintError: (ctx, error) {
+          showCustomSnackBar(
+            ctx,
+            translation(context: ctx, 'Printing failed.'),
+            backgroundColor: theme.colorScheme.error,
+          );
+        },
+        onError: (ctx, error) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline, size: 48),
+                  const SizedBox(height: 12),
+                  Text(
+                    translation(context: ctx, 'Failed to render PDF preview.'),
+                    textAlign: TextAlign.center,
+                    style: Theme.of(ctx).textTheme.bodyLarge,
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
         actions: [
           PdfPreviewAction(
             icon: Tooltip(
