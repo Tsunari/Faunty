@@ -11,12 +11,6 @@ class CateringPdfLayout extends BasePdfLayout {
     void flushUniformBuffer() {
       if (uniformBuffer.isEmpty) return;
 
-      final firstDay = uniformBuffer.first.key;
-      final lastDay = uniformBuffer.last.key;
-      final title = uniformBuffer.length == 1
-          ? firstDay
-          : '$firstDay - $lastDay';
-
       final tableData = <List<String>>[
         ['Day', 'Assignees'],
         ...uniformBuffer.map((entry) {
@@ -27,37 +21,26 @@ class CateringPdfLayout extends BasePdfLayout {
 
       widgets.add(
         pw.Padding(
-          padding: const pw.EdgeInsets.only(top: 20, bottom: 10),
-          child: pw.Text(
-            title,
-            style: pw.TextStyle(
+          padding: pw.EdgeInsets.only(top: widgets.isEmpty ? 0 : 20),
+          child: pw.TableHelper.fromTextArray(
+            headerStyle: pw.TextStyle(
               fontWeight: pw.FontWeight.bold,
-              fontSize: 18,
-              color: PdfColors.blueGrey800,
+              color: PdfColors.white,
             ),
-          ),
-        ),
-      );
-
-      widgets.add(
-        pw.TableHelper.fromTextArray(
-          headerStyle: pw.TextStyle(
-            fontWeight: pw.FontWeight.bold,
-            color: PdfColors.white,
-          ),
-          headerDecoration: const pw.BoxDecoration(
-            color: PdfColors.blueGrey600,
-          ),
-          cellAlignment: pw.Alignment.center,
-          headerAlignments: const {
-            0: pw.Alignment.center,
-            1: pw.Alignment.center,
-          },
-          cellPadding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          data: tableData,
-          border: pw.TableBorder.all(color: PdfColors.blueGrey100),
-          oddRowDecoration: const pw.BoxDecoration(
-            color: PdfColors.blueGrey50,
+            headerDecoration: const pw.BoxDecoration(
+              color: PdfColors.blueGrey600,
+            ),
+            cellAlignment: pw.Alignment.center,
+            headerAlignments: const {
+              0: pw.Alignment.center,
+              1: pw.Alignment.center,
+            },
+            cellPadding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            data: tableData,
+            border: pw.TableBorder.all(color: PdfColors.blueGrey100),
+            oddRowDecoration: const pw.BoxDecoration(
+              color: PdfColors.blueGrey50,
+            ),
           ),
         ),
       );
