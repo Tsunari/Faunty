@@ -12,6 +12,7 @@ For more information, see the main [README.md](../../README.md) in the project r
 ## Context Convention
 - **Always use the `lib` folder as the default context for file references, code searches, and edits unless otherwise specified.** When the user asks about a file or code, assume it is in the `lib` folder unless they provide a different path.
 - **If you cannot find a file or resource, first take the project as whole into context and ask for clarification or additional context if you still could not find anything.**
+- Use [Indepth Project Analysis](../instructions/architecture-and-conventions.md) to understand the project structure, dependencies, and conventions.
 
 ## Architecture & Key Patterns
 - **State Management:** Riverpod (`lib/state_management/`). Providers are used for real-time Firestore streams (see `user_provider.dart`, `kantin_provider.dart`).
@@ -27,6 +28,7 @@ For more information, see the main [README.md](../../README.md) in the project r
 - **i18n:** Add new translation keys to all language files in `lib/i18n/`. Use Slang for codegen (`dart run slang`). Discover new keys with `dart lib/tools/extract_t_strings_ast.dart`.
 
 ## Project-Specific Conventions
+- **Do not use deprecated APIs:** For example use 'dart:js_interop' instead of 'dart:js' or 'dart:html'.
 - **Provider Usage:** Always use Riverpod's `ref.read`/`ref.watch` for state. Streams from Firestore are mapped to domain models.
 - **Custom Components:** Prefer using widgets from `lib/components/` for UI consistency.
 - **Translation:** All user-facing strings (except intentionally hardcoded ones) must use the translation helper. If no context, just pass the string.
