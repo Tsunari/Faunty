@@ -55,6 +55,7 @@ dependencies:
   pdf: ^3.11.3
   printing: ^5.14.2
   google_fonts: ^6.3.2
+  pwa_install: ^0.0.6
   
 dev_dependencies:
   flutter_test:

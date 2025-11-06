@@ -63,6 +63,7 @@ class Faunty extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final presetIndex = ref.watch(themePresetProvider);
     final preset = themePresets[presetIndex];
+    // TODO: FIX ISSUE WITH STATUS BAR COLOR
     final isMonochrome = preset.name == 'Monochrome';
     return MaterialApp(
       navigatorKey: rootNavigatorKey,

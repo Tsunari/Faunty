@@ -1,6 +1,5 @@
 import 'package:faunty/helper/logging.dart';
 import 'package:faunty/models/place_model.dart';
-import 'package:faunty/firestore/place_firestore_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -12,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:faunty/tools/translation_helper.dart';
 import 'package:faunty/components/language_dropdown.dart';
 import 'package:faunty/components/custom_snackbar.dart';
+import 'package:faunty/tools/pwa_install.dart';
 import '../state_management/user_provider.dart';
 import '../state_management/firestore_quota_provider.dart';
 
@@ -544,6 +544,7 @@ class _LoginPageState extends ConsumerState<LoginPage> with SingleTickerProvider
                                     ),
                                   ],
                                 ),
+                                
                                 // Language selector at the bottom (only in login mode)
                                 if (!_isRegisterMode)
                                   Padding(
@@ -745,12 +746,23 @@ class _LoginFormFields extends StatelessWidget {
           const SizedBox(height: 8),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: _LoginPageState._formMaxWidth),
-            child: Align(
+            child: Stack(
               alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: onForgotPassword,
-                child: Text(translation(context: context, 'Forgot password?')),
-              ),
+              children: [
+                // Left-aligned inline PWA install button (web only, shows when available)
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: PwaInstallInlineButton(),
+                ),
+                // Keep Forgot password exactly right-aligned as before
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: onForgotPassword,
+                    child: Text(translation(context: context, 'Forgot password?')),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
