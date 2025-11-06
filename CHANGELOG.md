@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.18.0] - 07-11-2025
+### Added
+- Added install button for PWA
+### Changed
+- Pdf preview page enhancement
+
+
+
 ## [1.17.0] - 28-10-2025
 ### Added
 - Pdf generation preview page
