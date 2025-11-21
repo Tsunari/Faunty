@@ -60,6 +60,12 @@ class OneSignalNotificationProvider implements NotificationProvider {
         'headings': {'en': notification.title},
         'contents': {'en': notification.body},
         if (notification.payload != null) 'data': notification.payload,
+        if (notification.imageUrl != null) ...{
+          'chrome_web_image': notification.imageUrl,
+          'big_picture': notification.imageUrl, // Android
+          'ios_attachments': {'id1': notification.imageUrl}, // iOS
+        },
+        if (notification.launchUrl != null) 'url': notification.launchUrl,
         if (toUserIds != null && toUserIds.isNotEmpty)
           'include_external_user_ids': toUserIds
         else

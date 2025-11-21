@@ -18,4 +18,10 @@ abstract class AppNotification {
 
   /// Target segments (e.g. "Active Users").
   List<String>? get targetSegments => null;
+
+  /// Optional image URL.
+  String? get imageUrl => null;
+
+  /// Optional launch URL.
+  String? get launchUrl => null;
 }

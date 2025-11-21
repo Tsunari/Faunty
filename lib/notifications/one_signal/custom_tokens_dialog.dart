@@ -1,36 +1,217 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../tools/translation_helper.dart';
 import '../notification_manager.dart';
-import '../types/test_notification.dart';
+import '../types/custom_notification.dart';
 
 Future<void> showOneSignalDialog(BuildContext context, WidgetRef ref) async {
-  showDialog(
+  await showDialog(
     context: context,
-    builder: (ctx) => AlertDialog(
-      title: Text(translation(context: context, 'OneSignal Test')),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Text(translation(context: context, 'OneSignal Provider is active.')),
-          // const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () {
-              NotificationManager().send(TestNotification());
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(translation(context: context, 'Test notification sent'))),
-              );
-            },
-            child: const Text('Send Test Notification'),
-          ),
-        ],
+    builder: (ctx) => const _OneSignalDialogContent(),
+  );
+}
+
+class _OneSignalDialogContent extends StatefulWidget {
+  const _OneSignalDialogContent();
+
+  @override
+  State<_OneSignalDialogContent> createState() => _OneSignalDialogContentState();
+}
+
+class _OneSignalDialogContentState extends State<_OneSignalDialogContent> {
+  final _titleController = TextEditingController(text: 'Test Notification');
+  final _bodyController = TextEditingController(text: 'This is a custom test message.');
+  final _imageUrlController = TextEditingController();
+  final _launchUrlController = TextEditingController();
+  final _payloadController = TextEditingController(text: '{"type": "test"}');
+  bool _isSending = false;
+
+  final Map<String, String> _predefinedImages = {
+    'None': '',
+    'Logo': 'assets/assets/Logo.png',
+    'Logo Inverse': 'assets/assets/LogoInverse.png',
+    'Random (Picsum)': 'https://picsum.photos/200',
+  };
+
+  final Map<String, String> _predefinedUrls = {
+    'None': '',
+    'Home': '/',
+    'Kantin': '/kantin',
+    'Lists': '/lists',
+    'Communication': '/communication',
+    'Tracking': '/tracking',
+    'More': '/more',
+  };
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _bodyController.dispose();
+    _imageUrlController.dispose();
+    _launchUrlController.dispose();
+    _payloadController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _sendNotification() async {
+    setState(() => _isSending = true);
+    try {
+      Map<String, dynamic>? payload;
+      if (_payloadController.text.isNotEmpty) {
+        try {
+          payload = jsonDecode(_payloadController.text);
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Invalid JSON payload: $e')),
+          );
+          setState(() => _isSending = false);
+          return;
+        }
+      }
+
+      final notification = CustomNotification(
+        title: _titleController.text,
+        body: _bodyController.text,
+        payload: payload,
+        imageUrl: _imageUrlController.text.isEmpty ? null : _imageUrlController.text,
+        launchUrl: _launchUrlController.text.isEmpty ? null : _launchUrlController.text,
+      );
+
+      if (kDebugMode) {
+        print('--- Sending Notification ---');
+        print('Title: ${notification.title}');
+        print('Body: ${notification.body}');
+        print('Payload: ${notification.payload}');
+        print('Image URL: ${notification.imageUrl}');
+        print('Launch URL: ${notification.launchUrl}');
+        print('----------------------------');
+      }
+
+      await NotificationManager().send(notification);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(translation(context: context, 'Notification sent!'))),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSending = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(translation(context: context, 'OneSignal Debug')),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _titleController,
+              decoration: InputDecoration(labelText: translation(context: context, 'Title')),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _bodyController,
+              decoration: InputDecoration(labelText: translation(context: context, 'Body')),
+              maxLines: 3,
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _imageUrlController,
+                    decoration: InputDecoration(labelText: translation(context: context, 'Image URL (Optional)')),
+                  ),
+                ),
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.arrow_drop_down),
+                  tooltip: translation(context: context, 'Select predefined image'),
+                  onSelected: (value) {
+                    if (value.startsWith('assets/')) {
+                      // Construct absolute URL for local assets
+                      final origin = Uri.base.origin;
+                      // Ensure no double slash if origin ends with /
+                      final cleanOrigin = origin.endsWith('/') ? origin.substring(0, origin.length - 1) : origin;
+                      _imageUrlController.text = '$cleanOrigin/$value';
+                    } else {
+                      _imageUrlController.text = value;
+                    }
+                  },
+                  itemBuilder: (context) => _predefinedImages.entries.map((e) => PopupMenuItem(
+                    value: e.value,
+                    child: Text(e.key),
+                  )).toList(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _launchUrlController,
+                    decoration: InputDecoration(labelText: translation(context: context, 'Launch URL (Optional)')),
+                  ),
+                ),
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.arrow_drop_down),
+                  tooltip: translation(context: context, 'Select predefined URL'),
+                  onSelected: (value) {
+                     if (value.startsWith('/')) {
+                      // Construct absolute URL for local routes
+                      final origin = Uri.base.origin;
+                      final cleanOrigin = origin.endsWith('/') ? origin.substring(0, origin.length - 1) : origin;
+                      // Remove leading slash from value to avoid double slash
+                      final cleanValue = value.startsWith('/') ? value.substring(1) : value;
+                      _launchUrlController.text = '$cleanOrigin/$cleanValue';
+                    } else {
+                      _launchUrlController.text = value;
+                    }
+                  },
+                  itemBuilder: (context) => _predefinedUrls.entries.map((e) => PopupMenuItem(
+                    value: e.value,
+                    child: Text(e.key),
+                  )).toList(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _payloadController,
+              decoration: InputDecoration(labelText: translation(context: context, 'JSON Payload (Optional)')),
+              maxLines: 3,
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+            ),
+          ],
+        ),
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.of(ctx).pop(),
+          onPressed: () => Navigator.of(context).pop(),
           child: Text(translation(context: context, 'Close')),
         ),
+        ElevatedButton(
+          onPressed: _isSending ? null : _sendNotification,
+          child: _isSending
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(translation(context: context, 'Send')),
+        ),
       ],
-    ),
-  );
+    );
+  }
 }

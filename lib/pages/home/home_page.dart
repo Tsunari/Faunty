@@ -166,23 +166,36 @@ class _HomePageState extends ConsumerState<HomePage> {
           appBar: CustomAppBar(
             title: translation(context: context, 'Home'),
             actions: [
-              RoleGate(
-                minRole: UserRole.superuser,
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 8.0),
-                  child: IconButton(
-                    // tooltip: translation(context: context, 'Show saved FCM tokens'),
+                kDebugMode
+                  ? Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: IconButton(
                     icon: const Icon(Icons.notifications),
                     onPressed: () async {
+                      if (NotificationManager().provider is OneSignalNotificationProvider) {
+                      await showOneSignalDialog(context, ref);
+                      } else {
+                      await showTokensDialog(context, ref);
+                      }
+                    },
+                    ),
+                  )
+                  : RoleGate(
+                    minRole: UserRole.superuser,
+                    child: Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: IconButton(
+                      icon: const Icon(Icons.notifications),
+                      onPressed: () async {
                       if (NotificationManager().provider is OneSignalNotificationProvider) {
                         await showOneSignalDialog(context, ref);
                       } else {
                         await showTokensDialog(context, ref);
                       }
-                    },
+                      },
+                    ),
+                    ),
                   ),
-                ),
-              ),
               // Superuser-only manual flush button for testing quota buffers
               RoleGate(
                 minRole: UserRole.superuser,
