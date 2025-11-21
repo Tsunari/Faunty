@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.19.0] - 22-11-2025
+### Added
+- Custom notification for debug
+- Notification toggle
+- Proper oneSignla notification setup init
+### Changed
+- Changes to push sw path
+### Fixed
+- Update logic fix
+
+
+
 ## [1.18.0] - 07-11-2025
 ### Added
 - Added install button for PWA
