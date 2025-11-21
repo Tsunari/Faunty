@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../state_management/user_list_provider.dart';
+import '../../state_management/user_list_provider.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 
-import '../components/custom_snackbar.dart';
-import '../tools/translation_helper.dart';
-import '../tools/message_prefs.dart';
+import '../../components/custom_snackbar.dart';
+import '../../tools/translation_helper.dart';
+import '../../tools/message_prefs.dart';
 import 'notification_service.dart';
 
 Widget _platformIcon(String platform) {

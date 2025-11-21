@@ -5,13 +5,16 @@ import 'package:faunty/pages/more/kantin_page.dart';
 import 'package:faunty/tools/translation_helper.dart';
 import 'package:faunty/tools/update_service.dart';
 import 'package:flutter/foundation.dart';
-import '../../notifications/custom_tokens_dialog.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../notifications/fcm/custom_tokens_dialog.dart';
+import '../../notifications/one_signal/custom_tokens_dialog.dart';
+import '../../notifications/one_signal/onesignal_provider.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../components/custom_app_bar.dart';
-import '../../notifications/notification_service.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../state_management/user_provider.dart';
+import '../../notifications/fcm/notification_service.dart';
+import 'package:faunty/notifications/notification_manager.dart';
+import 'package:faunty/state_management/user_provider.dart';
 import '../../state_management/program_provider.dart';
 import '../../state_management/catering_provider.dart';
 import '../../state_management/cleaning_provider.dart';
@@ -27,7 +30,6 @@ class HomePage extends ConsumerStatefulWidget {
 
 class _HomePageState extends ConsumerState<HomePage> {
   bool _navigated = false;
-  bool _notificationInitialized = false;
   final _scrollController = ScrollController();
   late Timer _timer;
   @override
@@ -97,6 +99,9 @@ class _HomePageState extends ConsumerState<HomePage> {
       });
     });
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (kIsWeb) {
+        NotificationManager().requestPermission();
+      }
       final userAsync = ref.read(userProvider);
       final user = userAsync.asData?.value;
       if (_navigated) return;
@@ -166,10 +171,14 @@ class _HomePageState extends ConsumerState<HomePage> {
                 child: Padding(
                   padding: const EdgeInsets.only(right: 8.0),
                   child: IconButton(
-                    tooltip: translation(context: context, 'Show saved FCM tokens'),
+                    // tooltip: translation(context: context, 'Show saved FCM tokens'),
                     icon: const Icon(Icons.notifications),
                     onPressed: () async {
-                      await showTokensDialog(context, ref);
+                      if (NotificationManager().provider is OneSignalNotificationProvider) {
+                        await showOneSignalDialog(context, ref);
+                      } else {
+                        await showTokensDialog(context, ref);
+                      }
                     },
                   ),
                 ),

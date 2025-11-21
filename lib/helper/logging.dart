@@ -1,15 +1,16 @@
+import 'package:flutter/foundation.dart';
 // Colors: 🟢 🔴 🟡
 // More Colors: Blue: 🔵, Orange: 🟠, Purple: 🟣, Brown: 🟤, Black: ⚫, White: ⚪
 
 // WARNING
 void printWarning(String message) {
-  print('🟡 $message');
+  if (kDebugMode) print('🟡 $message');
 }
 // INFO
 void printInfo(String message) {
-  print('🟢 $message');
+  if (kDebugMode) print('🟢 $message');
 }
 // ERROR
 void printError(String message) {
-  print('🔴 $message');
+  if (kDebugMode) print('🔴 $message');
 }

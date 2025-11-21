@@ -31,6 +31,20 @@
 
   <title>Faunty</title>
   <link rel="manifest" href="manifest.json">
+
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script>
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async function(OneSignal) {
+      await OneSignal.init({
+        appId: "f2a525de-b733-4e92-9494-dff5eae29756",
+        safari_web_id: "web.onesignal.auto.370dd028-ab8a-4720-9087-4e2c917686de",
+        notifyButton: {
+          enable: true,
+        },
+      });
+    });
+  </script>
   
   <!-- <script>
     if ('serviceWorker' in navigator) {

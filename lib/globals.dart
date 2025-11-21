@@ -3,8 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'notifications/notification_service.dart';
-import 'notifications/token_management.dart';
+import 'notifications/fcm/notification_service.dart';
+import 'notifications/fcm/token_management.dart';
 
 Future<PackageInfo> getAppInfo() async {
   return await PackageInfo.fromPlatform();
@@ -21,14 +21,14 @@ Future<void> logout({
   // Try to dissociate the current device token from the user without
   // prompting the browser for permissions. If a token exists it will
   // remove the `uid` field; the token document itself is preserved.
-  try {
-    final token = await NotificationService.fetchTokenIfAllowed();
-    if (token != null) {
-      await TokenManager.clearUidForToken(token);
-    }
-  } catch (e) {
-    // ignore - best-effort cleanup
-  }
+  // try {
+  //   final token = await NotificationService.fetchTokenIfAllowed();
+  //   if (token != null) {
+  //     await TokenManager.clearUidForToken(token);
+  //   }
+  // } catch (e) {
+  //   // ignore - best-effort cleanup
+  // }
 
   await FirebaseAuth.instance.signOut();
   ref.invalidate(userProvider);

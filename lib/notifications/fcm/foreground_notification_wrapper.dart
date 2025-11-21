@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:faunty/tools/translation_helper.dart';
-import '../components/custom_snackbar.dart';
+import '../../components/custom_snackbar.dart';
 
 /// Widget that wraps the app and shows an in-app banner / snackbar when a
 /// foreground notification arrives. Use this by wrapping your root app widget

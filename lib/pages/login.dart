@@ -14,6 +14,7 @@ import 'package:faunty/components/custom_snackbar.dart';
 import 'package:faunty/tools/pwa_install.dart';
 import '../state_management/user_provider.dart';
 import '../state_management/firestore_quota_provider.dart';
+import '../notifications/notification_manager.dart';
 
 Future<(User?, String?)> registerWithEmail(BuildContext context, String email, String password) async {
   try {
@@ -174,6 +175,7 @@ class _LoginPageState extends ConsumerState<LoginPage> with SingleTickerProvider
         }
         // Invalidate userProvider to ensure fresh user state from StreamProvider
         ref.invalidate(userProvider);
+        if (kIsWeb) NotificationManager().login(user.uid);
 
         if (role == 'User') {
           if (!mounted) return;
@@ -334,6 +336,7 @@ class _LoginPageState extends ConsumerState<LoginPage> with SingleTickerProvider
 
       // Invalidate userProvider to ensure fresh user state from StreamProvider
       ref.invalidate(userProvider);
+      if (kIsWeb) NotificationManager().login(user.uid);
       if (!mounted) return;
       Navigator.of(context).pushReplacementNamed('/user-welcome');
 

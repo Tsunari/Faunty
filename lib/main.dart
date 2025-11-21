@@ -1,7 +1,8 @@
 import 'package:faunty/components/role_gate.dart';
 import 'package:faunty/firebase_options.dart';
-import 'package:faunty/notifications/notification_service.dart';
-import 'package:faunty/notifications/foreground_notification_wrapper.dart';
+import 'package:faunty/notifications/fcm/foreground_notification_wrapper.dart';
+import 'package:faunty/notifications/notification_manager.dart';
+import 'package:faunty/notifications/one_signal/onesignal_provider.dart';
 import 'package:faunty/models/user_roles.dart';
 import 'package:faunty/pages/communication/communication_page.dart';
 import 'package:faunty/pages/lists/lists_page.dart';
@@ -24,6 +25,7 @@ import 'state_management/theme_provider.dart';
 import 'components/theme_cards_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'tools/update_service.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -37,12 +39,18 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  // Fire-and-forget init after first frame so app startup is not blocked.
-  // Also avoid asking permission immediately — we'll ask later from UI.
+  
+  await dotenv.load(fileName: ".env");
+
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    NotificationService.init(requestPermissions: false).catchError((e) {
-      if (kDebugMode) print('NotificationService init error: $e');
-    });
+    // Initialize the Notification Manager with OneSignal provider
+    final notificationManager = NotificationManager();
+    notificationManager.setProvider(OneSignalNotificationProvider());
+    notificationManager.init();
+
+    // NotificationService.init(requestPermissions: false).catchError((e) {
+    //   if (kDebugMode) print('NotificationService init error: $e');
+    // });
     if (kIsWeb) {
       UpdateService.init(contextProvider: () => rootNavigatorKey.currentContext);
     }
