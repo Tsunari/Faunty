@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../state_management/user_list_provider.dart';
 import '../../tools/translation_helper.dart';
 import '../notification_manager.dart';
 import '../types/custom_notification.dart';
@@ -13,19 +14,20 @@ Future<void> showOneSignalDialog(BuildContext context, WidgetRef ref) async {
   );
 }
 
-class _OneSignalDialogContent extends StatefulWidget {
+class _OneSignalDialogContent extends ConsumerStatefulWidget {
   const _OneSignalDialogContent();
 
   @override
-  State<_OneSignalDialogContent> createState() => _OneSignalDialogContentState();
+  ConsumerState<_OneSignalDialogContent> createState() => _OneSignalDialogContentState();
 }
 
-class _OneSignalDialogContentState extends State<_OneSignalDialogContent> {
+class _OneSignalDialogContentState extends ConsumerState<_OneSignalDialogContent> {
   final _titleController = TextEditingController(text: 'Test Notification');
   final _bodyController = TextEditingController(text: 'This is a custom test message.');
   final _imageUrlController = TextEditingController();
   final _launchUrlController = TextEditingController();
   final _payloadController = TextEditingController(text: '{"type": "test"}');
+  String? _selectedUserId;
   bool _isSending = false;
 
   final Map<String, String> _predefinedImages = {
@@ -89,7 +91,10 @@ class _OneSignalDialogContentState extends State<_OneSignalDialogContent> {
         print('----------------------------');
       }
 
-      await NotificationManager().send(notification);
+      await NotificationManager().send(
+        notification,
+        toUserIds: _selectedUserId != null ? [_selectedUserId!] : null,
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -109,12 +114,37 @@ class _OneSignalDialogContentState extends State<_OneSignalDialogContent> {
 
   @override
   Widget build(BuildContext context) {
+    final usersAsync = ref.watch(usersByCurrentPlaceProvider);
+
     return AlertDialog(
       title: Text(translation(context: context, 'OneSignal Debug')),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            usersAsync.when(
+              data: (users) {
+                final allOptions = [
+                  DropdownMenuItem<String?>(
+                    value: null,
+                    child: Text(translation(context: context, 'All Users')),
+                  ),
+                  ...users.map((user) => DropdownMenuItem<String?>(
+                    value: user.uid,
+                    child: Text('${user.firstName} ${user.lastName}'),
+                  )),
+                ];
+                return DropdownButtonFormField<String?>(
+                  value: _selectedUserId,
+                  decoration: InputDecoration(labelText: translation(context: context, 'Target User')),
+                  items: allOptions,
+                  onChanged: (value) => setState(() => _selectedUserId = value),
+                );
+              },
+              loading: () => const LinearProgressIndicator(),
+              error: (err, stack) => Text('Error: $err'),
+            ),
+            const SizedBox(height: 8),
             TextField(
               controller: _titleController,
               decoration: InputDecoration(labelText: translation(context: context, 'Title')),

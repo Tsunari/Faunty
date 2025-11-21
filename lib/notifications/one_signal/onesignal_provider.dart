@@ -27,7 +27,7 @@ class OneSignalNotificationProvider implements NotificationProvider {
   @override
   Future<bool> requestPermission() async {
     if (kIsWeb) {
-      OneSignalHelper.showNativePrompt();
+      OneSignalHelper.requestPermission();
       return true; // Can't easily get result from void method yet
     }
     return false;
