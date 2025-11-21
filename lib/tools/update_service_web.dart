@@ -101,30 +101,68 @@ class UpdateService {
     if (kDebugMode) return false;
     try { 
       final now = DateTime.now(); 
-      final current = _cachedCurrentVersion ??= await _getCurrentVersion(); 
-      if (current == null) return false; 
+      
+      // 1. Get Package Version (from version.json / manifest)
+      final pkgVersion = _cachedCurrentVersion ??= await _getCurrentVersion(); 
+      if (pkgVersion == null) return false; 
+
+      // 2. Get Stored Version (from LocalStorage)
+      String? storedVersion = web.window.localStorage.getItem('app_version');
+      if (storedVersion == null) {
+        // First run or cleared storage. Assume we are on pkgVersion.
+        storedVersion = pkgVersion;
+        web.window.localStorage.setItem('app_version', pkgVersion);
+      }
+
+      // 3. Get Remote Version (from GitHub)
       final latestTag = await _getLatestReleaseTag(); 
       if (latestTag == null) return false; 
+      
       _lastSuccessfulCheck = now; 
-      final newer = _compareVersions(latestTag, current) > 0; 
-      if (!newer) return false;
-      if (!_shouldShowDialogFor(latestTag) && !forceDialog) return false;
+
+      // 4. Compare
+      // Check if pkgVersion is newer than storedVersion (Local Metadata Update)
+      // This happens if version.json updated but we are running old code/state
+      final bool localUpdate = _compareVersions(pkgVersion, storedVersion) > 0;
+
+      // Check if latestTag is newer than storedVersion (Remote Update)
+      final bool remoteUpdate = _compareVersions(latestTag, storedVersion) > 0;
+
+      if (!localUpdate && !remoteUpdate) {
+        // If we are effectively on the latest version (or newer), ensure storage is synced
+        // e.g. if pkgVersion > storedVersion was handled previously or we just updated
+        if (_compareVersions(pkgVersion, storedVersion) > 0) {
+           web.window.localStorage.setItem('app_version', pkgVersion);
+        }
+        return false;
+      }
+
+      // Determine target version for display
+      final targetVersion = remoteUpdate ? latestTag : pkgVersion;
+
+      if (!_shouldShowDialogFor(targetVersion) && !forceDialog) return false;
+      
       final ctx = _obtainContext();
       if (ctx == null || !ctx.mounted) return false;
+      
       final accepted = await showDialog<bool>(
         context: ctx,
         builder: (dialogCtx) => AlertDialog(
           title: Text(translation(context: dialogCtx, 'Update available')),
-          content: Text(translation(context: dialogCtx, 'A new version (%s) is available. Refresh to update?').replaceFirst('%s', latestTag)),
+          content: Text(translation(context: dialogCtx, 'A new version (%s) is available. Refresh to update?').replaceFirst('%s', targetVersion)),
           actions: [
             TextButton(onPressed: () => Navigator.of(dialogCtx).pop(false), child: Text(translation(context: dialogCtx, 'Later'))),
             ElevatedButton(onPressed: () => Navigator.of(dialogCtx).pop(true), child: Text(translation(context: dialogCtx, 'Refresh now'))),
           ],
         ),
       );
+      
       if (accepted == true && ctx.mounted) {
         showCustomSnackBar(ctx, translation(context: ctx, 'Refreshing to update...'));
         _dialogShownForCurrentVersion = true;
+        // Optimistically update stored version so we don't loop if cache is sticky,
+        // but relying on _reloadPage's aggressive clearing to actually fetch new code.
+        web.window.localStorage.setItem('app_version', targetVersion);
         _reloadPage();
       }
       return true;
