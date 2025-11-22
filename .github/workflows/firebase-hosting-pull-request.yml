@@ -14,6 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: flutter clean && flutter pub get
+      - run: echo "${{ secrets.ENV_FILE }}" > .env
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}

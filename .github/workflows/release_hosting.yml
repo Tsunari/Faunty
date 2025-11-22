@@ -20,6 +20,9 @@ jobs:
           flutter clean
           flutter pub get
 
+      - name: Create .env file
+        run: echo "${{ secrets.ENV_FILE }}" > .env
+
       - name: Build Flutter web
         run: flutter build web
 
