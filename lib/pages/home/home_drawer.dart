@@ -63,7 +63,10 @@ class HomeDrawer extends ConsumerWidget {
                     future: getAppInfo(),
                     builder: (context, snapshot) {
                       Widget label;
-                      if (snapshot.connectionState == ConnectionState.waiting) {
+                      final stored = UpdateService.storedVersion;
+                      if (stored != null) {
+                        label = Text(stored);
+                      } else if (snapshot.connectionState == ConnectionState.waiting) {
                         label = Text(translation(context: context, 'Loading...'));
                       } else if (snapshot.hasError) {
                         label = Text(translation(context: context, 'Version unavailable'));

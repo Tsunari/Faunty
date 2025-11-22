@@ -17,12 +17,16 @@ class UpdateService {
   static const Duration periodicInterval = Duration(hours: 3);
   static const Duration visibilityMinGap = Duration(minutes: 15);
   static bool _dialogShownForCurrentVersion = false;
+  static bool _isChecking = false;
+  static bool _isDialogOpen = false;
   static DateTime? _lastSuccessfulCheck;
   static Timer? _periodicTimer;
   static Timer? _visibilityPollTimer;
   static bool _initialized = false;
   static String? _cachedCurrentVersion;
   static BuildContext? Function()? _contextProvider;
+
+  static String? get storedVersion => web.window.localStorage.getItem('app_version');
 
   static Future<String?> _getCurrentVersion() async {
     try { final info = await PackageInfo.fromPlatform(); return info.version; } catch (_) { return null; }
@@ -99,6 +103,8 @@ class UpdateService {
 
   static Future<bool> _performCheck({required bool showDialogIfNewer, bool forceDialog = false}) async { 
     if (kDebugMode) return false;
+    if (_isChecking) return false;
+    _isChecking = true;
     try { 
       final now = DateTime.now(); 
       
@@ -141,21 +147,28 @@ class UpdateService {
       final targetVersion = remoteUpdate ? latestTag : pkgVersion;
 
       if (!_shouldShowDialogFor(targetVersion) && !forceDialog) return false;
+      if (_isDialogOpen) return false;
       
       final ctx = _obtainContext();
       if (ctx == null || !ctx.mounted) return false;
       
-      final accepted = await showDialog<bool>(
-        context: ctx,
-        builder: (dialogCtx) => AlertDialog(
-          title: Text(translation(context: dialogCtx, 'Update available')),
-          content: Text(translation(context: dialogCtx, 'A new version (%s) is available. Refresh to update?').replaceFirst('%s', targetVersion)),
-          actions: [
-            TextButton(onPressed: () => Navigator.of(dialogCtx).pop(false), child: Text(translation(context: dialogCtx, 'Later'))),
-            ElevatedButton(onPressed: () => Navigator.of(dialogCtx).pop(true), child: Text(translation(context: dialogCtx, 'Refresh now'))),
-          ],
-        ),
-      );
+      _isDialogOpen = true;
+      bool? accepted;
+      try {
+        accepted = await showDialog<bool>(
+          context: ctx,
+          builder: (dialogCtx) => AlertDialog(
+            title: Text(translation(context: dialogCtx, 'Update available')),
+            content: Text(translation(context: dialogCtx, 'A new version (%s) is available. Refresh to update?').replaceFirst('%s', targetVersion)),
+            actions: [
+              TextButton(onPressed: () => Navigator.of(dialogCtx).pop(false), child: Text(translation(context: dialogCtx, 'Later'))),
+              ElevatedButton(onPressed: () => Navigator.of(dialogCtx).pop(true), child: Text(translation(context: dialogCtx, 'Refresh now'))),
+            ],
+          ),
+        );
+      } finally {
+        _isDialogOpen = false;
+      }
       
       if (accepted == true && ctx.mounted) {
         showCustomSnackBar(ctx, translation(context: ctx, 'Refreshing to update...'));
@@ -168,6 +181,8 @@ class UpdateService {
       return true;
     } catch (_) {
       return false;
+    } finally {
+      _isChecking = false;
     }
   }
 

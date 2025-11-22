@@ -4,5 +4,6 @@ import 'package:flutter/material.dart';
 class UpdateService {
   static Future<void> init({BuildContext? initialContext, BuildContext? Function()? contextProvider}) async {}
   static void dispose() {}
+  static String? get storedVersion => null;
   static Future<void> manualCheck({ bool forceDialog = false, bool showUpToDateSnack = false, bool promptRefreshIfUpToDate = false }) async {}
 }
