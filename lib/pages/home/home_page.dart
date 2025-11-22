@@ -101,6 +101,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (kIsWeb) {
         NotificationManager().requestPermission();
+        UpdateService.manualCheck();
       }
       final userAsync = ref.read(userProvider);
       final user = userAsync.asData?.value;
@@ -130,13 +131,6 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-
-    if (kIsWeb) {
-      // Trigger update check once after first frame (silent)
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        UpdateService.manualCheck();
-      });
-    }
 
     final userAsync = ref.watch(userProvider);
     return userAsync.when(
