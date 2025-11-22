@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.19.2] - 22-11-2025
+### Fixed
+- Small update fix
+
+
+
 ## [1.19.1] - 22-11-2025
 ### Added
 - Custom notification for debug
