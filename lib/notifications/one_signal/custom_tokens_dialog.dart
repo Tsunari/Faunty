@@ -2,10 +2,12 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../../state_management/user_list_provider.dart';
 import '../../tools/translation_helper.dart';
 import '../notification_manager.dart';
 import '../types/custom_notification.dart';
+import '../../state_management/notification_permission_provider.dart';
 
 Future<void> showOneSignalDialog(BuildContext context, WidgetRef ref) async {
   await showDialog(
@@ -29,6 +31,8 @@ class _OneSignalDialogContentState extends ConsumerState<_OneSignalDialogContent
   final _payloadController = TextEditingController(text: '{"type": "test"}');
   String? _selectedUserId;
   bool _isSending = false;
+
+  bool get _hasApiKey => (dotenv.env['ONESIGNAL_REST_API_KEY']?.isNotEmpty ?? false) && dotenv.env['ONESIGNAL_REST_API_KEY'] != 'YOUR_REST_API_KEY_HERE';
 
   final Map<String, String> _predefinedImages = {
     'None': '',
@@ -112,16 +116,91 @@ class _OneSignalDialogContentState extends ConsumerState<_OneSignalDialogContent
     }
   }
 
+  Widget _buildStatusChip({
+    required String label,
+    required bool isOk,
+    required String okText,
+    required String errorText,
+  }) {
+    return Chip(
+      label: Text(
+        '$label: ${isOk ? okText : errorText}',
+        style: TextStyle(
+          color: isOk ? Colors.green[900] : Colors.red[900],
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      backgroundColor: isOk ? Colors.green[100] : Colors.red[100],
+      padding: EdgeInsets.zero,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      visualDensity: VisualDensity.compact,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final usersAsync = ref.watch(usersByCurrentPlaceProvider);
+    final permissionState = ref.watch(notificationPermissionProvider);
 
     return AlertDialog(
-      title: Text(translation(context: context, 'OneSignal Debug')),
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(translation(context: context, 'OneSignal Debug')),
+          const SizedBox(height: 4),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              _buildStatusChip(
+                label: 'API Key',
+                isOk: _hasApiKey,
+                okText: 'Present',
+                errorText: 'Missing',
+              ),
+              _buildStatusChip(
+                label: 'Permission',
+                isOk: permissionState.permissionStatus == 'granted',
+                okText: permissionState.permissionStatus,
+                errorText: permissionState.permissionStatus,
+              ),
+              _buildStatusChip(
+                label: 'Subscribed',
+                isOk: permissionState.isSubscribed,
+                okText: 'Yes',
+                errorText: 'No',
+              ),
+            ],
+          ),
+        ],
+      ),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (!_hasApiKey)
+              Container(
+                padding: const EdgeInsets.all(8),
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.red.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning_amber_rounded, color: Colors.red),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'ONESIGNAL_REST_API_KEY is missing in .env. Sending will fail.',
+                        style: TextStyle(color: Colors.red[800], fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             usersAsync.when(
               data: (users) {
                 final allOptions = [
