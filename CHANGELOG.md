@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.19.3] - 22-11-2025
+### Fixed
+- Fix messaging on production
+- Fix navigation rebuilding issue
+
+
+
 ## [1.19.2] - 22-11-2025
 ### Fixed
 - Small update fix
