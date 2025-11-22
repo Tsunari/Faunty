@@ -44,6 +44,17 @@
         "**/.*",
         "**/node_modules/**"
       ],
+      "headers": [
+        {
+          "source": "/push/onesignal/OneSignalSDKWorker.js",
+          "headers": [
+            {
+              "key": "Service-Worker-Allowed",
+              "value": "/"
+            }
+          ]
+        }
+      ],
       "rewrites": [
         {
           "source": "**",
@@ -58,6 +69,17 @@
         "firebase.json",
         "**/.*",
         "**/node_modules/**"
+      ],
+      "headers": [
+        {
+          "source": "/push/onesignal/OneSignalSDKWorker.js",
+          "headers": [
+            {
+              "key": "Service-Worker-Allowed",
+              "value": "/"
+            }
+          ]
+        }
       ],
       "rewrites": [
         {
