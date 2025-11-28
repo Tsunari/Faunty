@@ -24,4 +24,8 @@ abstract class AppNotification {
 
   /// Optional launch URL.
   String? get launchUrl => null;
+
+  /// Optional delivery time for scheduling (e.g. send tomorrow at 10 AM).
+  /// If null, sends immediately.
+  DateTime? get deliveryTime => null;
 }

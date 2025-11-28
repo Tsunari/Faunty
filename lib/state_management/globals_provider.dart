@@ -7,9 +7,12 @@ class GlobalsState {
   const GlobalsState(this.data);
 
   bool get registrationMode => data['registrationMode'] as bool? ?? false;
+  bool get cateringReminderEnabled =>
+      data['cateringReminderEnabled'] as bool? ?? true;
   // Add more getters for other globals as needed
 
-  GlobalsState copyWith(Map<String, dynamic> newData) => GlobalsState({...data, ...newData});
+  GlobalsState copyWith(Map<String, dynamic> newData) =>
+      GlobalsState({...data, ...newData});
 }
 
 final globalsProvider = StreamProvider<GlobalsState>((ref) {

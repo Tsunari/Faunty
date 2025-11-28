@@ -9,7 +9,7 @@ import '../app_notification.dart';
 
 class OneSignalNotificationProvider implements NotificationProvider {
   static const String _oneSignalAppId = 'f2a525de-b733-4e92-9494-dff5eae29756';
-  
+
   // WARNING: Even with dotenv, this key is exposed in the client-side code.
   // Anyone who decompiles your app can find this key and send notifications.
   // The only secure way is to use a backend (Cloud Functions, Vercel, etc.).
@@ -17,7 +17,7 @@ class OneSignalNotificationProvider implements NotificationProvider {
 
   @override
   Future<void> init() async {
-    // OneSignal web init is handled in index.html usually, 
+    // OneSignal web init is handled in index.html usually,
     // but we can do extra setup here if needed.
     if (kIsWeb) {
       // Already initialized in index.html
@@ -66,6 +66,12 @@ class OneSignalNotificationProvider implements NotificationProvider {
           'ios_attachments': {'id1': notification.imageUrl}, // iOS
         },
         if (notification.launchUrl != null) 'url': notification.launchUrl,
+        if (notification.deliveryTime != null) ...{
+          'send_after': notification.deliveryTime!.toUtc().toIso8601String(),
+          // Use a collapse_id based on the notification type + user/target to prevent duplicates
+          // For now, we use the title as a simple collapse key or we could add a collapseKey to AppNotification
+          'collapse_id': notification.title,
+        },
         if (toUserIds != null && toUserIds.isNotEmpty)
           'include_external_user_ids': toUserIds
         else

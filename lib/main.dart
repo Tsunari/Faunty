@@ -3,6 +3,7 @@ import 'package:faunty/firebase_options.dart';
 import 'package:faunty/notifications/fcm/foreground_notification_wrapper.dart';
 import 'package:faunty/notifications/notification_manager.dart';
 import 'package:faunty/notifications/one_signal/onesignal_provider.dart';
+import 'package:faunty/notifications/reminder_manager.dart';
 import 'package:faunty/models/user_roles.dart';
 import 'package:faunty/pages/communication/communication_page.dart';
 import 'package:faunty/pages/lists/lists_page.dart';
@@ -27,7 +28,6 @@ import 'package:flutter/foundation.dart';
 import 'tools/update_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
@@ -36,39 +36,58 @@ void main() async {
   // String storedLocale = loadFromStorage(); // with shared preferences or any other method
   // LocaleSettings.setLocaleRaw(storedLocale);
   await LanguageNotifier().loadLanguage();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await dotenv.load(fileName: ".env");
 
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    // Initialize the Notification Manager with OneSignal provider
-    final notificationManager = NotificationManager();
-    notificationManager.setProvider(OneSignalNotificationProvider());
-    notificationManager.init();
-
-    // NotificationService.init(requestPermissions: false).catchError((e) {
-    //   if (kDebugMode) print('NotificationService init error: $e');
-    // });
-    if (kIsWeb) {
-      UpdateService.init(contextProvider: () => rootNavigatorKey.currentContext);
-    }
-  });
   runApp(
     TranslationProvider(
       child: ProviderScope(
-        child: Faunty(),
+        child: Consumer(
+          builder: (context, ref, child) {
+            // Initialize ReminderManager to listen for changes
+            // We do this inside a Consumer to get access to ref
+            // But we need to ensure it's only called once or handles re-calls gracefully.
+            // Actually, putting it in the build method of a widget is better or using a provider observer.
+            // Let's use a simple widget wrapper or init it in the root widget.
+            return Faunty();
+          },
+        ),
       ),
     ),
   );
 }
 
-class Faunty extends ConsumerWidget {
+class Faunty extends ConsumerStatefulWidget {
   const Faunty({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<Faunty> createState() => _FauntyState();
+}
+
+class _FauntyState extends ConsumerState<Faunty> {
+  @override
+  void initState() {
+    super.initState();
+    // Initialize services after the first frame to ensure context is available if needed
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Initialize the Notification Manager with OneSignal provider
+      final notificationManager = NotificationManager();
+      notificationManager.setProvider(OneSignalNotificationProvider());
+      notificationManager.init();
+
+      if (kIsWeb) {
+        UpdateService.init(
+          contextProvider: () => rootNavigatorKey.currentContext,
+        );
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Monitor for reminders
+    ReminderManager().monitor(ref);
+
     final presetIndex = ref.watch(themePresetProvider);
     final preset = themePresets[presetIndex];
     // TODO: FIX ISSUE WITH STATUS BAR COLOR

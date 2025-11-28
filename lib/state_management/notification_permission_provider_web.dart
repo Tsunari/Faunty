@@ -1,3 +1,4 @@
+import 'package:faunty/helper/logging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:js_interop';
@@ -60,13 +61,19 @@ class NotificationPermissionNotifier extends StateNotifier<NotificationState> {
       
       // Check OneSignal subscription status
       subscribed = await OneSignalHelper.isSubscribed();
-      print('Notification Check: status=$status, subscribed=$subscribed');
+      printInfo('Notification Check: status=$status, subscribed=$subscribed');
     } else {
       // TODO: Implement for mobile if needed
       status = 'unknown';
     }
     
-    state = NotificationState(permissionStatus: status, isSubscribed: subscribed, isLoading: false);
+    if (mounted) {
+      state = NotificationState(
+        permissionStatus: status,
+        isSubscribed: subscribed,
+        isLoading: false,
+      );
+    }
   }
 
   Future<void> toggleSubscription(bool enable) async {
@@ -100,7 +107,7 @@ class NotificationPermissionNotifier extends StateNotifier<NotificationState> {
     } finally {
       // Ensure loading is turned off if checkPermission didn't do it (e.g. early return)
       // checkPermission sets it to false, so we are good.
-      if (state.isLoading) {
+      if (mounted && state.isLoading) {
          state = state.copyWith(isLoading: false);
       }
     }
@@ -111,8 +118,10 @@ class NotificationPermissionNotifier extends StateNotifier<NotificationState> {
     // Poll for permission change as the request is async and we can't easily await the JS promise through the bridge
     for (int i = 0; i < 20; i++) {
       await Future.delayed(const Duration(milliseconds: 500));
+      if (!mounted) return;
       final oldState = state;
       await checkPermission();
+      if (!mounted) return;
       if (state.permissionStatus != oldState.permissionStatus && state.permissionStatus != 'default') break;
     }
   }

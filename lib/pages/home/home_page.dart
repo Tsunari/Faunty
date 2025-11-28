@@ -1,6 +1,7 @@
 import 'package:faunty/components/role_gate.dart';
 import 'package:faunty/helper/logging.dart';
 import 'package:faunty/models/user_roles.dart';
+import 'package:faunty/models/user_entity.dart';
 import 'package:faunty/pages/more/kantin_page.dart';
 import 'package:faunty/tools/translation_helper.dart';
 import 'package:faunty/tools/update_service.dart';
@@ -12,7 +13,6 @@ import '../../notifications/one_signal/onesignal_provider.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../components/custom_app_bar.dart';
-import '../../notifications/fcm/notification_service.dart';
 import 'package:faunty/notifications/notification_manager.dart';
 import 'package:faunty/state_management/user_provider.dart';
 import '../../state_management/program_provider.dart';
@@ -131,6 +131,16 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    // Listen to user changes to ensure OneSignal login is called on auto-login
+    ref.listen<AsyncValue<UserEntity?>>(userProvider, (previous, next) {
+      final user = next.asData?.value;
+      if (user != null && (previous?.asData?.value?.uid != user.uid)) {
+        if (kIsWeb) {
+          printInfo('User loaded/changed: ${user.uid}. Ensuring OneSignal login.');
+          NotificationManager().login(user.uid);
+        }
+      }
+    });
 
     final userAsync = ref.watch(userProvider);
     return userAsync.when(
