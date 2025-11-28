@@ -10,6 +10,7 @@ import 'package:faunty/pages/lists/lists_page.dart';
 import 'package:faunty/pages/tracking/tracking_page.dart';
 import 'package:faunty/state_management/language_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:faunty/models/user_entity.dart';
 import 'globals.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -94,7 +95,12 @@ class _FauntyState extends ConsumerState<Faunty> {
     final isMonochrome = preset.name == 'Monochrome';
     return MaterialApp(
       navigatorKey: rootNavigatorKey,
-      builder: (context, child) => ForegroundNotificationWrapper(child: child ?? const SizedBox.shrink()),
+      builder: (context, child) {
+        return Container(
+          color: Theme.of(context).colorScheme.surface,
+          child: ForegroundNotificationWrapper(child: child ?? const SizedBox.shrink()),
+        );
+      },
       title: translation(context: context, 'Faunty'),
       debugShowCheckedModeBanner: false,
       theme: isMonochrome
@@ -154,43 +160,44 @@ class _MainPageState extends ConsumerState<MainPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Handle navigation side-effects here using ref.listen
+    ref.listen<AsyncValue<UserEntity?>>(userProvider, (previous, next) {
+      final user = next.asData?.value;
+      
+      // 1. User logged out
+      if (user == null) {
+        // If we are already on login or splash, don't do anything.
+        // But since this is MainPage, we are likely on /home.
+        // We should navigate to login.
+        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+        return;
+      }
+
+      // 2. User restricted (role == user or unknown)
+      if (user.role == UserRole.user || user.role == UserRole.unknown) {
+        Navigator.of(context).pushNamedAndRemoveUntil('/user-welcome', (route) => false);
+        return;
+      }
+    });
+
     final userAsync = ref.watch(userProvider);
+    
+    // Handle "Archived" state explicitly before RoleGate if we want a full screen blocking UI
+    if (userAsync.asData?.value?.role == UserRole.archived) {
+      return const MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Text('Your account is archived.'),
+          ),
+        ),
+      );
+    }
+
     return RoleGate(
       minRole: UserRole.spectator,
       showChildOnPages: ['/login'],
-      fallback: Builder(
-        builder: (context) {
-          // check if user is logged in if not go to login page
-          if (userAsync is AsyncData && userAsync.value == null) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (ModalRoute.of(context)?.settings.name != '/login') {
-                Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-              }
-            });
-          }
-          if (userAsync is AsyncData &&
-              userAsync.value != null &&
-              (userAsync.value!.role == UserRole.user || userAsync.value!.role == UserRole.unknown)) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (ModalRoute.of(context)?.settings.name != '/user-welcome') {
-                Navigator.of(context).pushNamedAndRemoveUntil('/user-welcome', (route) => false);
-              }
-            });
-          }
-          if (userAsync is AsyncData && userAsync.value != null && userAsync.value!.role == UserRole.archived) {
-            // TODO: Show archived user page
-            return const MaterialApp(
-              home: Scaffold(
-                body: Center(
-                  child: Text('Your account is archived.'),
-                ),
-              ),
-            );
-          }
-          // TODO: Same for other roles in the future (like spectator/ihvan-only view etc)
-          return const SizedBox.shrink();
-        },
-      ),
+      // Fallback is just an empty box now, because navigation is handled by ref.listen
+      fallback: const SizedBox.shrink(),
       child: Scaffold(
         body: _pages[_selectedIndex],
         bottomNavigationBar: NavBar(
