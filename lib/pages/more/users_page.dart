@@ -14,6 +14,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../state_management/firestore_quota_provider.dart';
+import 'package:faunty/components/custom_app_bar.dart';
 class UsersPage extends ConsumerStatefulWidget {
   const UsersPage({super.key});
 
@@ -64,26 +65,21 @@ class _UsersPageState extends ConsumerState<UsersPage> {
           ),
         );
         final placesAsync = ref.watch(placeStreamProvider);
+        // final titleString = placesAsync.when(
+        //   loading: () =>
+        //       '${translation(context: context, 'Users')} in ${user.placeId}',
+        //   error: (_, _) =>
+        //       '${translation(context: context, 'Users')} in ${user.placeId}',
+        //   data: (places) {
+        //     final found = PlaceModel.findById(places, user.placeId);
+        //     final placeName = found?.displayName ?? found?.name ?? user.placeId;
+        //     return '${translation(context: context, 'Users')} in $placeName';
+        //   },
+        // );
         return Scaffold(
-          appBar: AppBar(
-            title: placesAsync.when(
-              loading: () => Text('${translation(context: context, 'Users')} in ${user.placeId}'),
-              error: (_, __) => Text('${translation(context: context, 'Users')} in ${user.placeId}'),
-              data: (places) {
-                final found = PlaceModel.findById(places, user.placeId);
-                final placeName = found?.displayName ?? found?.name ?? user.placeId;
-                return Text('${translation(context: context, 'Users')} in $placeName');
-              },
-            ),
-            backgroundColor: colorScheme.surface,
-            foregroundColor: colorScheme.onSurface,
-            elevation: 0.5,
-            leading: Navigator.of(context).canPop()
-                ? IconButton(
-                    icon: const Icon(Icons.arrow_back),
-                    onPressed: () => Navigator.of(context).pop(),
-                  )
-                : null,
+          appBar: CustomAppBar(
+            title: translation(context: context, 'Users'),
+            useModern: false,
             actions: [
               // Superuser-only toggle to view all places as tabs
               RoleGate(

@@ -6,6 +6,7 @@ import 'package:faunty/components/custom_snackbar.dart';
 import 'package:faunty/tools/pdf_generator/base_pdf_layout.dart';
 import 'package:faunty/tools/pdf_generator/pdf_generator.dart';
 import 'package:faunty/tools/translation_helper.dart';
+import 'package:faunty/components/custom_app_bar.dart';
 
 class PdfPreviewPage extends StatefulWidget {
   final String title;
@@ -34,8 +35,7 @@ class _PdfPreviewPageState extends State<PdfPreviewPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(previewTitle),
+      appBar: CustomAppBar(title: previewTitle, useModern: false,
       ),
       body: PdfPreview(
         maxPageWidth: 800,

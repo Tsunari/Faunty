@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../firestore/attendance_firestore_service.dart';
 import 'package:faunty/tools/translation_helper.dart';
+import 'package:faunty/components/custom_app_bar.dart';
 
 class AttendanceItemsPage extends ConsumerStatefulWidget {
   final String placeId;
@@ -137,7 +138,10 @@ class _AttendanceItemsPageState extends ConsumerState<AttendanceItemsPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(translation(context: context, 'Manage tracking items'))),
+      appBar: CustomAppBar(
+        title: translation(context: context, 'Manage tracking items'),
+        useModern: false,
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : Padding(

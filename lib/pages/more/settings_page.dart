@@ -14,6 +14,8 @@ import 'package:faunty/firestore/globals_firestore_service.dart';
 import 'package:faunty/state_management/developer_mode_provider.dart';
 import 'package:faunty/pages/more/notification_test_page.dart';
 
+import 'package:faunty/components/custom_app_bar.dart';
+
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
 
@@ -24,7 +26,10 @@ class SettingsPage extends ConsumerWidget {
     Color primaryColor = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
-      appBar: AppBar(title: Text(translation(context: context, 'Settings'))),
+      appBar: CustomAppBar(
+        title: translation(context: context, 'Settings'),
+        useModern: false,
+      ),
       body: themeAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, st) => Center(child: Text('Error loading theme: $e')),

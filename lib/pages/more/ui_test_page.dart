@@ -7,6 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:faunty/models/custom_list.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:faunty/state_management/custom_list_provider.dart';
+import 'package:faunty/components/custom_app_bar.dart';
 // custom list model/service used via providers
 
 class UiTestPage extends ConsumerStatefulWidget {
@@ -27,8 +28,9 @@ class _UiTestPageState extends ConsumerState<UiTestPage> {
     final user = userAsync.asData?.value;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(translation(context: context, 'UI Test Page')),
+      appBar: CustomAppBar(
+        title: translation(context: context, 'UI Test Page'),
+        useModern: false,
       ),
       body: Padding(
         padding: const EdgeInsets.all(12),

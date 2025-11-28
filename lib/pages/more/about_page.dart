@@ -2,6 +2,7 @@ import 'package:faunty/globals.dart';
 import 'package:faunty/tools/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:faunty/components/custom_app_bar.dart';
 
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
@@ -16,11 +17,9 @@ class AboutPage extends StatelessWidget {
     final textTheme = theme.textTheme;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(translation(context: context, 'About')),
-        backgroundColor: surface,
-        foregroundColor: onSurface,
-        elevation: 1,
+      appBar: CustomAppBar(
+        title: translation(context: context, 'About'),
+        useModern: false,
       ),
       body: SingleChildScrollView(
         child: Padding(

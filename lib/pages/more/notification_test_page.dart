@@ -3,6 +3,7 @@ import 'package:faunty/state_management/user_provider.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:faunty/components/custom_app_bar.dart';
 
 class NotificationTestPage extends ConsumerStatefulWidget {
   const NotificationTestPage({super.key});
@@ -59,7 +60,7 @@ class _NotificationTestPageState extends ConsumerState<NotificationTestPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Notification Test Page')),
+      appBar: CustomAppBar(title: 'Notification Test Page', useModern: false),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(

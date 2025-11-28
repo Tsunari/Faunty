@@ -8,6 +8,7 @@ import 'package:faunty/models/user_roles.dart';
 import '../../../components/custom_chip.dart';
 import 'new_feedback_report_sheet.dart';
 import 'feedback_detail_sheet.dart';
+import 'package:faunty/components/custom_app_bar.dart';
 
 class FeedbackPage extends ConsumerWidget {
   const FeedbackPage({super.key});
@@ -19,8 +20,9 @@ class FeedbackPage extends ConsumerWidget {
     final user = ref.watch(userProvider).asData?.value;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(translation(context: context, 'Feedback')),
+      appBar: CustomAppBar(
+        title: translation(context: context, 'Feedback'),
+        useModern: false,
         actions: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0),

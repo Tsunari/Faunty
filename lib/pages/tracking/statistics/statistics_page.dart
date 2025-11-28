@@ -5,6 +5,7 @@ import '../../../state_management/user_provider.dart';
 import '../../../state_management/attendance_provider.dart';
 import '../../../tools/translation_helper.dart';
 import 'statistics_widgets.dart';
+import 'package:faunty/components/custom_app_bar.dart';
 
 class StatisticsPage extends ConsumerStatefulWidget {
   const StatisticsPage({super.key});
@@ -47,8 +48,9 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(translation(context: context, 'Statistics')),
+      appBar: CustomAppBar(
+        title: translation(context: context, 'Statistics'),
+        useModern: false,
         actions: [
           if (items.isNotEmpty)
             Padding(
@@ -79,13 +81,16 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
       ),
       body: _selectedItem.isEmpty || items.isEmpty
           ? Center(child: Text(translation(context: context, 'Create a tracking item to see statistics.')))
-          : StatisticsWidgets(
-              attendance: attendance,
-              itemId: _selectedItem,
-              itemMeta: items.firstWhere((e) => e['id'] == _selectedItem, orElse: () => items.first),
-              selectedUser: null,
-              placeId: user.placeId,
-            ),
+          : Padding(
+            padding: const EdgeInsets.only(top: 10.0),
+            child: StatisticsWidgets(
+                attendance: attendance,
+                itemId: _selectedItem,
+                itemMeta: items.firstWhere((e) => e['id'] == _selectedItem, orElse: () => items.first),
+                selectedUser: null,
+                placeId: user.placeId,
+              ),
+          ),
     );
   }
 }

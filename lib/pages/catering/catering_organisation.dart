@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../state_management/catering_provider.dart';
 import '../../components/custom_confirm_dialog.dart';
+import 'package:faunty/components/custom_app_bar.dart';
 
 class CateringOrganisationPage extends ConsumerStatefulWidget {
   final List<List<List<String>>> weekPlan;
@@ -292,10 +293,9 @@ class _CateringOrganisationPageState extends ConsumerState<CateringOrganisationP
     }
     slotNames ??= {};
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Catering Organisation'),
-        backgroundColor: theme.colorScheme.surface,
-        foregroundColor: theme.colorScheme.onSurface,
+      appBar: CustomAppBar(
+        title: 'Catering Organisation',
+        useModern: false,
         actions: [],
       ),
       body: Row(

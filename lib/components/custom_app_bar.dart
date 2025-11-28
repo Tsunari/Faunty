@@ -29,7 +29,9 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       return AppBar(
         title: Text(title),
         actions: actions,
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.1),
+        backgroundColor: theme.colorScheme.surface,
+        foregroundColor: theme.colorScheme.onSurface,
+        elevation: 0.5,
       );
     }
 
@@ -113,5 +115,5 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight + 8);
+  Size get preferredSize => Size.fromHeight(kToolbarHeight + (useModern ? 8 : 0));
 }

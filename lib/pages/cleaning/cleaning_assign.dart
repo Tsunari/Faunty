@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../state_management/user_list_provider.dart';
 import '../../state_management/cleaning_provider.dart';
+import 'package:faunty/components/custom_app_bar.dart';
 
 class CleaningAssignPage extends ConsumerStatefulWidget {
   final Map<String, dynamic> initialData; // expects { places: {...}, groups: {...}, order: [...], groupOrder: [...] }
@@ -169,8 +170,9 @@ class _CleaningAssignPageState extends ConsumerState<CleaningAssignPage> {
     final usersAsync = ref.watch(usersByRolesAndPlaceProvider(rolesKey));
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(translation(context: context, 'Edit Assignments')),
+      appBar: CustomAppBar(
+        title: translation(context: context, 'Edit Assignments'),
+        useModern: false,
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 8.0),

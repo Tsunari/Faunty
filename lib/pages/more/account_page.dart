@@ -5,6 +5,7 @@ import 'package:faunty/tools/translation_helper.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:faunty/components/custom_app_bar.dart';
 
 class AccountPage extends ConsumerWidget {
   const AccountPage({super.key});
@@ -20,11 +21,9 @@ class AccountPage extends ConsumerWidget {
     final userAsync = ref.watch(userProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(translation(context: context, 'Account')),
-        backgroundColor: surfaceColor,
-        foregroundColor: onSurface,
-        elevation: 1,
+      appBar: CustomAppBar(
+        title: translation(context: context, 'Account'),
+        useModern: false,
       ),
       body: user == null
           ? Center(
