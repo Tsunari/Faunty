@@ -1,6 +1,7 @@
 import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 
 /// A simple wrapper for OneSignal Web SDK using dart:js_interop.
 /// This allows you to interact with OneSignal from your Dart code.
@@ -8,7 +9,7 @@ class OneSignalHelper {
   /// Logs the user in with an external ID (e.g. Firebase UID).
   static void login(String externalId) {
     _push((OneSignalJS oneSignal) {
-      oneSignal.login(externalId.toJS);
+      if (!kDebugMode) oneSignal.login(externalId.toJS);
     });
   }
 

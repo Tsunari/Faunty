@@ -6,18 +6,18 @@ class PlaceFirestoreService {
 
   /// Ensures at least one place exists in Firestore. If none, creates a default place.
   /// Not used right now but can be called during app initialization if needed.
-  static Future<void> ensureAtLeastOnePlaceExists() async {
-    final snapshot = await _placesRef.limit(1).get();
-    if (snapshot.docs.isEmpty) {
-      final defaultPlace = PlaceModel(
-        id: '', // Firestore will auto-generate ID
-        name: 'main',
-        displayName: 'Main Place',
-        registrationMode: false,
-      );
-      await _placesRef.add(defaultPlace.toMap());
-    }
-  }
+  // static Future<void> ensureAtLeastOnePlaceExists() async {
+  //   final snapshot = await _placesRef.limit(1).get();
+  //   if (snapshot.docs.isEmpty) {
+  //     final defaultPlace = PlaceModel(
+  //       id: '', // Firestore will auto-generate ID
+  //       name: 'main',
+  //       displayName: 'Main Place',
+  //       registrationMode: false,
+  //     );
+  //     await _placesRef.add(defaultPlace.toMap());
+  //   }
+  // }
 
   static Future<List<PlaceModel>> fetchPlaces() async {
   // Order by createdAt to ensure newly created places appear at the end (append behavior)

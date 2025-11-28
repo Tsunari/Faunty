@@ -29,7 +29,6 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> {
-  bool _navigated = false;
   final _scrollController = ScrollController();
   late Timer _timer;
   @override
@@ -102,16 +101,6 @@ class _HomePageState extends ConsumerState<HomePage> {
       if (kIsWeb) {
         NotificationManager().requestPermission();
         UpdateService.manualCheck();
-      }
-      final userAsync = ref.read(userProvider);
-      final user = userAsync.asData?.value;
-      if (_navigated) return;
-      if (user == null && mounted && ModalRoute.of(context)?.settings.name != '/splash') {
-        printError('UserEntity not loaded - HomePage build() called without loaded user!');
-        printWarning('Navigiere automatisch zur SplashPage, weil kein User geladen ist.');
-        _navigated = true;
-        Navigator.of(context).pushReplacementNamed('/splash');
-        return;
       }
 
       // // Only check and request notification permission from Home.

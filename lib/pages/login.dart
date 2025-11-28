@@ -87,6 +87,7 @@ class LoginPage extends ConsumerStatefulWidget {
 
 class _LoginPageState extends ConsumerState<LoginPage> with SingleTickerProviderStateMixin {
   static const double _formMaxWidth = 400;
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
@@ -440,33 +441,40 @@ class _LoginPageState extends ConsumerState<LoginPage> with SingleTickerProvider
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 24),
-                          AutofillGroup(
-                            child: _LoginFormFields(
-                              isRegisterMode: _isRegisterMode,
-                              firstNameController: _firstNameController,
-                              lastNameController: _lastNameController,
-                              emailController: _emailController,
-                              passwordController: _passwordController,
-                              confirmPasswordController: _confirmPasswordController,
-                              showPassword: _showPassword,
-                              showConfirmPassword: _showConfirmPassword,
-                              onTogglePassword: () => setState(() => _showPassword = !_showPassword),
-                              onToggleConfirmPassword: () => setState(() => _showConfirmPassword = !_showConfirmPassword),
-                              onLogin: _login,
-                              onForgotPassword: () => _sendPasswordReset(_emailController.text.trim()),
-                            ),
-                          ),
-                          SizeTransition(
-                            sizeFactor: _registerFieldsAnim,
-                            axisAlignment: -1.0,
-                            child: _RegisterExtraFields(
-                              confirmPasswordController: _confirmPasswordController,
-                              showConfirmPassword: _showConfirmPassword,
-                              onToggleConfirmPassword: () => setState(() => _showConfirmPassword = !_showConfirmPassword),
-                              selectedPlace: _selectedPlace,
-                              places: _places,
-                              onPlaceChanged: (val) => setState(() => _selectedPlace = val),
-                              onClearPlace: () => setState(() => _selectedPlace = null),
+                          Form(
+                            key: _formKey,
+                            child: AutofillGroup(
+                              child: Column(
+                                children: [
+                                  _LoginFormFields(
+                                    isRegisterMode: _isRegisterMode,
+                                    firstNameController: _firstNameController,
+                                    lastNameController: _lastNameController,
+                                    emailController: _emailController,
+                                    passwordController: _passwordController,
+                                    confirmPasswordController: _confirmPasswordController,
+                                    showPassword: _showPassword,
+                                    showConfirmPassword: _showConfirmPassword,
+                                    onTogglePassword: () => setState(() => _showPassword = !_showPassword),
+                                    onToggleConfirmPassword: () => setState(() => _showConfirmPassword = !_showConfirmPassword),
+                                    onLogin: _login,
+                                    onForgotPassword: () => _sendPasswordReset(_emailController.text.trim()),
+                                  ),
+                                  SizeTransition(
+                                    sizeFactor: _registerFieldsAnim,
+                                    axisAlignment: -1.0,
+                                    child: _RegisterExtraFields(
+                                      confirmPasswordController: _confirmPasswordController,
+                                      showConfirmPassword: _showConfirmPassword,
+                                      onToggleConfirmPassword: () => setState(() => _showConfirmPassword = !_showConfirmPassword),
+                                      selectedPlace: _selectedPlace,
+                                      places: _places,
+                                      onPlaceChanged: (val) => setState(() => _selectedPlace = val),
+                                      onClearPlace: () => setState(() => _selectedPlace = null),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                           const SizedBox(height: 24),
@@ -798,7 +806,6 @@ class _RegisterExtraFields extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const SizedBox(height: 16),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: _LoginPageState._formMaxWidth),
           child: TextField(
@@ -867,4 +874,3 @@ class _RegisterExtraFields extends StatelessWidget {
     );
   }
 }
-
