@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.21.0] - 29-11-2025
+### Changed
+- Main cleanup
+- Random changes
+### Fixed
+- Fix navigation issues in main
+- Home screen re-render fix
+
+
+
 ## [1.20.0] - 28-11-2025
 ### Added
 - Big Notification additions
