@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.20.0] - 28-11-2025
+### Added
+- Big Notification additions
+- Feedback notifications
+### Changed
+- Some logic changes
+### Fixed
+- .env fix
+- Fix status bar on web
+
+
+
 ## [1.19.3] - 22-11-2025
 ### Fixed
 - Fix messaging on production
