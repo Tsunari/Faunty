@@ -3,6 +3,8 @@ import 'package:faunty/models/feedback_comment.dart';
 import 'package:faunty/models/feedback_report.dart';
 import 'package:faunty/state_management/user_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:faunty/notifications/notification_manager.dart';
+import 'package:faunty/notifications/types/feedback_notifications.dart';
 
 enum FeedbackViewMode { active, archived }
 
@@ -85,10 +87,69 @@ class FeedbackActions {
       authorName: authorName,
       text: text,
     );
+
+    // Notification Logic
+    try {
+      // 1. Get Report (for author)
+      final reports = ref.read(feedbackReportsProvider).asData?.value ?? [];
+      final report = reports.firstWhere((r) => r.id == reportId, orElse: () => throw Exception('Report not found'));
+
+      // 2. Get Participants (unique commenters)
+      final comments = ref.read(feedbackCommentsProvider(reportId)).asData?.value ?? [];
+      final participantIds = comments.map((c) => c.authorId).toSet();
+      
+      // 3. Calculate Recipients
+      final recipients = <String>{};
+      
+      // Add author if not self
+      if (report.authorId != user.uid) {
+        recipients.add(report.authorId);
+      }
+
+      // Add participants if not self
+      for (final pid in participantIds) {
+        if (pid != user.uid) {
+          recipients.add(pid);
+        }
+      }
+
+      if (recipients.isNotEmpty) {
+        final notification = FeedbackCommentNotification(
+          reportTitle: report.title,
+          commenterName: authorName,
+          commentText: text,
+          reportId: reportId,
+        );
+        await NotificationManager().send(notification, toUserIds: recipients.toList());
+      }
+    } catch (e) {
+      print('Error sending comment notification: $e');
+    }
   }
 
   Future<void> updateStatus(String reportId, FeedbackStatus status) async {
-  await _serviceFor(ref).updateStatus(reportId, status);
+    await _serviceFor(ref).updateStatus(reportId, status);
+
+    // Notification Logic
+    try {
+      final user = ref.read(userProvider).asData?.value;
+      if (user == null) return;
+
+      final reports = ref.read(feedbackReportsProvider).asData?.value ?? [];
+      final report = reports.firstWhere((r) => r.id == reportId, orElse: () => throw Exception('Report not found'));
+
+      // Notify author if not self
+      if (report.authorId != user.uid) {
+        final notification = FeedbackStatusNotification(
+          reportTitle: report.title,
+          newStatus: status,
+          reportId: reportId,
+        );
+        await NotificationManager().send(notification, toUserIds: [report.authorId]);
+      }
+    } catch (e) {
+      print('Error sending status notification: $e');
+    }
   }
 
   Future<void> updateType(String reportId, FeedbackType type) async {
