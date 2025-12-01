@@ -264,3 +264,250 @@ List<HeatCell> computeHeatmap(Map<String, dynamic> attendance, String itemId, {L
   });
   return cells;
 }
+
+// ---------------------------------------------------------------------------
+// User-Specific Computation Functions
+// ---------------------------------------------------------------------------
+
+List<RatingPoint> computeUserRatingSeries(Map<String, dynamic> attendance, String itemId, {
+  required TimeGranularity granularity,
+  required String? userId,
+  List<int>? weekdays,
+  bool allTime = false,
+}) {
+  if (userId == 'all' || userId == null) {
+    if (allTime) {
+      final k = normalizedDatesForItem(attendance, itemId, weekdays: weekdays);
+      if (k.isEmpty) return const [];
+      int present = 0;
+      int leave = 0;
+      int rosterRef = 0;
+      final roster = (attendance['roster'] as List?)?.cast<String>();
+      final rosterSize = (roster ?? const <String>[]).isEmpty ? null : roster!.length;
+      for (final dayKey in k) {
+        final t = totalsForDate(attendance, dayKey, itemId, roster: roster);
+        present += t.present;
+        leave += t.onLeave;
+        rosterRef += (rosterSize ?? t.rosterSize);
+      }
+      final rating = rosterRef == 0 ? 0.0 : (present + leave) / rosterRef;
+      return [RatingPoint(DateTime.now(), rating)];
+    }
+    return computeRatingSeries(attendance, itemId, granularity: granularity, weekdays: weekdays);
+  }
+
+  final k = normalizedDatesForItem(attendance, itemId, weekdays: weekdays);
+  if (k.isEmpty) return const [];
+  final buckets = <String, List<String>>{};
+  
+  if (allTime) {
+    buckets['All Time'] = k;
+  } else {
+    for (final dayKey in k) {
+      final dt = _parseKey(dayKey);
+      DateTime start;
+      switch (granularity) {
+        case TimeGranularity.week:
+          start = dt.subtract(Duration(days: dt.weekday - 1));
+          break;
+        case TimeGranularity.month:
+          start = DateTime(dt.year, dt.month, 1);
+          break;
+        case TimeGranularity.quarter:
+          final q = ((dt.month - 1) ~/ 3) * 3 + 1;
+          start = DateTime(dt.year, q, 1);
+          break;
+        case TimeGranularity.year:
+          start = DateTime(dt.year, 1, 1);
+          break;
+      }
+      (buckets[_fmt(start)] ??= <String>[]).add(dayKey);
+    }
+  }
+  final entries = buckets.entries.toList()
+    ..sort((a, b) => _parseKey(a.key).compareTo(_parseKey(b.key)));
+  final points = <RatingPoint>[];
+  for (final e in entries) {
+    final keys = e.value;
+    int positive = 0;
+    int considered = 0;
+    for (final dk in keys) {
+      final rec = (attendance[dk] as Map?)?[itemId] as Map?;
+      if (rec == null) continue;
+      final isDefault = ((rec['default'] as List?)?.cast<String>() ?? const <String>[]).contains(userId);
+      if (isDefault) continue; // ignore default entirely
+      final present = ((rec['present'] as List?)?.cast<String>() ?? const <String>[]).contains(userId);
+      final onLeave = ((rec['onLeave'] as List?)?.cast<String>() ?? const <String>[]).contains(userId);
+      final absent = ((rec['absent'] as List?)?.cast<String>() ?? const <String>[]).contains(userId);
+      
+      if (present || onLeave || absent) {
+        considered++;
+        if (present || onLeave) positive++;
+      }
+    }
+    final rating = considered == 0 ? 0.0 : positive / considered;
+    points.add(RatingPoint(allTime ? DateTime.now() : _parseKey(e.key), rating));
+  }
+  return points;
+}
+
+List<HistoryBar> computeUserHistory(Map<String, dynamic> attendance, String itemId, {
+  required TimeGranularity granularity,
+  required String? userId,
+  List<int>? weekdays,
+}) {
+  if (userId == 'all' || userId == null) {
+    return computeHistoryBars(attendance, itemId, granularity: granularity, weekdays: weekdays);
+  }
+
+  final keys = normalizedDatesForItem(attendance, itemId, weekdays: weekdays);
+  final buckets = <String, List<String>>{};
+  for (final k in keys) {
+    final dt = _parseKey(k);
+    DateTime start;
+    switch (granularity) {
+      case TimeGranularity.week:
+        start = dt.subtract(Duration(days: dt.weekday - 1));
+        break;
+      case TimeGranularity.month:
+        start = DateTime(dt.year, dt.month, 1);
+        break;
+      case TimeGranularity.quarter:
+        final q = ((dt.month - 1) ~/ 3) * 3 + 1;
+        start = DateTime(dt.year, q, 1);
+        break;
+      case TimeGranularity.year:
+        start = DateTime(dt.year, 1, 1);
+        break;
+    }
+    (buckets[_fmt(start)] ??= <String>[]).add(k);
+  }
+  final bars = <HistoryBar>[];
+  final entries = buckets.entries.toList()
+    ..sort((a, b) => _parseKey(a.key).compareTo(_parseKey(b.key)));
+  for (final e in entries) {
+    int p = 0, l = 0;
+    for (final day in e.value) {
+      final rec = (attendance[day] as Map?)?[itemId] as Map?;
+      final isDefault = ((rec?['default'] as List?)?.cast<String>() ?? const <String>[]).contains(userId);
+      if (isDefault) continue; // ignore default
+      final pres = ((rec?['present'] as List?)?.cast<String>() ?? const <String>[]).contains(userId);
+      final leave = ((rec?['onLeave'] as List?)?.cast<String>() ?? const <String>[]).contains(userId);
+      if (pres) {
+        p += 1;
+      } else if (leave) {
+        l += 1;
+      }
+    }
+    bars.add(HistoryBar(_parseKey(e.key), present: p, onLeave: l));
+  }
+  return bars;
+}
+
+DateTime _nextValidDate(DateTime date, List<int> weekdays) {
+  DateTime d = date.add(const Duration(days: 1));
+  while (!weekdays.contains(d.weekday)) {
+    d = d.add(const Duration(days: 1));
+  }
+  return d;
+}
+
+List<SeriesRun> computeBestUserSeries(Map<String, dynamic> attendance, String itemId, {
+  required String? userId,
+  List<int>? weekdays,
+  int limit = 10,
+}) {
+  if (userId == 'all' || userId == null) {
+    return computeBestSeries(attendance, itemId, weekdays: weekdays, limit: limit);
+  }
+
+  final keys = normalizedDatesForItem(attendance, itemId, weekdays: weekdays);
+  if (keys.isEmpty) return const [];
+  DateTime? runStart;
+  DateTime? lastDate;
+  final runs = <SeriesRun>[];
+  final wd = weekdays ?? [1, 2, 3, 4, 5, 6, 7];
+
+  for (int i = 0; i < keys.length; i++) {
+    final k = keys[i];
+    final dt = _parseKey(k);
+    final rec = (attendance[k] as Map?)?[itemId] as Map?;
+    final isDefault = ((rec?['default'] as List?)?.cast<String>() ?? const <String>[]).contains(userId);
+    final present = ((rec?['present'] as List?)?.cast<String>() ?? const <String>[]).contains(userId);
+    final leave = ((rec?['onLeave'] as List?)?.cast<String>() ?? const <String>[]).contains(userId);
+    
+    // Absent breaks streak. Present or Leave extends it.
+    // Default is ignored (skipped).
+    
+    if (isDefault) {
+      // ignore default: neither break nor extend; just skip
+      continue;
+    }
+    
+    final positive = present || leave;
+
+    if (positive) {
+      if (runStart == null) {
+        runStart = dt;
+      } else if (lastDate != null) {
+        // Check if this dt follows lastDate in the keys sequence
+        // We need to check if there were any VALID days between lastDate and dt that were missed (absent).
+        
+        bool broken = false;
+        DateTime check = _nextValidDate(lastDate, wd);
+        while (check.isBefore(dt)) {
+           final ck = _fmt(check);
+           final crec = (attendance[ck] as Map?)?[itemId] as Map?;
+           final isAbsent = ((crec?['absent'] as List?)?.cast<String>() ?? const <String>[]).contains(userId);
+           
+           if (isAbsent) {
+             // Explicitly absent -> break streak
+             broken = true;
+             break;
+           }
+           // Otherwise (missing data, default, or just not in keys for some reason) -> bridge the gap
+           check = _nextValidDate(check, wd);
+        }
+        
+        if (broken) {
+          runs.add(SeriesRun(runStart, lastDate));
+          runStart = dt;
+        }
+      }
+      lastDate = dt;
+    } else {
+      // Not positive. Check if explicitly absent.
+      final isAbsent = ((rec?['absent'] as List?)?.cast<String>() ?? const <String>[]).contains(userId);
+      if (isAbsent) {
+        // Explicitly absent -> Break
+        if (runStart != null && lastDate != null) runs.add(SeriesRun(runStart, lastDate));
+        runStart = null;
+        lastDate = null;
+      }
+      // If not absent (e.g. missing or neutral), do nothing. 
+      // runStart stays set, lastDate stays set. 
+      // Next positive day will trigger gap check which handles this day via isAbsent check.
+    }
+  }
+  if (runStart != null && lastDate != null) runs.add(SeriesRun(runStart, lastDate));
+  
+  // Filter out runs that are purely onLeave (no present days)
+  final filteredRuns = runs.where((run) {
+    bool hasPresent = false;
+    DateTime d = run.start;
+    while (!d.isAfter(run.end)) {
+      final k = _fmt(d);
+      final rec = (attendance[k] as Map?)?[itemId] as Map?;
+      final present = ((rec?['present'] as List?)?.cast<String>() ?? const <String>[]).contains(userId);
+      if (present) {
+        hasPresent = true;
+        break;
+      }
+      d = d.add(const Duration(days: 1));
+    }
+    return hasPresent;
+  }).toList();
+
+  filteredRuns.sort((a, b) => b.length.compareTo(a.length));
+  return filteredRuns.take(limit).toList();
+}
