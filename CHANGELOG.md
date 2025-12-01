@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.22.0] - 01-12-2025
+### Added
+- Various statistics fixes and additions
+### Fixed
+- Share image fix
+
+
+
 ## [1.21.0] - 29-11-2025
 ### Changed
 - Main cleanup
