@@ -46,133 +46,149 @@ class _StatisticsWidgetsState extends State<StatisticsWidgets> {
 		final yearDelta = yearSeries.length >= 2 ? (yearSeries.last.rating - yearSeries[yearSeries.length - 2].rating) : 0.0;
 
 		return SingleChildScrollView(
-			padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-			child: RepaintBoundary(
-        key: widget.screenshotKey,
-        child: Column(
+			child: Column(
 				crossAxisAlignment: CrossAxisAlignment.start,
 				children: [
-          if (roster.isNotEmpty)
-						Padding(
-							padding: const EdgeInsets.only(bottom: 8.0),
-							child: Consumer(
-								builder: (context, ref, _) {
-									final usersAsync = ref.watch(usersByCurrentPlaceProvider);
-									final users = usersAsync.asData?.value;
-									final byId = users == null ? <String, String>{} : {for (final u in users) u.uid: '${u.firstName} ${u.lastName}'.trim()};
-									final items = [
-                    DropdownMenuItem<String>(value: 'all', child: Text(translation(context: context, 'All Users'))),
-										for (final id in roster)
-											DropdownMenuItem<String>(value: id, child: Text(byId[id] ?? id)),
-									];
-									return Row(
-										mainAxisAlignment: MainAxisAlignment.center,
-										children: [
-																Container(
-																	padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-												decoration: BoxDecoration(
-																		borderRadius: BorderRadius.circular(8),
-													border: Border.all(color: Theme.of(context).dividerColor),
-												),
-												child: DropdownButtonHideUnderline(
-													child: DropdownButton<String>(
-														value: effectiveUser,
-																			isDense: true,
-																			iconSize: 18,
-																			style: Theme.of(context).textTheme.bodySmall,
-																			onChanged: (v) {
-																				widget.onUserChanged?.call(v);
-																			},
-														items: items,
-														alignment: Alignment.center,
-													),
-												),
+					RepaintBoundary(
+						key: widget.screenshotKey,
+						child: Container(
+							color: Theme.of(context).scaffoldBackgroundColor,
+							padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+							child: Column(
+								crossAxisAlignment: CrossAxisAlignment.start,
+								children: [
+									if (roster.isNotEmpty)
+										Padding(
+											padding: const EdgeInsets.only(bottom: 8.0),
+											child: Consumer(
+												builder: (context, ref, _) {
+													final usersAsync = ref.watch(usersByCurrentPlaceProvider);
+													final users = usersAsync.asData?.value;
+													final byId = users == null ? <String, String>{} : {for (final u in users) u.uid: '${u.firstName} ${u.lastName}'.trim()};
+													final items = [
+														DropdownMenuItem<String>(value: 'all', child: Text(translation(context: context, 'All Users'))),
+														for (final id in roster)
+															DropdownMenuItem<String>(value: id, child: Text(byId[id] ?? id)),
+													];
+													return Row(
+														mainAxisAlignment: MainAxisAlignment.center,
+														children: [
+															Container(
+																padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+																decoration: BoxDecoration(
+																	borderRadius: BorderRadius.circular(8),
+																	border: Border.all(color: Theme.of(context).dividerColor),
+																),
+																child: DropdownButtonHideUnderline(
+																	child: DropdownButton<String>(
+																		value: effectiveUser,
+																		isDense: true,
+																		iconSize: 18,
+																		style: Theme.of(context).textTheme.bodySmall,
+																		onChanged: (v) {
+																			widget.onUserChanged?.call(v);
+																		},
+																		items: items,
+																		alignment: Alignment.center,
+																	),
+																),
+															),
+														],
+													);
+												},
 											),
-										],
-									);
-								},
+										),
+									_OverviewCard(
+										rating: currentRating,
+										monthDelta: monthDelta,
+										yearDelta: yearDelta,
+										total: keys.where((k) {
+											final rec = (widget.attendance[k] as Map?)?[widget.itemId] as Map?;
+											if (rec == null) return false;
+											if (effectiveUser == 'all' || effectiveUser == null) {
+												// For 'all', we count if ANYONE is present/leave/absent? 
+												// Or do we count days where data exists?
+												// If we look at totalsForDate, it sums up these counts.
+												// If sum > 0, it's a valid day.
+												final t = totalsForDate(widget.attendance, k, widget.itemId);
+												return (t.present + t.onLeave + t.absent) > 0;
+											} else {
+												// Specific user
+												final isDefault = ((rec['default'] as List?)?.cast<String>() ?? const <String>[]).contains(effectiveUser);
+												if (isDefault) return false;
+												final present = ((rec['present'] as List?)?.cast<String>() ?? const <String>[]).contains(effectiveUser);
+												final onLeave = ((rec['onLeave'] as List?)?.cast<String>() ?? const <String>[]).contains(effectiveUser);
+												final absent = ((rec['absent'] as List?)?.cast<String>() ?? const <String>[]).contains(effectiveUser);
+												return present || onLeave || absent;
+											}
+										}).length,
+									),
+									const SizedBox(height: 16),
+									_SectionHeader(
+										title: translation(context: context, 'Rating'),
+										trailing: _SpanDropdown(value: _ratingSpan, onChanged: (v) => setState(() => _ratingSpan = v)),
+									),
+									const SizedBox(height: 8),
+									Padding(
+										padding: const EdgeInsets.symmetric(horizontal: 8.0),
+										child: _RatingChart(
+											attendance: widget.attendance,
+											itemId: widget.itemId,
+											weekdays: _weekdays,
+											granularity: _ratingSpan,
+											selectedUser: effectiveUser,
+										),
+									),
+									const SizedBox(height: 24),
+									_SectionHeader(
+										title: translation(context: context, 'History'),
+										trailing: _SpanDropdown(value: _historySpan, onChanged: (v) => setState(() => _historySpan = v)),
+									),
+									const SizedBox(height: 8),
+									Padding(
+										padding: const EdgeInsets.symmetric(horizontal: 8.0),
+										child: _HistoryBars(
+											attendance: widget.attendance,
+											itemId: widget.itemId,
+											weekdays: _weekdays,
+											granularity: _historySpan,
+											selectedUser: effectiveUser,
+										),
+									),
+									// Padding(
+									// 	padding: const EdgeInsets.only(top: 6.0),
+									// 	child: Text(
+									// 		translation(context: context, 'Stacked bars show attended days per period: Present (bottom) + On leave (top).'),
+									// 		style: Theme.of(context).textTheme.bodySmall,
+									// 	),
+									// ),
+									const SizedBox(height: 24),
+									_SectionHeader(title: translation(context: context, 'Calendar')),
+									const SizedBox(height: 8),
+									_CalendarGrid(attendance: widget.attendance, itemId: widget.itemId, weekdays: _weekdays, selectedUser: effectiveUser),
+									const SizedBox(height: 24),
+									_SectionHeader(title: translation(context: context, 'Best Streaks')),
+									const SizedBox(height: 8),
+									_SeriesList(attendance: widget.attendance, itemId: widget.itemId, weekdays: _weekdays, selectedUser: effectiveUser),
+									const SizedBox(height: 24),
+								],
 							),
 						),
-					_OverviewCard(
-						rating: currentRating,
-						monthDelta: monthDelta,
-						yearDelta: yearDelta,
-						total: keys.where((k) {
-              final rec = (widget.attendance[k] as Map?)?[widget.itemId] as Map?;
-              if (rec == null) return false;
-              if (effectiveUser == 'all' || effectiveUser == null) {
-                // For 'all', we count if ANYONE is present/leave/absent? 
-                // Or do we count days where data exists?
-                // If we look at totalsForDate, it sums up these counts.
-                // If sum > 0, it's a valid day.
-                final t = totalsForDate(widget.attendance, k, widget.itemId);
-                return (t.present + t.onLeave + t.absent) > 0;
-              } else {
-                // Specific user
-                final isDefault = ((rec['default'] as List?)?.cast<String>() ?? const <String>[]).contains(effectiveUser);
-                if (isDefault) return false;
-                final present = ((rec['present'] as List?)?.cast<String>() ?? const <String>[]).contains(effectiveUser);
-                final onLeave = ((rec['onLeave'] as List?)?.cast<String>() ?? const <String>[]).contains(effectiveUser);
-                final absent = ((rec['absent'] as List?)?.cast<String>() ?? const <String>[]).contains(effectiveUser);
-                return present || onLeave || absent;
-              }
-            }).length,
 					),
-					const SizedBox(height: 16),
-					_SectionHeader(
-									title: translation(context: context, 'Rating'),
-						trailing: _SpanDropdown(value: _ratingSpan, onChanged: (v) => setState(() => _ratingSpan = v)),
-					),
-					const SizedBox(height: 8),
-								Padding(
-									padding: const EdgeInsets.symmetric(horizontal: 8.0),
-										child: _RatingChart(
-										attendance: widget.attendance,
-										itemId: widget.itemId,
-										weekdays: _weekdays,
-										granularity: _ratingSpan,
-											selectedUser: effectiveUser,
-									),
-								),
-					const SizedBox(height: 24),
-					_SectionHeader(
-									title: translation(context: context, 'History'),
-						trailing: _SpanDropdown(value: _historySpan, onChanged: (v) => setState(() => _historySpan = v)),
-					),
-					const SizedBox(height: 8),
-								Padding(
-									padding: const EdgeInsets.symmetric(horizontal: 8.0),
-										child: _HistoryBars(
-										attendance: widget.attendance,
-										itemId: widget.itemId,
-										weekdays: _weekdays,
-										granularity: _historySpan,
-											selectedUser: effectiveUser,
-									),
-								),
-								// Padding(
-								// 	padding: const EdgeInsets.only(top: 6.0),
-								// 	child: Text(
-								// 		translation(context: context, 'Stacked bars show attended days per period: Present (bottom) + On leave (top).'),
-								// 		style: Theme.of(context).textTheme.bodySmall,
-								// 	),
-								// ),
-					const SizedBox(height: 24),
-								_SectionHeader(title: translation(context: context, 'Calendar')),
-					const SizedBox(height: 8),
-								_CalendarGrid(attendance: widget.attendance, itemId: widget.itemId, weekdays: _weekdays, selectedUser: effectiveUser),
-					const SizedBox(height: 24),
-								_SectionHeader(title: translation(context: context, 'Best Streaks')),
-					const SizedBox(height: 8),
-								_SeriesList(attendance: widget.attendance, itemId: widget.itemId, weekdays: _weekdays, selectedUser: effectiveUser),
-					const SizedBox(height: 24),
+					Padding(
+						padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+						child: Column(
+							crossAxisAlignment: CrossAxisAlignment.start,
+							children: [
 								_SectionHeader(title: translation(context: context, 'Frequency')),
-					const SizedBox(height: 8),
+								const SizedBox(height: 8),
 								_HeatmapBubbles(attendance: widget.attendance, itemId: widget.itemId, weekdays: _weekdays, selectedUser: effectiveUser),
-					const SizedBox(height: 24),
+								const SizedBox(height: 24),
+							],
+						),
+					),
 				],
-			  ),
-      ),
+			),
 		);
 	}
 }

@@ -92,11 +92,11 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
             //   onPressed: () => _generatePdf(context, attendance, items.firstWhere((e) => e['id'] == _selectedItem, orElse: () => items.first), user.placeId),
             // ),
             IconButton(
-              icon: const Icon(Icons.camera_alt),
+              icon: const Icon(Icons.share),
               onPressed: () => _captureAndShare(context),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              padding: const EdgeInsets.only(right: 8.0),
               child: DropdownButton<String>(
                 value: items.any((e) => e['id'] == _selectedItem) ? _selectedItem : null,
                 underline: const SizedBox.shrink(),
