@@ -3,6 +3,7 @@
 ///
 // coverage:ignore-file
 // ignore_for_file: type=lint, unused_import
+// dart format off
 
 import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
@@ -10,7 +11,7 @@ import 'package:slang/generated.dart';
 import 'strings.g.dart';
 
 // Path: <root>
-class TranslationsRu implements Translations {
+class TranslationsRu with BaseTranslations<AppLocale, Translations> implements Translations {
 	/// You can call this constructor and build your own translation instance of this locale.
 	/// Constructing via the enum [AppLocale.build] is preferred.
 	TranslationsRu({Map<String, Node>? overrides, PluralResolver? cardinalResolver, PluralResolver? ordinalResolver, TranslationMetadata<AppLocale, Translations>? meta})
@@ -263,238 +264,240 @@ class TranslationsRu implements Translations {
 	@override String get ask_a_manager_to_add_tracking_items_or_add_them_yourself => 'Попросите менеджера добавить элементы отслеживания или добавьте их сами.';
 }
 
-/// Flat map(s) containing all translations.
+/// The flat map containing all translations for locale <ru>.
 /// Only for edge cases! For simple maps, use the map function of this library.
+///
+/// The Dart AOT compiler has issues with very large switch statements,
+/// so the map is split into smaller functions (512 entries each).
 extension on TranslationsRu {
 	dynamic _flatMapFunction(String path) {
-		switch (path) {
-			case 'more': return 'Ещё';
-			case 'mo': return 'Пн';
-			case 'tue': return 'Вт';
-			case 'wed': return 'Ср';
-			case 'thu': return 'Чт';
-			case 'fr': return 'Пт';
-			case 'sat': return 'Сб';
-			case 'sun': return 'Вс';
-			case 'registration_mode': return 'Режим регистрации';
-			case 'inactive': return 'Неактивно';
-			case 'enable_or_disable_registration': return 'Включить или отключить регистрацию';
-			case 'language': return 'Язык';
-			case 'help': return 'Помощь';
-			case 'faunty': return 'Faunty';
-			case 'register': return 'Регистрация';
-			case 'login': return 'Войти';
-			case 'monday': return 'Понедельник';
-			case 'tuesday': return 'Вторник';
-			case 'wednesday': return 'Среда';
-			case 'thursday': return 'Четверг';
-			case 'friday': return 'Пятница';
-			case 'saturday': return 'Суббота';
-			case 'sunday': return 'Воскресенье';
-			case 'catering': return 'Питание';
-			case 'no_catering_assignments_yet': return 'Пока нет назначений по питанию!';
-			case 'tap_the_edit_button_below_to_assign_users_to_meals_for_the_week': return 'Нажмите кнопку редактирования ниже, чтобы назначить пользователей на питание на неделю.';
-			case 'edit': return 'Редактировать';
-			case 'cleaning': return 'Уборка';
-			case 'place': return 'Место';
-			case 'assignees': return 'Назначенные';
-			case 'no_cleaning_places_yet': return 'Пока нет мест для уборки!';
-			case 'no_users_assigned_to_any_places': return 'Нет назначенных пользователей ни на одно место.';
-			case 'tap_below_to_create_your_first_place_and_start_assigning_users': return 'Нажмите ниже, чтобы создать первое место и начать назначать пользователей.';
-			case 'assign_users_to_your_existing_places_using_the_action_button_below': return 'Назначайте пользователей на существующие места с помощью кнопки действия ниже.';
-			case 'create_place': return 'Создать место';
-			case 'place_name': return 'Название места';
-			case 'cancel': return 'Отмена';
-			case 'create': return 'Создать';
-			case 'no_users_assigned': return 'Нет назначенных пользователей';
-			case 'add_place': return 'Добавить место';
-			case 'add': return 'Добавить';
-			case 'edit_place': return 'Редактировать место';
-			case 'save': return 'Сохранить';
-			case 'edit_assignments': return 'Редактировать назначения';
-			case 'no_places_yet': return 'Пока нет мест.';
-			case 'delete_place': return 'Удалить место';
-			case 'waiting_for_userentity_homepage_was_built_without_a_loaded_user': return 'Ожидание пользователя... (Главная страница создана без загруженного пользователя)';
-			case 'home': return 'Главная';
-			case 'program': return 'Программа';
-			case 'no_program_entries_found_for_this_week': return 'Нет записей программы на эту неделю.';
-			case 'error_loading_program_placeholder': return 'Ошибка загрузки программы: {placeholder}';
-			case 'today': return 'Сегодня';
-			case 'your_next_catering_assignment': return 'Ваше следующее назначение по питанию:';
-			case 'no_upcoming_catering_assignment_found': return 'Нет предстоящих назначений по питанию.';
-			case 'catering_wird_geladen': return 'Питание загружается...';
-			case 'error_loading_catering': return 'Ошибка загрузки питания.';
-			case 'no_cleaning_assignments_found': return 'Нет назначений по уборке.';
-			case 'you_have_no_cleaning_assignment': return 'У вас нет назначений по уборке';
-			case 'your_cleaning_assignment': return 'Ваше назначение по уборке:';
-			case 'cleaning_assignments_are_loading': return 'Назначения по уборке загружаются...';
-			case 'error_loading_cleaning_data': return 'Ошибка загрузки данных по уборке.';
-			case 'this_email_is_already_registered': return 'Этот email уже зарегистрирован.';
-			case 'password_is_too_weak_please_use_at_least_6_characters': return 'Пароль слишком слабый. Пожалуйста, используйте не менее 6 символов.';
-			case 'please_enter_a_valid_email_address': return 'Пожалуйста, введите действительный email адрес.';
-			case 'registration_is_currently_disabled': return 'Регистрация в настоящее время отключена.';
-			case 'no_internet_connection_please_check_your_network_and_try_again': return 'Нет интернет-соединения. Проверьте сеть и попробуйте снова.';
-			case 'registration_failed': return 'Регистрация не удалась.';
-			case 'registration_failed_please_try_again': return 'Регистрация не удалась. Пожалуйста, попробуйте снова.';
-			case 'please_wait': return 'Пожалуйста, подождите...';
-			case 'already_have_an_account_login': return 'Уже есть аккаунт? Войти';
-			case 'don_t_have_an_account_register': return 'Нет аккаунта? Зарегистрироваться';
-			case 'first_name': return 'Имя';
-			case 'last_name': return 'Фамилия';
-			case 'email': return 'Email';
-			case 'password': return 'Пароль';
-			case 'hide_password': return 'Скрыть пароль';
-			case 'show_password': return 'Показать пароль';
-			case 'confirm_password': return 'Подтвердить пароль';
-			case 'select_place': return 'Выбрать место';
-			case 'clear_selection': return 'Очистить выбор';
-			case 'about': return 'О приложении';
-			case 'welcome_to_faunty_2_0': return 'Добро пожаловать в Faunty 2.0';
-			case 'faunty_is_your_modern_management_app_designed_to_simplify_daily_organization_and_communication_for_teams_communities_and_organizations_built_with_a_focus_on_usability_security_and_beautiful_design_faunty_helps_you_stay_connected_and_productive': return 'Faunty — это современное приложение для управления, созданное для упрощения ежедневной организации и коммуникации для команд, сообществ и организаций. С акцентом на удобство, безопасность и красивый дизайн Faunty помогает оставаться на связи и быть продуктивным.';
-			case 'features': return 'Функции';
-			case 'team_community_management': return 'Управление командой и сообществом';
-			case 'weekly_program_assignments': return 'Еженедельная программа и назначения';
-			case 'catering_cleaning_schedules': return 'Графики питания и уборки';
-			case 'secure_authentication': return 'Безопасная аутентификация';
-			case 'custom_notifications': return 'Пользовательские уведомления';
-			case 'responsive_mobile_friendly': return 'Адаптивный и мобильный интерфейс';
-			case 'about_the_project': return 'О проекте';
-			case 'faunty_2_0_is_built_with_flutter_and_firebase_ensuring_fast_performance_and_real_time_updates_our_mission_is_to_empower_users_with_tools_that_make_everyday_management_effortless_and_enjoyable': return 'Faunty 2.0 создан на Flutter и Firebase, обеспечивая высокую производительность и обновления в реальном времени. Наша миссия — дать пользователям инструменты для легкого и приятного управления каждый день.';
-			case 'thank_you_for_using_faunty': return 'Спасибо, что используете Faunty!';
-			case 'for_feedback_or_support_contact_us_at_talebelergfc_gmail_com': return 'Для обратной связи или поддержки пишите на talebelergfc@gmail.com';
-			case 'account': return 'Аккаунт';
-			case 'no_user_is_currently_signed_in': return 'В настоящее время никто не вошел в систему.';
-			case 'account_details': return 'Детали аккаунта';
-			case 'change_password': return 'Сменить пароль';
-			case 'new_password': return 'Новый пароль';
-			case 'save_password': return 'Сохранить пароль';
-			case 'please_enter_a_new_password': return 'Пожалуйста, введите новый пароль.';
-			case 'password_changed_successfully': return 'Пароль успешно изменен!';
-			case 're_authentication_required': return 'Требуется повторная аутентификация';
-			case 'for_security_reasons_please_log_in_again_to_change_your_password_you_will_be_redirected_to_the_login_screen': return 'По соображениям безопасности войдите снова, чтобы изменить пароль. Вы будете перенаправлены на экран входа.';
-			case 'created': return 'Создано';
-			case 'last_sign_in': return 'Последний вход';
-			case 'users': return 'Пользователи';
-			case 'active': return 'Активный';
-			case 'statistics': return 'Статистика';
-			case 'backup_and_restore': return 'Резервное копирование и восстановление';
-			case 'settings': return 'Настройки';
-			case 'no_user_loaded': return 'Пользователь не загружен.';
-			case 'edit_name': return 'Редактировать имя';
-			case 'failed_to_update_name': return 'Не удалось обновить имя: ';
-			case 'organisation': return 'Организация';
-			case 'save_as_template': return 'Сохранить как шаблон';
-			case 'select_template_to_override': return 'Выберите шаблон для перезаписи';
-			case 'template_name': return 'Название шаблона';
-			case 'kOverride': return 'Перезаписать';
-			case 'select_a_template': return 'Выберите шаблон';
-			case 'no_templates_found': return 'Шаблоны не найдены';
-			case 'delete_template': return 'Удалить шаблон';
-			case 'close': return 'Закрыть';
-			case 'add_new_event': return 'Добавить новое событие';
-			case 'edit_event': return 'Редактировать событие';
-			case 'select_start_time': return 'Выбрать время начала';
-			case 'select_end_time': return 'Выбрать время окончания';
-			case 'save_and_go_back': return 'Сохранить и вернуться';
-			case 'no_program_entries_for_this_week': return 'Нет записей программы на эту неделю!';
-			case 'tap_the_edit_button_below_to_add_a_program_for_the_week': return 'Нажмите кнопку редактирования ниже, чтобы добавить программу на неделю.';
-			case 'edit_program': return 'Редактировать программу';
-			case 'i_sincerely_apologize_but_you_can_not_have_more_debt': return 'Я искренне извиняюсь, но у вас не может быть больше долга.';
-			case 'bro_pay_your_debt_first': return 'Бро, сначала погаси свой долг.';
-			case 'kantin': return 'Кантин';
-			case 'a_positive_value_means_you_owe_money_a_negative_value_means_you_have_credit': return 'Положительное значение означает, что вы должны деньги. Отрицательное значение — у вас есть кредит.';
-			case 'enter_amount': return 'Введите сумму';
-			case 'other_users': return 'Другие пользователи';
-			case 'no_other_users_found': return 'Другие пользователи не найдены';
-			case 'debt': return 'Долг';
-			case 'paypal': return 'PayPal';
-			case 'did_you_pay': return 'Вы заплатили ';
-			case 'via_paypal': return ' € через PayPal?';
-			case 'yes': return 'Да';
-			case 'reset_debt': return 'Сбросить долг';
-			case 'are_you_sure_you_want_to_reset_your_debt_to_0': return 'Вы уверены, что хотите сбросить свой долг до 0?';
-			case 'confirm': return 'Подтвердить';
-			case 'debt_reset': return 'Долг сброшен!';
-			case 'system': return 'Система';
-			case 'light': return 'Светлая';
-			case 'dark': return 'Тёмная';
-			case 'theme': return 'Тема';
-			case 'breakfast': return 'Завтрак';
-			case 'lunch': return 'Обед';
-			case 'dinner': return 'Ужин';
-			case 'montag': return 'Понедельник';
-			case 'dienstag': return 'Вторник';
-			case 'mittwoch': return 'Среда';
-			case 'donnerstag': return 'Четверг';
-			case 'freitag': return 'Пятница';
-			case 'samstag': return 'Суббота';
-			case 'sonntag': return 'Воскресенье';
-			case 'credit': return 'баланс';
-			case 'set_debt': return 'Установить долг';
-			case 'debt_amount': return 'Сумма долга';
-			case 'set': return 'Установить';
-			case 'choose_app_language': return 'Выберите язык приложения.';
-			case 'load_template': return 'Загрузить шаблон';
-			case 'title': return 'Заголовок';
-			case 'communication': return 'Связь';
-			case 'tracking': return 'Отслеживание';
-			case 'lists': return 'Списки';
-			case 'edit_test_notification_message': return 'Редактировать тестовое сообщение уведомления';
-			case 'body': return 'Тело';
-			case 'saved': return 'Сохранено';
-			case 'saved_fcm_tokens': return 'Сохраненные FCM-токены';
-			case 'check_notification_permission': return 'Проверить разрешение на уведомления';
-			case 'notification_permission_checked': return 'Разрешение на уведомления проверено';
-			case 'refresh_tokens': return 'Обновить токены';
-			case 'refreshed_tokens': return 'Токены обновлены';
-			case 'no_token_fetched': return 'Токен не получен';
-			case 'no_tokens_found': return 'Токены не найдены';
-			case 'loading': return 'Загрузка...';
-			case 'copy_all_tokens_for_user': return 'Копировать все токены для пользователя';
-			case 'all_tokens_copied': return 'Все токены скопированы';
-			case 'copy_token': return 'Копировать токен';
-			case 'token_copied': return 'Токен скопирован';
-			case 'send_test_notification': return 'Отправить тестовое уведомление';
-			case 'test_notification_sent': return 'Тестовое уведомление отправлено';
-			case 'delete_token': return 'Удалить токен?';
-			case 'are_you_sure_you_want_to_delete_this_fcm_token': return 'Вы уверены, что хотите удалить этот FCM-токен?';
-			case 'delete': return 'Удалить';
-			case 'token_deleted': return 'Токен удален';
-			case 'dismiss': return 'Отклонить';
-			case 'notification_opened': return 'Уведомление открыто';
-			case 'open': return 'Открыть';
-			case 'show_saved_fcm_tokens': return 'Показать сохраненные FCM-токены';
-			case 'tools': return 'Инструменты';
-			case 'under_construction': return 'В разработке';
-			case 'feedback': return 'Обратная связь';
-			case 'ui_test_page': return 'Страница тестирования UI';
-			case 'debug_only': return 'Только отладка';
-			case 'this_page_is_only_visible_in_debug_mode': return 'Эта страница видна только в режиме отладки.';
-			case 'show_column_headers': return 'Показать заголовки столбцов';
-			case 'left': return 'Лево';
-			case 'right': return 'Право';
-			case 'create_user': return 'Создать пользователя';
-			case 'user_created_successfully_they_can_now_register_with_this_email': return 'Пользователь успешно создан. Теперь они могут зарегистрироваться с этим email.';
-			case 'failed_to_create_user': return 'Не удалось создать пользователя: ';
-			case 'create_new_user': return 'Создать нового пользователя';
-			case 'please_enter_an_email': return 'Пожалуйста, введите email';
-			case 'please_enter_a_valid_email': return 'Пожалуйста, введите действительный email';
-			case 'please_enter_first_name': return 'Пожалуйста, введите имя';
-			case 'please_enter_last_name': return 'Пожалуйста, введите фамилию';
-			case 'role': return 'Роль';
-			case 'note_the_user_will_be_created_as_a_placeholder_they_can_register_using_this_email_address_does_not_have_to_exist_necessarily_and_their_account_will_be_linked_automatically': return 'Примечание: Пользователь будет создан как плейсхолдер. Они могут зарегистрироваться, используя этот email адрес (он не обязательно должен существовать), и их аккаунт будет автоматически связан.';
-			case 'remove_tracking_item': return 'Удалить элемент отслеживания';
-			case 'remove': return 'Удалить';
-			case 'manage_tracking_items': return 'Управлять элементами отслеживания';
-			case 'add_new_item': return 'Добавить новый элемент';
-			case 'attendance': return 'Посещаемость';
-			case 'manage': return 'Управлять';
-			case 'use_dropdown': return 'Использовать выпадающий список';
-			case 'use_tabs': return 'Использовать вкладки';
-			case 'no_tracking_items_have_been_configured_yet': return 'Элементы отслеживания еще не настроены.';
-			case 'ask_a_manager_to_add_tracking_items_or_add_them_yourself': return 'Попросите менеджера добавить элементы отслеживания или добавьте их сами.';
-			default: return null;
-		}
+		return switch (path) {
+			'more' => 'Ещё',
+			'mo' => 'Пн',
+			'tue' => 'Вт',
+			'wed' => 'Ср',
+			'thu' => 'Чт',
+			'fr' => 'Пт',
+			'sat' => 'Сб',
+			'sun' => 'Вс',
+			'registration_mode' => 'Режим регистрации',
+			'inactive' => 'Неактивно',
+			'enable_or_disable_registration' => 'Включить или отключить регистрацию',
+			'language' => 'Язык',
+			'help' => 'Помощь',
+			'faunty' => 'Faunty',
+			'register' => 'Регистрация',
+			'login' => 'Войти',
+			'monday' => 'Понедельник',
+			'tuesday' => 'Вторник',
+			'wednesday' => 'Среда',
+			'thursday' => 'Четверг',
+			'friday' => 'Пятница',
+			'saturday' => 'Суббота',
+			'sunday' => 'Воскресенье',
+			'catering' => 'Питание',
+			'no_catering_assignments_yet' => 'Пока нет назначений по питанию!',
+			'tap_the_edit_button_below_to_assign_users_to_meals_for_the_week' => 'Нажмите кнопку редактирования ниже, чтобы назначить пользователей на питание на неделю.',
+			'edit' => 'Редактировать',
+			'cleaning' => 'Уборка',
+			'place' => 'Место',
+			'assignees' => 'Назначенные',
+			'no_cleaning_places_yet' => 'Пока нет мест для уборки!',
+			'no_users_assigned_to_any_places' => 'Нет назначенных пользователей ни на одно место.',
+			'tap_below_to_create_your_first_place_and_start_assigning_users' => 'Нажмите ниже, чтобы создать первое место и начать назначать пользователей.',
+			'assign_users_to_your_existing_places_using_the_action_button_below' => 'Назначайте пользователей на существующие места с помощью кнопки действия ниже.',
+			'create_place' => 'Создать место',
+			'place_name' => 'Название места',
+			'cancel' => 'Отмена',
+			'create' => 'Создать',
+			'no_users_assigned' => 'Нет назначенных пользователей',
+			'add_place' => 'Добавить место',
+			'add' => 'Добавить',
+			'edit_place' => 'Редактировать место',
+			'save' => 'Сохранить',
+			'edit_assignments' => 'Редактировать назначения',
+			'no_places_yet' => 'Пока нет мест.',
+			'delete_place' => 'Удалить место',
+			'waiting_for_userentity_homepage_was_built_without_a_loaded_user' => 'Ожидание пользователя... (Главная страница создана без загруженного пользователя)',
+			'home' => 'Главная',
+			'program' => 'Программа',
+			'no_program_entries_found_for_this_week' => 'Нет записей программы на эту неделю.',
+			'error_loading_program_placeholder' => 'Ошибка загрузки программы: {placeholder}',
+			'today' => 'Сегодня',
+			'your_next_catering_assignment' => 'Ваше следующее назначение по питанию:',
+			'no_upcoming_catering_assignment_found' => 'Нет предстоящих назначений по питанию.',
+			'catering_wird_geladen' => 'Питание загружается...',
+			'error_loading_catering' => 'Ошибка загрузки питания.',
+			'no_cleaning_assignments_found' => 'Нет назначений по уборке.',
+			'you_have_no_cleaning_assignment' => 'У вас нет назначений по уборке',
+			'your_cleaning_assignment' => 'Ваше назначение по уборке:',
+			'cleaning_assignments_are_loading' => 'Назначения по уборке загружаются...',
+			'error_loading_cleaning_data' => 'Ошибка загрузки данных по уборке.',
+			'this_email_is_already_registered' => 'Этот email уже зарегистрирован.',
+			'password_is_too_weak_please_use_at_least_6_characters' => 'Пароль слишком слабый. Пожалуйста, используйте не менее 6 символов.',
+			'please_enter_a_valid_email_address' => 'Пожалуйста, введите действительный email адрес.',
+			'registration_is_currently_disabled' => 'Регистрация в настоящее время отключена.',
+			'no_internet_connection_please_check_your_network_and_try_again' => 'Нет интернет-соединения. Проверьте сеть и попробуйте снова.',
+			'registration_failed' => 'Регистрация не удалась.',
+			'registration_failed_please_try_again' => 'Регистрация не удалась. Пожалуйста, попробуйте снова.',
+			'please_wait' => 'Пожалуйста, подождите...',
+			'already_have_an_account_login' => 'Уже есть аккаунт? Войти',
+			'don_t_have_an_account_register' => 'Нет аккаунта? Зарегистрироваться',
+			'first_name' => 'Имя',
+			'last_name' => 'Фамилия',
+			'email' => 'Email',
+			'password' => 'Пароль',
+			'hide_password' => 'Скрыть пароль',
+			'show_password' => 'Показать пароль',
+			'confirm_password' => 'Подтвердить пароль',
+			'select_place' => 'Выбрать место',
+			'clear_selection' => 'Очистить выбор',
+			'about' => 'О приложении',
+			'welcome_to_faunty_2_0' => 'Добро пожаловать в Faunty 2.0',
+			'faunty_is_your_modern_management_app_designed_to_simplify_daily_organization_and_communication_for_teams_communities_and_organizations_built_with_a_focus_on_usability_security_and_beautiful_design_faunty_helps_you_stay_connected_and_productive' => 'Faunty — это современное приложение для управления, созданное для упрощения ежедневной организации и коммуникации для команд, сообществ и организаций. С акцентом на удобство, безопасность и красивый дизайн Faunty помогает оставаться на связи и быть продуктивным.',
+			'features' => 'Функции',
+			'team_community_management' => 'Управление командой и сообществом',
+			'weekly_program_assignments' => 'Еженедельная программа и назначения',
+			'catering_cleaning_schedules' => 'Графики питания и уборки',
+			'secure_authentication' => 'Безопасная аутентификация',
+			'custom_notifications' => 'Пользовательские уведомления',
+			'responsive_mobile_friendly' => 'Адаптивный и мобильный интерфейс',
+			'about_the_project' => 'О проекте',
+			'faunty_2_0_is_built_with_flutter_and_firebase_ensuring_fast_performance_and_real_time_updates_our_mission_is_to_empower_users_with_tools_that_make_everyday_management_effortless_and_enjoyable' => 'Faunty 2.0 создан на Flutter и Firebase, обеспечивая высокую производительность и обновления в реальном времени. Наша миссия — дать пользователям инструменты для легкого и приятного управления каждый день.',
+			'thank_you_for_using_faunty' => 'Спасибо, что используете Faunty!',
+			'for_feedback_or_support_contact_us_at_talebelergfc_gmail_com' => 'Для обратной связи или поддержки пишите на talebelergfc@gmail.com',
+			'account' => 'Аккаунт',
+			'no_user_is_currently_signed_in' => 'В настоящее время никто не вошел в систему.',
+			'account_details' => 'Детали аккаунта',
+			'change_password' => 'Сменить пароль',
+			'new_password' => 'Новый пароль',
+			'save_password' => 'Сохранить пароль',
+			'please_enter_a_new_password' => 'Пожалуйста, введите новый пароль.',
+			'password_changed_successfully' => 'Пароль успешно изменен!',
+			're_authentication_required' => 'Требуется повторная аутентификация',
+			'for_security_reasons_please_log_in_again_to_change_your_password_you_will_be_redirected_to_the_login_screen' => 'По соображениям безопасности войдите снова, чтобы изменить пароль. Вы будете перенаправлены на экран входа.',
+			'created' => 'Создано',
+			'last_sign_in' => 'Последний вход',
+			'users' => 'Пользователи',
+			'active' => 'Активный',
+			'statistics' => 'Статистика',
+			'backup_and_restore' => 'Резервное копирование и восстановление',
+			'settings' => 'Настройки',
+			'no_user_loaded' => 'Пользователь не загружен.',
+			'edit_name' => 'Редактировать имя',
+			'failed_to_update_name' => 'Не удалось обновить имя: ',
+			'organisation' => 'Организация',
+			'save_as_template' => 'Сохранить как шаблон',
+			'select_template_to_override' => 'Выберите шаблон для перезаписи',
+			'template_name' => 'Название шаблона',
+			'kOverride' => 'Перезаписать',
+			'select_a_template' => 'Выберите шаблон',
+			'no_templates_found' => 'Шаблоны не найдены',
+			'delete_template' => 'Удалить шаблон',
+			'close' => 'Закрыть',
+			'add_new_event' => 'Добавить новое событие',
+			'edit_event' => 'Редактировать событие',
+			'select_start_time' => 'Выбрать время начала',
+			'select_end_time' => 'Выбрать время окончания',
+			'save_and_go_back' => 'Сохранить и вернуться',
+			'no_program_entries_for_this_week' => 'Нет записей программы на эту неделю!',
+			'tap_the_edit_button_below_to_add_a_program_for_the_week' => 'Нажмите кнопку редактирования ниже, чтобы добавить программу на неделю.',
+			'edit_program' => 'Редактировать программу',
+			'i_sincerely_apologize_but_you_can_not_have_more_debt' => 'Я искренне извиняюсь, но у вас не может быть больше долга.',
+			'bro_pay_your_debt_first' => 'Бро, сначала погаси свой долг.',
+			'kantin' => 'Кантин',
+			'a_positive_value_means_you_owe_money_a_negative_value_means_you_have_credit' => 'Положительное значение означает, что вы должны деньги. Отрицательное значение — у вас есть кредит.',
+			'enter_amount' => 'Введите сумму',
+			'other_users' => 'Другие пользователи',
+			'no_other_users_found' => 'Другие пользователи не найдены',
+			'debt' => 'Долг',
+			'paypal' => 'PayPal',
+			'did_you_pay' => 'Вы заплатили ',
+			'via_paypal' => ' € через PayPal?',
+			'yes' => 'Да',
+			'reset_debt' => 'Сбросить долг',
+			'are_you_sure_you_want_to_reset_your_debt_to_0' => 'Вы уверены, что хотите сбросить свой долг до 0?',
+			'confirm' => 'Подтвердить',
+			'debt_reset' => 'Долг сброшен!',
+			'system' => 'Система',
+			'light' => 'Светлая',
+			'dark' => 'Тёмная',
+			'theme' => 'Тема',
+			'breakfast' => 'Завтрак',
+			'lunch' => 'Обед',
+			'dinner' => 'Ужин',
+			'montag' => 'Понедельник',
+			'dienstag' => 'Вторник',
+			'mittwoch' => 'Среда',
+			'donnerstag' => 'Четверг',
+			'freitag' => 'Пятница',
+			'samstag' => 'Суббота',
+			'sonntag' => 'Воскресенье',
+			'credit' => 'баланс',
+			'set_debt' => 'Установить долг',
+			'debt_amount' => 'Сумма долга',
+			'set' => 'Установить',
+			'choose_app_language' => 'Выберите язык приложения.',
+			'load_template' => 'Загрузить шаблон',
+			'title' => 'Заголовок',
+			'communication' => 'Связь',
+			'tracking' => 'Отслеживание',
+			'lists' => 'Списки',
+			'edit_test_notification_message' => 'Редактировать тестовое сообщение уведомления',
+			'body' => 'Тело',
+			'saved' => 'Сохранено',
+			'saved_fcm_tokens' => 'Сохраненные FCM-токены',
+			'check_notification_permission' => 'Проверить разрешение на уведомления',
+			'notification_permission_checked' => 'Разрешение на уведомления проверено',
+			'refresh_tokens' => 'Обновить токены',
+			'refreshed_tokens' => 'Токены обновлены',
+			'no_token_fetched' => 'Токен не получен',
+			'no_tokens_found' => 'Токены не найдены',
+			'loading' => 'Загрузка...',
+			'copy_all_tokens_for_user' => 'Копировать все токены для пользователя',
+			'all_tokens_copied' => 'Все токены скопированы',
+			'copy_token' => 'Копировать токен',
+			'token_copied' => 'Токен скопирован',
+			'send_test_notification' => 'Отправить тестовое уведомление',
+			'test_notification_sent' => 'Тестовое уведомление отправлено',
+			'delete_token' => 'Удалить токен?',
+			'are_you_sure_you_want_to_delete_this_fcm_token' => 'Вы уверены, что хотите удалить этот FCM-токен?',
+			'delete' => 'Удалить',
+			'token_deleted' => 'Токен удален',
+			'dismiss' => 'Отклонить',
+			'notification_opened' => 'Уведомление открыто',
+			'open' => 'Открыть',
+			'show_saved_fcm_tokens' => 'Показать сохраненные FCM-токены',
+			'tools' => 'Инструменты',
+			'under_construction' => 'В разработке',
+			'feedback' => 'Обратная связь',
+			'ui_test_page' => 'Страница тестирования UI',
+			'debug_only' => 'Только отладка',
+			'this_page_is_only_visible_in_debug_mode' => 'Эта страница видна только в режиме отладки.',
+			'show_column_headers' => 'Показать заголовки столбцов',
+			'left' => 'Лево',
+			'right' => 'Право',
+			'create_user' => 'Создать пользователя',
+			'user_created_successfully_they_can_now_register_with_this_email' => 'Пользователь успешно создан. Теперь они могут зарегистрироваться с этим email.',
+			'failed_to_create_user' => 'Не удалось создать пользователя: ',
+			'create_new_user' => 'Создать нового пользователя',
+			'please_enter_an_email' => 'Пожалуйста, введите email',
+			'please_enter_a_valid_email' => 'Пожалуйста, введите действительный email',
+			'please_enter_first_name' => 'Пожалуйста, введите имя',
+			'please_enter_last_name' => 'Пожалуйста, введите фамилию',
+			'role' => 'Роль',
+			'note_the_user_will_be_created_as_a_placeholder_they_can_register_using_this_email_address_does_not_have_to_exist_necessarily_and_their_account_will_be_linked_automatically' => 'Примечание: Пользователь будет создан как плейсхолдер. Они могут зарегистрироваться, используя этот email адрес (он не обязательно должен существовать), и их аккаунт будет автоматически связан.',
+			'remove_tracking_item' => 'Удалить элемент отслеживания',
+			'remove' => 'Удалить',
+			'manage_tracking_items' => 'Управлять элементами отслеживания',
+			'add_new_item' => 'Добавить новый элемент',
+			'attendance' => 'Посещаемость',
+			'manage' => 'Управлять',
+			'use_dropdown' => 'Использовать выпадающий список',
+			'use_tabs' => 'Использовать вкладки',
+			'no_tracking_items_have_been_configured_yet' => 'Элементы отслеживания еще не настроены.',
+			'ask_a_manager_to_add_tracking_items_or_add_them_yourself' => 'Попросите менеджера добавить элементы отслеживания или добавьте их сами.',
+			_ => null,
+		};
 	}
 }
-

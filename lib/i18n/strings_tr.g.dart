@@ -3,6 +3,7 @@
 ///
 // coverage:ignore-file
 // ignore_for_file: type=lint, unused_import
+// dart format off
 
 import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
@@ -10,7 +11,7 @@ import 'package:slang/generated.dart';
 import 'strings.g.dart';
 
 // Path: <root>
-class TranslationsTr implements Translations {
+class TranslationsTr with BaseTranslations<AppLocale, Translations> implements Translations {
 	/// You can call this constructor and build your own translation instance of this locale.
 	/// Constructing via the enum [AppLocale.build] is preferred.
 	TranslationsTr({Map<String, Node>? overrides, PluralResolver? cardinalResolver, PluralResolver? ordinalResolver, TranslationMetadata<AppLocale, Translations>? meta})
@@ -263,238 +264,240 @@ class TranslationsTr implements Translations {
 	@override String get ask_a_manager_to_add_tracking_items_or_add_them_yourself => 'Bir yöneticiye takip öğeleri eklemesini sorun veya kendiniz ekleyin.';
 }
 
-/// Flat map(s) containing all translations.
+/// The flat map containing all translations for locale <tr>.
 /// Only for edge cases! For simple maps, use the map function of this library.
+///
+/// The Dart AOT compiler has issues with very large switch statements,
+/// so the map is split into smaller functions (512 entries each).
 extension on TranslationsTr {
 	dynamic _flatMapFunction(String path) {
-		switch (path) {
-			case 'more': return 'Daha';
-			case 'mo': return 'Pzt';
-			case 'tue': return 'Sal';
-			case 'wed': return 'Çar';
-			case 'thu': return 'Per';
-			case 'fr': return 'Cum';
-			case 'sat': return 'Cmt';
-			case 'sun': return 'Paz';
-			case 'registration_mode': return 'Kayıt Modu';
-			case 'inactive': return 'Aktif Değil';
-			case 'enable_or_disable_registration': return 'Kaydı etkinleştir veya devre dışı bırak';
-			case 'language': return 'Dil';
-			case 'help': return 'Yardım';
-			case 'faunty': return 'Faunty';
-			case 'register': return 'Kayıt Ol';
-			case 'login': return 'Giriş Yap';
-			case 'monday': return 'Pazartesi';
-			case 'tuesday': return 'Salı';
-			case 'wednesday': return 'Çarşamba';
-			case 'thursday': return 'Perşembe';
-			case 'friday': return 'Cuma';
-			case 'saturday': return 'Cumartesi';
-			case 'sunday': return 'Pazar';
-			case 'catering': return 'Yemekcilik';
-			case 'no_catering_assignments_yet': return 'Henüz yemekcilik görevlendirmesi yok!';
-			case 'tap_the_edit_button_below_to_assign_users_to_meals_for_the_week': return 'Hafta için kullanıcılara yemekcilik görevi atamak için aşağıdaki düzenle düğmesine dokunun.';
-			case 'edit': return 'Düzenle';
-			case 'cleaning': return 'Temizlik';
-			case 'place': return 'Yer';
-			case 'assignees': return 'Atananlar';
-			case 'no_cleaning_places_yet': return 'Henüz temizlik yeri yok!';
-			case 'no_users_assigned_to_any_places': return 'Hiçbir yere kullanıcı atanmadı.';
-			case 'tap_below_to_create_your_first_place_and_start_assigning_users': return 'İlk yerinizi oluşturmak ve kullanıcılara atama yapmak için aşağıya dokunun.';
-			case 'assign_users_to_your_existing_places_using_the_action_button_below': return 'Mevcut yerlerinize kullanıcı atamak için aşağıdaki işlem düğmesini kullanın.';
-			case 'create_place': return 'Yer Oluştur';
-			case 'place_name': return 'Yer adı';
-			case 'cancel': return 'İptal';
-			case 'create': return 'Oluştur';
-			case 'no_users_assigned': return 'Atanan kullanıcı yok';
-			case 'add_place': return 'Yer Ekle';
-			case 'add': return 'Ekle';
-			case 'edit_place': return 'Yeri Düzenle';
-			case 'save': return 'Kaydet';
-			case 'edit_assignments': return 'Atamaları Düzenle';
-			case 'no_places_yet': return 'Henüz yer yok.';
-			case 'delete_place': return 'Yeri Sil';
-			case 'waiting_for_userentity_homepage_was_built_without_a_loaded_user': return 'Kullanıcı yüklenmeden ana sayfa oluşturuldu... Kullanıcı bekleniyor.';
-			case 'home': return 'Ana Sayfa';
-			case 'program': return 'Program';
-			case 'no_program_entries_found_for_this_week': return 'Bu hafta için program girişi bulunamadı.';
-			case 'error_loading_program_placeholder': return 'Program yüklenirken hata: {placeholder}';
-			case 'today': return 'Bugün';
-			case 'your_next_catering_assignment': return 'Bir sonraki yemekcilik göreviniz:';
-			case 'no_upcoming_catering_assignment_found': return 'Yaklaşan yemekcilik görevi bulunamadı.';
-			case 'catering_wird_geladen': return 'Yemekcilik yükleniyor...';
-			case 'error_loading_catering': return 'Yemekcilik yüklenirken hata.';
-			case 'no_cleaning_assignments_found': return 'Temizlik görevi bulunamadı.';
-			case 'you_have_no_cleaning_assignment': return 'Temizlik göreviniz yok';
-			case 'your_cleaning_assignment': return 'Temizlik göreviniz:';
-			case 'cleaning_assignments_are_loading': return 'Temizlik görevleri yükleniyor...';
-			case 'error_loading_cleaning_data': return 'Temizlik verisi yüklenirken hata.';
-			case 'this_email_is_already_registered': return 'Bu e-posta zaten kayıtlı.';
-			case 'password_is_too_weak_please_use_at_least_6_characters': return 'Şifre çok zayıf. Lütfen en az 6 karakter kullanın.';
-			case 'please_enter_a_valid_email_address': return 'Lütfen geçerli bir e-posta adresi girin.';
-			case 'registration_is_currently_disabled': return 'Kayıt şu anda devre dışı.';
-			case 'no_internet_connection_please_check_your_network_and_try_again': return 'İnternet bağlantısı yok. Lütfen ağınızı kontrol edin ve tekrar deneyin.';
-			case 'registration_failed': return 'Kayıt başarısız.';
-			case 'registration_failed_please_try_again': return 'Kayıt başarısız. Lütfen tekrar deneyin.';
-			case 'please_wait': return 'Lütfen bekleyin...';
-			case 'already_have_an_account_login': return 'Zaten hesabınız var mı? Giriş yapın';
-			case 'don_t_have_an_account_register': return 'Hesabınız yok mu? Kayıt olun';
-			case 'first_name': return 'Ad';
-			case 'last_name': return 'Soyad';
-			case 'email': return 'E-posta';
-			case 'password': return 'Şifre';
-			case 'hide_password': return 'Şifreyi gizle';
-			case 'show_password': return 'Şifreyi göster';
-			case 'confirm_password': return 'Şifreyi Onayla';
-			case 'select_place': return 'Yer Seç';
-			case 'clear_selection': return 'Seçimi temizle';
-			case 'about': return 'Hakkında';
-			case 'welcome_to_faunty_2_0': return 'Faunty 2.0\'a hoş geldiniz';
-			case 'faunty_is_your_modern_management_app_designed_to_simplify_daily_organization_and_communication_for_teams_communities_and_organizations_built_with_a_focus_on_usability_security_and_beautiful_design_faunty_helps_you_stay_connected_and_productive': return 'Faunty, günlük organizasyon ve iletişimi kolaylaştırmak için tasarlanmış modern bir yönetim uygulamasıdır. Kullanılabilirlik, güvenlik ve güzel tasarım odaklı olarak geliştirilen Faunty, bağlı ve üretken kalmanıza yardımcı olur.';
-			case 'features': return 'Özellikler';
-			case 'team_community_management': return 'Takım & Topluluk Yönetimi';
-			case 'weekly_program_assignments': return 'Haftalık Program & Görevler';
-			case 'catering_cleaning_schedules': return 'Yemekcilik & Temizlik Takvimleri';
-			case 'secure_authentication': return 'Güvenli Kimlik Doğrulama';
-			case 'custom_notifications': return 'Özel Bildirimler';
-			case 'responsive_mobile_friendly': return 'Duyarlı & Mobil Uyumlu';
-			case 'about_the_project': return 'Proje Hakkında';
-			case 'faunty_2_0_is_built_with_flutter_and_firebase_ensuring_fast_performance_and_real_time_updates_our_mission_is_to_empower_users_with_tools_that_make_everyday_management_effortless_and_enjoyable': return 'Faunty 2.0, hızlı performans ve gerçek zamanlı güncellemeler sağlayan Flutter ve Firebase ile geliştirilmiştir. Amacımız, günlük yönetimi zahmetsiz ve keyifli hale getiren araçlarla kullanıcıları güçlendirmektir.';
-			case 'thank_you_for_using_faunty': return 'Faunty kullandığınız için teşekkürler!';
-			case 'for_feedback_or_support_contact_us_at_talebelergfc_gmail_com': return 'Geri bildirim veya destek için talebelergfc@gmail.com adresinden bize ulaşın.';
-			case 'account': return 'Hesap';
-			case 'no_user_is_currently_signed_in': return 'Şu anda oturum açmış kullanıcı yok.';
-			case 'account_details': return 'Hesap Detayları';
-			case 'change_password': return 'Şifreyi Değiştir';
-			case 'new_password': return 'Yeni Şifre';
-			case 'save_password': return 'Şifreyi Kaydet';
-			case 'please_enter_a_new_password': return 'Lütfen yeni bir şifre girin.';
-			case 'password_changed_successfully': return 'Şifre başarıyla değiştirildi!';
-			case 're_authentication_required': return 'Yeniden Kimlik Doğrulama Gerekli';
-			case 'for_security_reasons_please_log_in_again_to_change_your_password_you_will_be_redirected_to_the_login_screen': return 'Güvenlik nedeniyle, şifrenizi değiştirmek için tekrar giriş yapmanız gerekmektedir. Giriş ekranına yönlendirileceksiniz.';
-			case 'created': return 'Oluşturuldu';
-			case 'last_sign_in': return 'Son Giriş';
-			case 'users': return 'Kullanıcılar';
-			case 'active': return 'Aktif';
-			case 'statistics': return 'İstatistikler';
-			case 'backup_and_restore': return 'Yedekleme ve geri yükleme';
-			case 'settings': return 'Ayarlar';
-			case 'no_user_loaded': return 'Kullanıcı yüklenmedi.';
-			case 'edit_name': return 'Adı Düzenle';
-			case 'failed_to_update_name': return 'Ad güncellenemedi: ';
-			case 'organisation': return 'Organizasyon';
-			case 'save_as_template': return 'Şablon olarak kaydet';
-			case 'select_template_to_override': return 'Üzerine yazılacak şablonu seçin';
-			case 'template_name': return 'Şablon adı';
-			case 'kOverride': return 'Üzerine yaz';
-			case 'select_a_template': return 'Şablon seç';
-			case 'no_templates_found': return 'Şablon bulunamadı';
-			case 'delete_template': return 'Şablonu sil';
-			case 'close': return 'Kapat';
-			case 'add_new_event': return 'Yeni etkinlik ekle';
-			case 'edit_event': return 'Etkinliği düzenle';
-			case 'select_start_time': return 'Başlangıç saatini seç';
-			case 'select_end_time': return 'Bitiş saatini seç';
-			case 'save_and_go_back': return 'Kaydet ve geri dön';
-			case 'no_program_entries_for_this_week': return 'Bu hafta için program girişi yok!';
-			case 'tap_the_edit_button_below_to_add_a_program_for_the_week': return 'Hafta için program eklemek için aşağıdaki düzenle düğmesine dokunun.';
-			case 'edit_program': return 'Programı düzenle';
-			case 'i_sincerely_apologize_but_you_can_not_have_more_debt': return 'Gerçekten özür dilerim ama daha fazla borcun olamaz.';
-			case 'bro_pay_your_debt_first': return 'Kanka önce borcunu öde.';
-			case 'kantin': return 'Kantin';
-			case 'a_positive_value_means_you_owe_money_a_negative_value_means_you_have_credit': return 'Pozitif değer borcun olduğunu, negatif değer alacağın olduğunu gösterir.';
-			case 'enter_amount': return 'Tutar gir';
-			case 'other_users': return 'Diğer kullanıcılar';
-			case 'no_other_users_found': return 'Başka kullanıcı bulunamadı';
-			case 'debt': return 'Borç';
-			case 'paypal': return 'PayPal';
-			case 'did_you_pay': return 'Ödedin mi ';
-			case 'via_paypal': return ' € PayPal ile?';
-			case 'yes': return 'Evet';
-			case 'reset_debt': return 'Borcu sıfırla';
-			case 'are_you_sure_you_want_to_reset_your_debt_to_0': return 'Borcu sıfırlamak istediğine emin misin?';
-			case 'confirm': return 'Onayla';
-			case 'debt_reset': return 'Borç sıfırlandı!';
-			case 'system': return 'Sistem';
-			case 'light': return 'Açık';
-			case 'dark': return 'Koyu';
-			case 'theme': return 'Tema';
-			case 'breakfast': return 'Kahvaltı';
-			case 'lunch': return 'Öğle Yemeği';
-			case 'dinner': return 'Akşam Yemeği';
-			case 'montag': return 'Pazartesi';
-			case 'dienstag': return 'Salı';
-			case 'mittwoch': return 'Çarşamba';
-			case 'donnerstag': return 'Perşembe';
-			case 'freitag': return 'Cuma';
-			case 'samstag': return 'Cumartesi';
-			case 'sonntag': return 'Pazar';
-			case 'credit': return 'Bakiye';
-			case 'set_debt': return 'Borç ayarla';
-			case 'debt_amount': return 'Borç miktarı';
-			case 'set': return 'Ayarla';
-			case 'choose_app_language': return 'Uygulama dilini seçin.';
-			case 'load_template': return 'Şablon yükle';
-			case 'title': return 'Başlık';
-			case 'communication': return 'İletişim';
-			case 'tracking': return 'Takip';
-			case 'lists': return 'Listeler';
-			case 'edit_test_notification_message': return 'Test bildirim mesajını düzenle';
-			case 'body': return 'Gövde';
-			case 'saved': return 'Kaydedildi';
-			case 'saved_fcm_tokens': return 'Kaydedilmiş FCM tokenları';
-			case 'check_notification_permission': return 'Bildirim iznini kontrol et';
-			case 'notification_permission_checked': return 'Bildirim izni kontrol edildi';
-			case 'refresh_tokens': return 'Tokenları yenile';
-			case 'refreshed_tokens': return 'Tokenlar yenilendi';
-			case 'no_token_fetched': return 'Token alınmadı';
-			case 'no_tokens_found': return 'Token bulunamadı';
-			case 'loading': return 'Yükleniyor...';
-			case 'copy_all_tokens_for_user': return 'Kullanıcı için tüm tokenları kopyala';
-			case 'all_tokens_copied': return 'Tüm tokenlar kopyalandı';
-			case 'copy_token': return 'Token kopyala';
-			case 'token_copied': return 'Token kopyalandı';
-			case 'send_test_notification': return 'Test bildirimi gönder';
-			case 'test_notification_sent': return 'Test bildirimi gönderildi';
-			case 'delete_token': return 'Token sil?';
-			case 'are_you_sure_you_want_to_delete_this_fcm_token': return 'Bu FCM tokenını silmek istediğinizden emin misiniz?';
-			case 'delete': return 'Sil';
-			case 'token_deleted': return 'Token silindi';
-			case 'dismiss': return 'Kapat';
-			case 'notification_opened': return 'Bildirim açıldı';
-			case 'open': return 'Aç';
-			case 'show_saved_fcm_tokens': return 'Kaydedilmiş FCM tokenlarını göster';
-			case 'tools': return 'Araçlar';
-			case 'under_construction': return 'Yapım Aşamasında';
-			case 'feedback': return 'Geri Bildirim';
-			case 'ui_test_page': return 'UI Test Sayfası';
-			case 'debug_only': return 'Sadece debug';
-			case 'this_page_is_only_visible_in_debug_mode': return 'Bu sayfa sadece debug modunda görünür.';
-			case 'show_column_headers': return 'Sütun başlıklarını göster';
-			case 'left': return 'Sol';
-			case 'right': return 'Sağ';
-			case 'create_user': return 'Kullanıcı Oluştur';
-			case 'user_created_successfully_they_can_now_register_with_this_email': return 'Kullanıcı başarıyla oluşturuldu. Artık bu e-posta ile kayıt olabilir.';
-			case 'failed_to_create_user': return 'Kullanıcı oluşturulamadı: ';
-			case 'create_new_user': return 'Yeni Kullanıcı Oluştur';
-			case 'please_enter_an_email': return 'Lütfen bir e-posta girin';
-			case 'please_enter_a_valid_email': return 'Lütfen geçerli bir e-posta girin';
-			case 'please_enter_first_name': return 'Lütfen ad girin';
-			case 'please_enter_last_name': return 'Lütfen soyad girin';
-			case 'role': return 'Rol';
-			case 'note_the_user_will_be_created_as_a_placeholder_they_can_register_using_this_email_address_does_not_have_to_exist_necessarily_and_their_account_will_be_linked_automatically': return 'Not: Kullanıcı yer tutucu olarak oluşturulacak. Bu e-posta adresini kullanarak kayıt olabilir (mutlaka mevcut olması gerekmez), ve hesapları otomatik olarak bağlanacak.';
-			case 'remove_tracking_item': return 'Takip öğesini kaldır';
-			case 'remove': return 'Kaldır';
-			case 'manage_tracking_items': return 'Takip öğelerini yönet';
-			case 'add_new_item': return 'Yeni öğe ekle';
-			case 'attendance': return 'Katılım';
-			case 'manage': return 'Yönet';
-			case 'use_dropdown': return 'Açılır menü kullan';
-			case 'use_tabs': return 'Sekmeler kullan';
-			case 'no_tracking_items_have_been_configured_yet': return 'Henüz takip öğeleri yapılandırılmadı.';
-			case 'ask_a_manager_to_add_tracking_items_or_add_them_yourself': return 'Bir yöneticiye takip öğeleri eklemesini sorun veya kendiniz ekleyin.';
-			default: return null;
-		}
+		return switch (path) {
+			'more' => 'Daha',
+			'mo' => 'Pzt',
+			'tue' => 'Sal',
+			'wed' => 'Çar',
+			'thu' => 'Per',
+			'fr' => 'Cum',
+			'sat' => 'Cmt',
+			'sun' => 'Paz',
+			'registration_mode' => 'Kayıt Modu',
+			'inactive' => 'Aktif Değil',
+			'enable_or_disable_registration' => 'Kaydı etkinleştir veya devre dışı bırak',
+			'language' => 'Dil',
+			'help' => 'Yardım',
+			'faunty' => 'Faunty',
+			'register' => 'Kayıt Ol',
+			'login' => 'Giriş Yap',
+			'monday' => 'Pazartesi',
+			'tuesday' => 'Salı',
+			'wednesday' => 'Çarşamba',
+			'thursday' => 'Perşembe',
+			'friday' => 'Cuma',
+			'saturday' => 'Cumartesi',
+			'sunday' => 'Pazar',
+			'catering' => 'Yemekcilik',
+			'no_catering_assignments_yet' => 'Henüz yemekcilik görevlendirmesi yok!',
+			'tap_the_edit_button_below_to_assign_users_to_meals_for_the_week' => 'Hafta için kullanıcılara yemekcilik görevi atamak için aşağıdaki düzenle düğmesine dokunun.',
+			'edit' => 'Düzenle',
+			'cleaning' => 'Temizlik',
+			'place' => 'Yer',
+			'assignees' => 'Atananlar',
+			'no_cleaning_places_yet' => 'Henüz temizlik yeri yok!',
+			'no_users_assigned_to_any_places' => 'Hiçbir yere kullanıcı atanmadı.',
+			'tap_below_to_create_your_first_place_and_start_assigning_users' => 'İlk yerinizi oluşturmak ve kullanıcılara atama yapmak için aşağıya dokunun.',
+			'assign_users_to_your_existing_places_using_the_action_button_below' => 'Mevcut yerlerinize kullanıcı atamak için aşağıdaki işlem düğmesini kullanın.',
+			'create_place' => 'Yer Oluştur',
+			'place_name' => 'Yer adı',
+			'cancel' => 'İptal',
+			'create' => 'Oluştur',
+			'no_users_assigned' => 'Atanan kullanıcı yok',
+			'add_place' => 'Yer Ekle',
+			'add' => 'Ekle',
+			'edit_place' => 'Yeri Düzenle',
+			'save' => 'Kaydet',
+			'edit_assignments' => 'Atamaları Düzenle',
+			'no_places_yet' => 'Henüz yer yok.',
+			'delete_place' => 'Yeri Sil',
+			'waiting_for_userentity_homepage_was_built_without_a_loaded_user' => 'Kullanıcı yüklenmeden ana sayfa oluşturuldu... Kullanıcı bekleniyor.',
+			'home' => 'Ana Sayfa',
+			'program' => 'Program',
+			'no_program_entries_found_for_this_week' => 'Bu hafta için program girişi bulunamadı.',
+			'error_loading_program_placeholder' => 'Program yüklenirken hata: {placeholder}',
+			'today' => 'Bugün',
+			'your_next_catering_assignment' => 'Bir sonraki yemekcilik göreviniz:',
+			'no_upcoming_catering_assignment_found' => 'Yaklaşan yemekcilik görevi bulunamadı.',
+			'catering_wird_geladen' => 'Yemekcilik yükleniyor...',
+			'error_loading_catering' => 'Yemekcilik yüklenirken hata.',
+			'no_cleaning_assignments_found' => 'Temizlik görevi bulunamadı.',
+			'you_have_no_cleaning_assignment' => 'Temizlik göreviniz yok',
+			'your_cleaning_assignment' => 'Temizlik göreviniz:',
+			'cleaning_assignments_are_loading' => 'Temizlik görevleri yükleniyor...',
+			'error_loading_cleaning_data' => 'Temizlik verisi yüklenirken hata.',
+			'this_email_is_already_registered' => 'Bu e-posta zaten kayıtlı.',
+			'password_is_too_weak_please_use_at_least_6_characters' => 'Şifre çok zayıf. Lütfen en az 6 karakter kullanın.',
+			'please_enter_a_valid_email_address' => 'Lütfen geçerli bir e-posta adresi girin.',
+			'registration_is_currently_disabled' => 'Kayıt şu anda devre dışı.',
+			'no_internet_connection_please_check_your_network_and_try_again' => 'İnternet bağlantısı yok. Lütfen ağınızı kontrol edin ve tekrar deneyin.',
+			'registration_failed' => 'Kayıt başarısız.',
+			'registration_failed_please_try_again' => 'Kayıt başarısız. Lütfen tekrar deneyin.',
+			'please_wait' => 'Lütfen bekleyin...',
+			'already_have_an_account_login' => 'Zaten hesabınız var mı? Giriş yapın',
+			'don_t_have_an_account_register' => 'Hesabınız yok mu? Kayıt olun',
+			'first_name' => 'Ad',
+			'last_name' => 'Soyad',
+			'email' => 'E-posta',
+			'password' => 'Şifre',
+			'hide_password' => 'Şifreyi gizle',
+			'show_password' => 'Şifreyi göster',
+			'confirm_password' => 'Şifreyi Onayla',
+			'select_place' => 'Yer Seç',
+			'clear_selection' => 'Seçimi temizle',
+			'about' => 'Hakkında',
+			'welcome_to_faunty_2_0' => 'Faunty 2.0\'a hoş geldiniz',
+			'faunty_is_your_modern_management_app_designed_to_simplify_daily_organization_and_communication_for_teams_communities_and_organizations_built_with_a_focus_on_usability_security_and_beautiful_design_faunty_helps_you_stay_connected_and_productive' => 'Faunty, günlük organizasyon ve iletişimi kolaylaştırmak için tasarlanmış modern bir yönetim uygulamasıdır. Kullanılabilirlik, güvenlik ve güzel tasarım odaklı olarak geliştirilen Faunty, bağlı ve üretken kalmanıza yardımcı olur.',
+			'features' => 'Özellikler',
+			'team_community_management' => 'Takım & Topluluk Yönetimi',
+			'weekly_program_assignments' => 'Haftalık Program & Görevler',
+			'catering_cleaning_schedules' => 'Yemekcilik & Temizlik Takvimleri',
+			'secure_authentication' => 'Güvenli Kimlik Doğrulama',
+			'custom_notifications' => 'Özel Bildirimler',
+			'responsive_mobile_friendly' => 'Duyarlı & Mobil Uyumlu',
+			'about_the_project' => 'Proje Hakkında',
+			'faunty_2_0_is_built_with_flutter_and_firebase_ensuring_fast_performance_and_real_time_updates_our_mission_is_to_empower_users_with_tools_that_make_everyday_management_effortless_and_enjoyable' => 'Faunty 2.0, hızlı performans ve gerçek zamanlı güncellemeler sağlayan Flutter ve Firebase ile geliştirilmiştir. Amacımız, günlük yönetimi zahmetsiz ve keyifli hale getiren araçlarla kullanıcıları güçlendirmektir.',
+			'thank_you_for_using_faunty' => 'Faunty kullandığınız için teşekkürler!',
+			'for_feedback_or_support_contact_us_at_talebelergfc_gmail_com' => 'Geri bildirim veya destek için talebelergfc@gmail.com adresinden bize ulaşın.',
+			'account' => 'Hesap',
+			'no_user_is_currently_signed_in' => 'Şu anda oturum açmış kullanıcı yok.',
+			'account_details' => 'Hesap Detayları',
+			'change_password' => 'Şifreyi Değiştir',
+			'new_password' => 'Yeni Şifre',
+			'save_password' => 'Şifreyi Kaydet',
+			'please_enter_a_new_password' => 'Lütfen yeni bir şifre girin.',
+			'password_changed_successfully' => 'Şifre başarıyla değiştirildi!',
+			're_authentication_required' => 'Yeniden Kimlik Doğrulama Gerekli',
+			'for_security_reasons_please_log_in_again_to_change_your_password_you_will_be_redirected_to_the_login_screen' => 'Güvenlik nedeniyle, şifrenizi değiştirmek için tekrar giriş yapmanız gerekmektedir. Giriş ekranına yönlendirileceksiniz.',
+			'created' => 'Oluşturuldu',
+			'last_sign_in' => 'Son Giriş',
+			'users' => 'Kullanıcılar',
+			'active' => 'Aktif',
+			'statistics' => 'İstatistikler',
+			'backup_and_restore' => 'Yedekleme ve geri yükleme',
+			'settings' => 'Ayarlar',
+			'no_user_loaded' => 'Kullanıcı yüklenmedi.',
+			'edit_name' => 'Adı Düzenle',
+			'failed_to_update_name' => 'Ad güncellenemedi: ',
+			'organisation' => 'Organizasyon',
+			'save_as_template' => 'Şablon olarak kaydet',
+			'select_template_to_override' => 'Üzerine yazılacak şablonu seçin',
+			'template_name' => 'Şablon adı',
+			'kOverride' => 'Üzerine yaz',
+			'select_a_template' => 'Şablon seç',
+			'no_templates_found' => 'Şablon bulunamadı',
+			'delete_template' => 'Şablonu sil',
+			'close' => 'Kapat',
+			'add_new_event' => 'Yeni etkinlik ekle',
+			'edit_event' => 'Etkinliği düzenle',
+			'select_start_time' => 'Başlangıç saatini seç',
+			'select_end_time' => 'Bitiş saatini seç',
+			'save_and_go_back' => 'Kaydet ve geri dön',
+			'no_program_entries_for_this_week' => 'Bu hafta için program girişi yok!',
+			'tap_the_edit_button_below_to_add_a_program_for_the_week' => 'Hafta için program eklemek için aşağıdaki düzenle düğmesine dokunun.',
+			'edit_program' => 'Programı düzenle',
+			'i_sincerely_apologize_but_you_can_not_have_more_debt' => 'Gerçekten özür dilerim ama daha fazla borcun olamaz.',
+			'bro_pay_your_debt_first' => 'Kanka önce borcunu öde.',
+			'kantin' => 'Kantin',
+			'a_positive_value_means_you_owe_money_a_negative_value_means_you_have_credit' => 'Pozitif değer borcun olduğunu, negatif değer alacağın olduğunu gösterir.',
+			'enter_amount' => 'Tutar gir',
+			'other_users' => 'Diğer kullanıcılar',
+			'no_other_users_found' => 'Başka kullanıcı bulunamadı',
+			'debt' => 'Borç',
+			'paypal' => 'PayPal',
+			'did_you_pay' => 'Ödedin mi ',
+			'via_paypal' => ' € PayPal ile?',
+			'yes' => 'Evet',
+			'reset_debt' => 'Borcu sıfırla',
+			'are_you_sure_you_want_to_reset_your_debt_to_0' => 'Borcu sıfırlamak istediğine emin misin?',
+			'confirm' => 'Onayla',
+			'debt_reset' => 'Borç sıfırlandı!',
+			'system' => 'Sistem',
+			'light' => 'Açık',
+			'dark' => 'Koyu',
+			'theme' => 'Tema',
+			'breakfast' => 'Kahvaltı',
+			'lunch' => 'Öğle Yemeği',
+			'dinner' => 'Akşam Yemeği',
+			'montag' => 'Pazartesi',
+			'dienstag' => 'Salı',
+			'mittwoch' => 'Çarşamba',
+			'donnerstag' => 'Perşembe',
+			'freitag' => 'Cuma',
+			'samstag' => 'Cumartesi',
+			'sonntag' => 'Pazar',
+			'credit' => 'Bakiye',
+			'set_debt' => 'Borç ayarla',
+			'debt_amount' => 'Borç miktarı',
+			'set' => 'Ayarla',
+			'choose_app_language' => 'Uygulama dilini seçin.',
+			'load_template' => 'Şablon yükle',
+			'title' => 'Başlık',
+			'communication' => 'İletişim',
+			'tracking' => 'Takip',
+			'lists' => 'Listeler',
+			'edit_test_notification_message' => 'Test bildirim mesajını düzenle',
+			'body' => 'Gövde',
+			'saved' => 'Kaydedildi',
+			'saved_fcm_tokens' => 'Kaydedilmiş FCM tokenları',
+			'check_notification_permission' => 'Bildirim iznini kontrol et',
+			'notification_permission_checked' => 'Bildirim izni kontrol edildi',
+			'refresh_tokens' => 'Tokenları yenile',
+			'refreshed_tokens' => 'Tokenlar yenilendi',
+			'no_token_fetched' => 'Token alınmadı',
+			'no_tokens_found' => 'Token bulunamadı',
+			'loading' => 'Yükleniyor...',
+			'copy_all_tokens_for_user' => 'Kullanıcı için tüm tokenları kopyala',
+			'all_tokens_copied' => 'Tüm tokenlar kopyalandı',
+			'copy_token' => 'Token kopyala',
+			'token_copied' => 'Token kopyalandı',
+			'send_test_notification' => 'Test bildirimi gönder',
+			'test_notification_sent' => 'Test bildirimi gönderildi',
+			'delete_token' => 'Token sil?',
+			'are_you_sure_you_want_to_delete_this_fcm_token' => 'Bu FCM tokenını silmek istediğinizden emin misiniz?',
+			'delete' => 'Sil',
+			'token_deleted' => 'Token silindi',
+			'dismiss' => 'Kapat',
+			'notification_opened' => 'Bildirim açıldı',
+			'open' => 'Aç',
+			'show_saved_fcm_tokens' => 'Kaydedilmiş FCM tokenlarını göster',
+			'tools' => 'Araçlar',
+			'under_construction' => 'Yapım Aşamasında',
+			'feedback' => 'Geri Bildirim',
+			'ui_test_page' => 'UI Test Sayfası',
+			'debug_only' => 'Sadece debug',
+			'this_page_is_only_visible_in_debug_mode' => 'Bu sayfa sadece debug modunda görünür.',
+			'show_column_headers' => 'Sütun başlıklarını göster',
+			'left' => 'Sol',
+			'right' => 'Sağ',
+			'create_user' => 'Kullanıcı Oluştur',
+			'user_created_successfully_they_can_now_register_with_this_email' => 'Kullanıcı başarıyla oluşturuldu. Artık bu e-posta ile kayıt olabilir.',
+			'failed_to_create_user' => 'Kullanıcı oluşturulamadı: ',
+			'create_new_user' => 'Yeni Kullanıcı Oluştur',
+			'please_enter_an_email' => 'Lütfen bir e-posta girin',
+			'please_enter_a_valid_email' => 'Lütfen geçerli bir e-posta girin',
+			'please_enter_first_name' => 'Lütfen ad girin',
+			'please_enter_last_name' => 'Lütfen soyad girin',
+			'role' => 'Rol',
+			'note_the_user_will_be_created_as_a_placeholder_they_can_register_using_this_email_address_does_not_have_to_exist_necessarily_and_their_account_will_be_linked_automatically' => 'Not: Kullanıcı yer tutucu olarak oluşturulacak. Bu e-posta adresini kullanarak kayıt olabilir (mutlaka mevcut olması gerekmez), ve hesapları otomatik olarak bağlanacak.',
+			'remove_tracking_item' => 'Takip öğesini kaldır',
+			'remove' => 'Kaldır',
+			'manage_tracking_items' => 'Takip öğelerini yönet',
+			'add_new_item' => 'Yeni öğe ekle',
+			'attendance' => 'Katılım',
+			'manage' => 'Yönet',
+			'use_dropdown' => 'Açılır menü kullan',
+			'use_tabs' => 'Sekmeler kullan',
+			'no_tracking_items_have_been_configured_yet' => 'Henüz takip öğeleri yapılandırılmadı.',
+			'ask_a_manager_to_add_tracking_items_or_add_them_yourself' => 'Bir yöneticiye takip öğeleri eklemesini sorun veya kendiniz ekleyin.',
+			_ => null,
+		};
 	}
 }
-

@@ -3,6 +3,7 @@
 ///
 // coverage:ignore-file
 // ignore_for_file: type=lint, unused_import
+// dart format off
 
 import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
@@ -10,7 +11,7 @@ import 'package:slang/generated.dart';
 import 'strings.g.dart';
 
 // Path: <root>
-class TranslationsDe implements Translations {
+class TranslationsDe with BaseTranslations<AppLocale, Translations> implements Translations {
 	/// You can call this constructor and build your own translation instance of this locale.
 	/// Constructing via the enum [AppLocale.build] is preferred.
 	TranslationsDe({Map<String, Node>? overrides, PluralResolver? cardinalResolver, PluralResolver? ordinalResolver, TranslationMetadata<AppLocale, Translations>? meta})
@@ -263,238 +264,240 @@ class TranslationsDe implements Translations {
 	@override String get ask_a_manager_to_add_tracking_items_or_add_them_yourself => 'Bitten Sie einen Manager, Tracking - Elemente hinzuzufügen, oder fügen Sie sie selbst hinzu.';
 }
 
-/// Flat map(s) containing all translations.
+/// The flat map containing all translations for locale <de>.
 /// Only for edge cases! For simple maps, use the map function of this library.
+///
+/// The Dart AOT compiler has issues with very large switch statements,
+/// so the map is split into smaller functions (512 entries each).
 extension on TranslationsDe {
 	dynamic _flatMapFunction(String path) {
-		switch (path) {
-			case 'more': return 'Mehr';
-			case 'mo': return 'Mo';
-			case 'tue': return 'Di';
-			case 'wed': return 'Mi';
-			case 'thu': return 'Do';
-			case 'fr': return 'Fr';
-			case 'sat': return 'Sa';
-			case 'sun': return 'So';
-			case 'registration_mode': return 'Registrierungsmodus';
-			case 'inactive': return 'Inaktiv';
-			case 'enable_or_disable_registration': return 'Registrierung aktivieren oder deaktivieren';
-			case 'language': return 'Sprache';
-			case 'help': return 'Hilfe';
-			case 'faunty': return 'Faunty';
-			case 'register': return 'Registrieren';
-			case 'login': return 'Anmelden';
-			case 'monday': return 'Montag';
-			case 'tuesday': return 'Dienstag';
-			case 'wednesday': return 'Mittwoch';
-			case 'thursday': return 'Donnerstag';
-			case 'friday': return 'Freitag';
-			case 'saturday': return 'Samstag';
-			case 'sunday': return 'Sonntag';
-			case 'catering': return 'Küchendienst';
-			case 'no_catering_assignments_yet': return 'Noch keine Küchendienstaufgaben!';
-			case 'tap_the_edit_button_below_to_assign_users_to_meals_for_the_week': return 'Tippen Sie unten auf die Bearbeiten-Schaltfläche, um Benutzer den Mahlzeiten der Woche zuzuweisen.';
-			case 'edit': return 'Bearbeiten';
-			case 'cleaning': return 'Reinigung';
-			case 'place': return 'Ort';
-			case 'assignees': return 'Zugewiesene';
-			case 'no_cleaning_places_yet': return 'Noch keine Reinigungsorte!';
-			case 'no_users_assigned_to_any_places': return 'Keinen Benutzern wurden Orte zugewiesen.';
-			case 'tap_below_to_create_your_first_place_and_start_assigning_users': return 'Tippen Sie unten, um Ihren ersten Ort zu erstellen und Benutzer zuzuweisen.';
-			case 'assign_users_to_your_existing_places_using_the_action_button_below': return 'Weisen Sie Benutzern Ihre bestehenden Orte mit der untenstehenden Aktionstaste zu.';
-			case 'create_place': return 'Ort erstellen';
-			case 'place_name': return 'Ortsname';
-			case 'cancel': return 'Abbrechen';
-			case 'create': return 'Erstellen';
-			case 'no_users_assigned': return 'Keine Benutzer zugewiesen';
-			case 'add_place': return 'Ort hinzufügen';
-			case 'add': return 'Hinzufügen';
-			case 'edit_place': return 'Ort bearbeiten';
-			case 'save': return 'Speichern';
-			case 'edit_assignments': return 'Zuweisungen bearbeiten';
-			case 'no_places_yet': return 'Noch keine Orte.';
-			case 'delete_place': return 'Ort löschen';
-			case 'waiting_for_userentity_homepage_was_built_without_a_loaded_user': return 'Warte auf Benutzer... (Startseite wurde ohne geladenen Benutzer erstellt)';
-			case 'home': return 'Startseite';
-			case 'program': return 'Programm';
-			case 'no_program_entries_found_for_this_week': return 'Keine Programmeinträge für diese Woche gefunden.';
-			case 'error_loading_program_placeholder': return 'Fehler beim Laden des Programms: {placeholder}';
-			case 'today': return 'Heute';
-			case 'your_next_catering_assignment': return 'Ihre nächste Küchendienstaufgabe:';
-			case 'no_upcoming_catering_assignment_found': return 'Keine bevorstehende Küchendienstaufgabe gefunden.';
-			case 'catering_wird_geladen': return 'Küchendienst wird geladen...';
-			case 'error_loading_catering': return 'Fehler beim Laden des Küchendienstes.';
-			case 'no_cleaning_assignments_found': return 'Keine Reinigungsaufgaben gefunden.';
-			case 'you_have_no_cleaning_assignment': return 'Sie haben keine Reinigungsaufgabe';
-			case 'your_cleaning_assignment': return 'Ihre Reinigungsaufgabe:';
-			case 'cleaning_assignments_are_loading': return 'Reinigungsaufgaben werden geladen...';
-			case 'error_loading_cleaning_data': return 'Fehler beim Laden der Reinigungsdaten.';
-			case 'this_email_is_already_registered': return 'Diese E-Mail ist bereits registriert.';
-			case 'password_is_too_weak_please_use_at_least_6_characters': return 'Das Passwort ist zu schwach. Bitte verwenden Sie mindestens 6 Zeichen.';
-			case 'please_enter_a_valid_email_address': return 'Bitte geben Sie eine gültige E-Mail-Adresse ein.';
-			case 'registration_is_currently_disabled': return 'Registrierung ist derzeit deaktiviert.';
-			case 'no_internet_connection_please_check_your_network_and_try_again': return 'Keine Internetverbindung. Bitte überprüfen Sie Ihr Netzwerk und versuchen Sie es erneut.';
-			case 'registration_failed': return 'Registrierung fehlgeschlagen.';
-			case 'registration_failed_please_try_again': return 'Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.';
-			case 'please_wait': return 'Bitte warten...';
-			case 'already_have_an_account_login': return 'Haben Sie bereits ein Konto? Anmelden';
-			case 'don_t_have_an_account_register': return 'Haben Sie kein Konto? Registrieren';
-			case 'first_name': return 'Vorname';
-			case 'last_name': return 'Nachname';
-			case 'email': return 'E-Mail';
-			case 'password': return 'Passwort';
-			case 'hide_password': return 'Passwort verbergen';
-			case 'show_password': return 'Passwort anzeigen';
-			case 'confirm_password': return 'Passwort bestätigen';
-			case 'select_place': return 'Ort auswählen';
-			case 'clear_selection': return 'Auswahl löschen';
-			case 'about': return 'Über';
-			case 'welcome_to_faunty_2_0': return 'Willkommen bei Faunty 2.0';
-			case 'faunty_is_your_modern_management_app_designed_to_simplify_daily_organization_and_communication_for_teams_communities_and_organizations_built_with_a_focus_on_usability_security_and_beautiful_design_faunty_helps_you_stay_connected_and_productive': return 'Faunty ist Ihre moderne Management-App, die darauf ausgelegt ist, die tägliche Organisation und Kommunikation für Teams, Gemeinschaften und Organisationen zu vereinfachen. Mit Fokus auf Benutzerfreundlichkeit, Sicherheit und schönes Design hilft Faunty Ihnen, verbunden und produktiv zu bleiben.';
-			case 'features': return 'Funktionen';
-			case 'team_community_management': return 'Team- & Gemeinschaftsverwaltung';
-			case 'weekly_program_assignments': return 'Wöchentliche Programme & Aufgaben';
-			case 'catering_cleaning_schedules': return 'Küchendienst- & Reinigungspläne';
-			case 'secure_authentication': return 'Sichere Authentifizierung';
-			case 'custom_notifications': return 'Benutzerdefinierte Benachrichtigungen';
-			case 'responsive_mobile_friendly': return 'Responsiv & Mobilfreundlich';
-			case 'about_the_project': return 'Über das Projekt';
-			case 'faunty_2_0_is_built_with_flutter_and_firebase_ensuring_fast_performance_and_real_time_updates_our_mission_is_to_empower_users_with_tools_that_make_everyday_management_effortless_and_enjoyable': return 'Faunty 2.0 wurde mit Flutter und Firebase entwickelt und bietet schnelle Leistung und Echtzeit-Updates. Unsere Mission ist es, Benutzer mit Tools auszustatten, die das tägliche Management mühelos und angenehm machen.';
-			case 'thank_you_for_using_faunty': return 'Danke, dass Sie Faunty verwenden!';
-			case 'for_feedback_or_support_contact_us_at_talebelergfc_gmail_com': return 'Für Feedback oder Support kontaktieren Sie uns unter talebelergfc@gmail.com';
-			case 'account': return 'Konto';
-			case 'no_user_is_currently_signed_in': return 'Derzeit ist kein Benutzer angemeldet.';
-			case 'account_details': return 'Kontodetails';
-			case 'change_password': return 'Passwort ändern';
-			case 'new_password': return 'Neues Passwort';
-			case 'save_password': return 'Passwort speichern';
-			case 'please_enter_a_new_password': return 'Bitte geben Sie ein neues Passwort ein.';
-			case 'password_changed_successfully': return 'Passwort erfolgreich geändert!';
-			case 're_authentication_required': return 'Erneute Authentifizierung erforderlich';
-			case 'for_security_reasons_please_log_in_again_to_change_your_password_you_will_be_redirected_to_the_login_screen': return 'Aus Sicherheitsgründen melden Sie sich bitte erneut an, um Ihr Passwort zu ändern. Sie werden zum Anmeldebildschirm weitergeleitet.';
-			case 'created': return 'Erstellt';
-			case 'last_sign_in': return 'Letzte Anmeldung';
-			case 'users': return 'Benutzer';
-			case 'active': return 'Aktiv';
-			case 'statistics': return 'Statistiken';
-			case 'backup_and_restore': return 'Backup und Wiederherstellung';
-			case 'settings': return 'Einstellungen';
-			case 'no_user_loaded': return 'Kein Benutzer geladen.';
-			case 'edit_name': return 'Name bearbeiten';
-			case 'failed_to_update_name': return 'Name konnte nicht aktualisiert werden: ';
-			case 'organisation': return 'Organisation';
-			case 'save_as_template': return 'Als Vorlage speichern';
-			case 'select_template_to_override': return 'Vorlage zum Überschreiben auswählen';
-			case 'template_name': return 'Vorlagenname';
-			case 'kOverride': return 'Überschreiben';
-			case 'select_a_template': return 'Vorlage auswählen';
-			case 'no_templates_found': return 'Keine Vorlagen gefunden';
-			case 'delete_template': return 'Vorlage löschen';
-			case 'close': return 'Schließen';
-			case 'add_new_event': return 'Neues Ereignis hinzufügen';
-			case 'edit_event': return 'Ereignis bearbeiten';
-			case 'select_start_time': return 'Startzeit auswählen';
-			case 'select_end_time': return 'Endzeit auswählen';
-			case 'save_and_go_back': return 'Speichern und zurückgehen';
-			case 'no_program_entries_for_this_week': return 'Keine Programmeinträge für diese Woche!';
-			case 'tap_the_edit_button_below_to_add_a_program_for_the_week': return 'Tippen Sie unten auf die Bearbeiten-Schaltfläche, um ein Programm für die Woche hinzuzufügen.';
-			case 'edit_program': return 'Programm bearbeiten';
-			case 'i_sincerely_apologize_but_you_can_not_have_more_debt': return 'Ich entschuldige mich aufrichtig, aber Sie können nicht mehr Schulden haben.';
-			case 'bro_pay_your_debt_first': return 'Bro, zahl erst deine Schulden.';
-			case 'kantin': return 'Kantin';
-			case 'a_positive_value_means_you_owe_money_a_negative_value_means_you_have_credit': return 'Ein positiver Wert bedeutet, dass Sie Geld schulden. Ein negativer Wert bedeutet, Sie haben Guthaben.';
-			case 'enter_amount': return 'Betrag eingeben';
-			case 'other_users': return 'Andere Nutzer';
-			case 'no_other_users_found': return 'Keine anderen Nutzer gefunden';
-			case 'debt': return 'Schulden';
-			case 'paypal': return 'PayPal';
-			case 'did_you_pay': return 'Haben Sie bezahlt ';
-			case 'via_paypal': return ' € via PayPal?';
-			case 'yes': return 'Ja';
-			case 'reset_debt': return 'Schulden zurücksetzen';
-			case 'are_you_sure_you_want_to_reset_your_debt_to_0': return 'Sind Sie sicher, dass Sie Ihre Schulden auf 0 zurücksetzen möchten?';
-			case 'confirm': return 'Bestätigen';
-			case 'debt_reset': return 'Schulden zurückgesetzt!';
-			case 'system': return 'System';
-			case 'light': return 'Hell';
-			case 'dark': return 'Dunkel';
-			case 'theme': return 'Thema';
-			case 'breakfast': return 'Frühstück';
-			case 'lunch': return 'Mittagessen';
-			case 'dinner': return 'Abendessen';
-			case 'montag': return 'Montag';
-			case 'dienstag': return 'Dienstag';
-			case 'mittwoch': return 'Mittwoch';
-			case 'donnerstag': return 'Donnerstag';
-			case 'freitag': return 'Freitag';
-			case 'samstag': return 'Samstag';
-			case 'sonntag': return 'Sonntag';
-			case 'credit': return 'Guthaben';
-			case 'set_debt': return 'Schulden setzen';
-			case 'debt_amount': return 'Schuldenbetrag';
-			case 'set': return 'Setzen';
-			case 'choose_app_language': return 'App-Sprache wählen.';
-			case 'load_template': return 'Vorlage laden';
-			case 'title': return 'Titel';
-			case 'communication': return 'Kommunikation';
-			case 'tracking': return 'Tracking';
-			case 'lists': return 'Listen';
-			case 'edit_test_notification_message': return 'Testbenachrichtigungsnachricht bearbeiten';
-			case 'body': return 'Text';
-			case 'saved': return 'Gespeichert';
-			case 'saved_fcm_tokens': return 'Gespeicherte FCM-Token';
-			case 'check_notification_permission': return 'Benachrichtigungsberechtigung prüfen';
-			case 'notification_permission_checked': return 'Benachrichtigungsberechtigung geprüft';
-			case 'refresh_tokens': return 'Token aktualisieren';
-			case 'refreshed_tokens': return 'Token aktualisiert';
-			case 'no_token_fetched': return 'Kein Token abgerufen';
-			case 'no_tokens_found': return 'Keine Token gefunden';
-			case 'loading': return 'Lädt...';
-			case 'copy_all_tokens_for_user': return 'Alle Token für Benutzer kopieren';
-			case 'all_tokens_copied': return 'Alle Token kopiert';
-			case 'copy_token': return 'Token kopieren';
-			case 'token_copied': return 'Token kopiert';
-			case 'send_test_notification': return 'Testbenachrichtigung senden';
-			case 'test_notification_sent': return 'Testbenachrichtigung gesendet';
-			case 'delete_token': return 'Token löschen?';
-			case 'are_you_sure_you_want_to_delete_this_fcm_token': return 'Sind Sie sicher, dass Sie dieses FCM-Token löschen möchten?';
-			case 'delete': return 'Löschen';
-			case 'token_deleted': return 'Token gelöscht';
-			case 'dismiss': return 'Verwerfen';
-			case 'notification_opened': return 'Benachrichtigung geöffnet';
-			case 'open': return 'Öffnen';
-			case 'show_saved_fcm_tokens': return 'Gespeicherte FCM-Token anzeigen';
-			case 'tools': return 'Werkzeuge';
-			case 'under_construction': return 'Im Aufbau';
-			case 'feedback': return 'Feedback';
-			case 'ui_test_page': return 'UI-Testseite';
-			case 'debug_only': return 'Nur Debug';
-			case 'this_page_is_only_visible_in_debug_mode': return 'Diese Seite ist nur im Debug-Modus sichtbar.';
-			case 'show_column_headers': return 'Spaltenüberschriften anzeigen';
-			case 'left': return 'Links';
-			case 'right': return 'Rechts';
-			case 'create_user': return 'Benutzer erstellen';
-			case 'user_created_successfully_they_can_now_register_with_this_email': return 'Benutzer erfolgreich erstellt. Diese können sich jetzt mit der E-Mail registrieren.';
-			case 'failed_to_create_user': return 'Benutzer konnte nicht erstellt werden: ';
-			case 'create_new_user': return 'Neuen Benutzer erstellen';
-			case 'please_enter_an_email': return 'Bitte geben Sie eine E-Mail ein';
-			case 'please_enter_a_valid_email': return 'Bitte geben Sie eine gültige E-Mail ein';
-			case 'please_enter_first_name': return 'Bitte geben Sie den Vornamen ein';
-			case 'please_enter_last_name': return 'Bitte geben Sie den Nachnamen ein';
-			case 'role': return 'Rolle';
-			case 'note_the_user_will_be_created_as_a_placeholder_they_can_register_using_this_email_address_does_not_have_to_exist_necessarily_and_their_account_will_be_linked_automatically': return 'Hinweis: Der Benutzer wird als Platzhalter erstellt. Sie können sich mit dieser E-Mail-Adresse registrieren (muss nicht unbedingt existieren), und ihr Konto wird automatisch verknüpft.';
-			case 'remove_tracking_item': return 'Tracking - Element entfernen';
-			case 'remove': return 'Entfernen';
-			case 'manage_tracking_items': return 'Tracking - Elemente verwalten';
-			case 'add_new_item': return 'Neues Element hinzufügen';
-			case 'attendance': return 'Anwesenheit';
-			case 'manage': return 'Verwalten';
-			case 'use_dropdown': return 'Dropdown verwenden';
-			case 'use_tabs': return 'Tabs verwenden';
-			case 'no_tracking_items_have_been_configured_yet': return 'Es wurden noch keine Tracking - Elemente konfiguriert.';
-			case 'ask_a_manager_to_add_tracking_items_or_add_them_yourself': return 'Bitten Sie einen Manager, Tracking - Elemente hinzuzufügen, oder fügen Sie sie selbst hinzu.';
-			default: return null;
-		}
+		return switch (path) {
+			'more' => 'Mehr',
+			'mo' => 'Mo',
+			'tue' => 'Di',
+			'wed' => 'Mi',
+			'thu' => 'Do',
+			'fr' => 'Fr',
+			'sat' => 'Sa',
+			'sun' => 'So',
+			'registration_mode' => 'Registrierungsmodus',
+			'inactive' => 'Inaktiv',
+			'enable_or_disable_registration' => 'Registrierung aktivieren oder deaktivieren',
+			'language' => 'Sprache',
+			'help' => 'Hilfe',
+			'faunty' => 'Faunty',
+			'register' => 'Registrieren',
+			'login' => 'Anmelden',
+			'monday' => 'Montag',
+			'tuesday' => 'Dienstag',
+			'wednesday' => 'Mittwoch',
+			'thursday' => 'Donnerstag',
+			'friday' => 'Freitag',
+			'saturday' => 'Samstag',
+			'sunday' => 'Sonntag',
+			'catering' => 'Küchendienst',
+			'no_catering_assignments_yet' => 'Noch keine Küchendienstaufgaben!',
+			'tap_the_edit_button_below_to_assign_users_to_meals_for_the_week' => 'Tippen Sie unten auf die Bearbeiten-Schaltfläche, um Benutzer den Mahlzeiten der Woche zuzuweisen.',
+			'edit' => 'Bearbeiten',
+			'cleaning' => 'Reinigung',
+			'place' => 'Ort',
+			'assignees' => 'Zugewiesene',
+			'no_cleaning_places_yet' => 'Noch keine Reinigungsorte!',
+			'no_users_assigned_to_any_places' => 'Keinen Benutzern wurden Orte zugewiesen.',
+			'tap_below_to_create_your_first_place_and_start_assigning_users' => 'Tippen Sie unten, um Ihren ersten Ort zu erstellen und Benutzer zuzuweisen.',
+			'assign_users_to_your_existing_places_using_the_action_button_below' => 'Weisen Sie Benutzern Ihre bestehenden Orte mit der untenstehenden Aktionstaste zu.',
+			'create_place' => 'Ort erstellen',
+			'place_name' => 'Ortsname',
+			'cancel' => 'Abbrechen',
+			'create' => 'Erstellen',
+			'no_users_assigned' => 'Keine Benutzer zugewiesen',
+			'add_place' => 'Ort hinzufügen',
+			'add' => 'Hinzufügen',
+			'edit_place' => 'Ort bearbeiten',
+			'save' => 'Speichern',
+			'edit_assignments' => 'Zuweisungen bearbeiten',
+			'no_places_yet' => 'Noch keine Orte.',
+			'delete_place' => 'Ort löschen',
+			'waiting_for_userentity_homepage_was_built_without_a_loaded_user' => 'Warte auf Benutzer... (Startseite wurde ohne geladenen Benutzer erstellt)',
+			'home' => 'Startseite',
+			'program' => 'Programm',
+			'no_program_entries_found_for_this_week' => 'Keine Programmeinträge für diese Woche gefunden.',
+			'error_loading_program_placeholder' => 'Fehler beim Laden des Programms: {placeholder}',
+			'today' => 'Heute',
+			'your_next_catering_assignment' => 'Ihre nächste Küchendienstaufgabe:',
+			'no_upcoming_catering_assignment_found' => 'Keine bevorstehende Küchendienstaufgabe gefunden.',
+			'catering_wird_geladen' => 'Küchendienst wird geladen...',
+			'error_loading_catering' => 'Fehler beim Laden des Küchendienstes.',
+			'no_cleaning_assignments_found' => 'Keine Reinigungsaufgaben gefunden.',
+			'you_have_no_cleaning_assignment' => 'Sie haben keine Reinigungsaufgabe',
+			'your_cleaning_assignment' => 'Ihre Reinigungsaufgabe:',
+			'cleaning_assignments_are_loading' => 'Reinigungsaufgaben werden geladen...',
+			'error_loading_cleaning_data' => 'Fehler beim Laden der Reinigungsdaten.',
+			'this_email_is_already_registered' => 'Diese E-Mail ist bereits registriert.',
+			'password_is_too_weak_please_use_at_least_6_characters' => 'Das Passwort ist zu schwach. Bitte verwenden Sie mindestens 6 Zeichen.',
+			'please_enter_a_valid_email_address' => 'Bitte geben Sie eine gültige E-Mail-Adresse ein.',
+			'registration_is_currently_disabled' => 'Registrierung ist derzeit deaktiviert.',
+			'no_internet_connection_please_check_your_network_and_try_again' => 'Keine Internetverbindung. Bitte überprüfen Sie Ihr Netzwerk und versuchen Sie es erneut.',
+			'registration_failed' => 'Registrierung fehlgeschlagen.',
+			'registration_failed_please_try_again' => 'Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.',
+			'please_wait' => 'Bitte warten...',
+			'already_have_an_account_login' => 'Haben Sie bereits ein Konto? Anmelden',
+			'don_t_have_an_account_register' => 'Haben Sie kein Konto? Registrieren',
+			'first_name' => 'Vorname',
+			'last_name' => 'Nachname',
+			'email' => 'E-Mail',
+			'password' => 'Passwort',
+			'hide_password' => 'Passwort verbergen',
+			'show_password' => 'Passwort anzeigen',
+			'confirm_password' => 'Passwort bestätigen',
+			'select_place' => 'Ort auswählen',
+			'clear_selection' => 'Auswahl löschen',
+			'about' => 'Über',
+			'welcome_to_faunty_2_0' => 'Willkommen bei Faunty 2.0',
+			'faunty_is_your_modern_management_app_designed_to_simplify_daily_organization_and_communication_for_teams_communities_and_organizations_built_with_a_focus_on_usability_security_and_beautiful_design_faunty_helps_you_stay_connected_and_productive' => 'Faunty ist Ihre moderne Management-App, die darauf ausgelegt ist, die tägliche Organisation und Kommunikation für Teams, Gemeinschaften und Organisationen zu vereinfachen. Mit Fokus auf Benutzerfreundlichkeit, Sicherheit und schönes Design hilft Faunty Ihnen, verbunden und produktiv zu bleiben.',
+			'features' => 'Funktionen',
+			'team_community_management' => 'Team- & Gemeinschaftsverwaltung',
+			'weekly_program_assignments' => 'Wöchentliche Programme & Aufgaben',
+			'catering_cleaning_schedules' => 'Küchendienst- & Reinigungspläne',
+			'secure_authentication' => 'Sichere Authentifizierung',
+			'custom_notifications' => 'Benutzerdefinierte Benachrichtigungen',
+			'responsive_mobile_friendly' => 'Responsiv & Mobilfreundlich',
+			'about_the_project' => 'Über das Projekt',
+			'faunty_2_0_is_built_with_flutter_and_firebase_ensuring_fast_performance_and_real_time_updates_our_mission_is_to_empower_users_with_tools_that_make_everyday_management_effortless_and_enjoyable' => 'Faunty 2.0 wurde mit Flutter und Firebase entwickelt und bietet schnelle Leistung und Echtzeit-Updates. Unsere Mission ist es, Benutzer mit Tools auszustatten, die das tägliche Management mühelos und angenehm machen.',
+			'thank_you_for_using_faunty' => 'Danke, dass Sie Faunty verwenden!',
+			'for_feedback_or_support_contact_us_at_talebelergfc_gmail_com' => 'Für Feedback oder Support kontaktieren Sie uns unter talebelergfc@gmail.com',
+			'account' => 'Konto',
+			'no_user_is_currently_signed_in' => 'Derzeit ist kein Benutzer angemeldet.',
+			'account_details' => 'Kontodetails',
+			'change_password' => 'Passwort ändern',
+			'new_password' => 'Neues Passwort',
+			'save_password' => 'Passwort speichern',
+			'please_enter_a_new_password' => 'Bitte geben Sie ein neues Passwort ein.',
+			'password_changed_successfully' => 'Passwort erfolgreich geändert!',
+			're_authentication_required' => 'Erneute Authentifizierung erforderlich',
+			'for_security_reasons_please_log_in_again_to_change_your_password_you_will_be_redirected_to_the_login_screen' => 'Aus Sicherheitsgründen melden Sie sich bitte erneut an, um Ihr Passwort zu ändern. Sie werden zum Anmeldebildschirm weitergeleitet.',
+			'created' => 'Erstellt',
+			'last_sign_in' => 'Letzte Anmeldung',
+			'users' => 'Benutzer',
+			'active' => 'Aktiv',
+			'statistics' => 'Statistiken',
+			'backup_and_restore' => 'Backup und Wiederherstellung',
+			'settings' => 'Einstellungen',
+			'no_user_loaded' => 'Kein Benutzer geladen.',
+			'edit_name' => 'Name bearbeiten',
+			'failed_to_update_name' => 'Name konnte nicht aktualisiert werden: ',
+			'organisation' => 'Organisation',
+			'save_as_template' => 'Als Vorlage speichern',
+			'select_template_to_override' => 'Vorlage zum Überschreiben auswählen',
+			'template_name' => 'Vorlagenname',
+			'kOverride' => 'Überschreiben',
+			'select_a_template' => 'Vorlage auswählen',
+			'no_templates_found' => 'Keine Vorlagen gefunden',
+			'delete_template' => 'Vorlage löschen',
+			'close' => 'Schließen',
+			'add_new_event' => 'Neues Ereignis hinzufügen',
+			'edit_event' => 'Ereignis bearbeiten',
+			'select_start_time' => 'Startzeit auswählen',
+			'select_end_time' => 'Endzeit auswählen',
+			'save_and_go_back' => 'Speichern und zurückgehen',
+			'no_program_entries_for_this_week' => 'Keine Programmeinträge für diese Woche!',
+			'tap_the_edit_button_below_to_add_a_program_for_the_week' => 'Tippen Sie unten auf die Bearbeiten-Schaltfläche, um ein Programm für die Woche hinzuzufügen.',
+			'edit_program' => 'Programm bearbeiten',
+			'i_sincerely_apologize_but_you_can_not_have_more_debt' => 'Ich entschuldige mich aufrichtig, aber Sie können nicht mehr Schulden haben.',
+			'bro_pay_your_debt_first' => 'Bro, zahl erst deine Schulden.',
+			'kantin' => 'Kantin',
+			'a_positive_value_means_you_owe_money_a_negative_value_means_you_have_credit' => 'Ein positiver Wert bedeutet, dass Sie Geld schulden. Ein negativer Wert bedeutet, Sie haben Guthaben.',
+			'enter_amount' => 'Betrag eingeben',
+			'other_users' => 'Andere Nutzer',
+			'no_other_users_found' => 'Keine anderen Nutzer gefunden',
+			'debt' => 'Schulden',
+			'paypal' => 'PayPal',
+			'did_you_pay' => 'Haben Sie bezahlt ',
+			'via_paypal' => ' € via PayPal?',
+			'yes' => 'Ja',
+			'reset_debt' => 'Schulden zurücksetzen',
+			'are_you_sure_you_want_to_reset_your_debt_to_0' => 'Sind Sie sicher, dass Sie Ihre Schulden auf 0 zurücksetzen möchten?',
+			'confirm' => 'Bestätigen',
+			'debt_reset' => 'Schulden zurückgesetzt!',
+			'system' => 'System',
+			'light' => 'Hell',
+			'dark' => 'Dunkel',
+			'theme' => 'Thema',
+			'breakfast' => 'Frühstück',
+			'lunch' => 'Mittagessen',
+			'dinner' => 'Abendessen',
+			'montag' => 'Montag',
+			'dienstag' => 'Dienstag',
+			'mittwoch' => 'Mittwoch',
+			'donnerstag' => 'Donnerstag',
+			'freitag' => 'Freitag',
+			'samstag' => 'Samstag',
+			'sonntag' => 'Sonntag',
+			'credit' => 'Guthaben',
+			'set_debt' => 'Schulden setzen',
+			'debt_amount' => 'Schuldenbetrag',
+			'set' => 'Setzen',
+			'choose_app_language' => 'App-Sprache wählen.',
+			'load_template' => 'Vorlage laden',
+			'title' => 'Titel',
+			'communication' => 'Kommunikation',
+			'tracking' => 'Tracking',
+			'lists' => 'Listen',
+			'edit_test_notification_message' => 'Testbenachrichtigungsnachricht bearbeiten',
+			'body' => 'Text',
+			'saved' => 'Gespeichert',
+			'saved_fcm_tokens' => 'Gespeicherte FCM-Token',
+			'check_notification_permission' => 'Benachrichtigungsberechtigung prüfen',
+			'notification_permission_checked' => 'Benachrichtigungsberechtigung geprüft',
+			'refresh_tokens' => 'Token aktualisieren',
+			'refreshed_tokens' => 'Token aktualisiert',
+			'no_token_fetched' => 'Kein Token abgerufen',
+			'no_tokens_found' => 'Keine Token gefunden',
+			'loading' => 'Lädt...',
+			'copy_all_tokens_for_user' => 'Alle Token für Benutzer kopieren',
+			'all_tokens_copied' => 'Alle Token kopiert',
+			'copy_token' => 'Token kopieren',
+			'token_copied' => 'Token kopiert',
+			'send_test_notification' => 'Testbenachrichtigung senden',
+			'test_notification_sent' => 'Testbenachrichtigung gesendet',
+			'delete_token' => 'Token löschen?',
+			'are_you_sure_you_want_to_delete_this_fcm_token' => 'Sind Sie sicher, dass Sie dieses FCM-Token löschen möchten?',
+			'delete' => 'Löschen',
+			'token_deleted' => 'Token gelöscht',
+			'dismiss' => 'Verwerfen',
+			'notification_opened' => 'Benachrichtigung geöffnet',
+			'open' => 'Öffnen',
+			'show_saved_fcm_tokens' => 'Gespeicherte FCM-Token anzeigen',
+			'tools' => 'Werkzeuge',
+			'under_construction' => 'Im Aufbau',
+			'feedback' => 'Feedback',
+			'ui_test_page' => 'UI-Testseite',
+			'debug_only' => 'Nur Debug',
+			'this_page_is_only_visible_in_debug_mode' => 'Diese Seite ist nur im Debug-Modus sichtbar.',
+			'show_column_headers' => 'Spaltenüberschriften anzeigen',
+			'left' => 'Links',
+			'right' => 'Rechts',
+			'create_user' => 'Benutzer erstellen',
+			'user_created_successfully_they_can_now_register_with_this_email' => 'Benutzer erfolgreich erstellt. Diese können sich jetzt mit der E-Mail registrieren.',
+			'failed_to_create_user' => 'Benutzer konnte nicht erstellt werden: ',
+			'create_new_user' => 'Neuen Benutzer erstellen',
+			'please_enter_an_email' => 'Bitte geben Sie eine E-Mail ein',
+			'please_enter_a_valid_email' => 'Bitte geben Sie eine gültige E-Mail ein',
+			'please_enter_first_name' => 'Bitte geben Sie den Vornamen ein',
+			'please_enter_last_name' => 'Bitte geben Sie den Nachnamen ein',
+			'role' => 'Rolle',
+			'note_the_user_will_be_created_as_a_placeholder_they_can_register_using_this_email_address_does_not_have_to_exist_necessarily_and_their_account_will_be_linked_automatically' => 'Hinweis: Der Benutzer wird als Platzhalter erstellt. Sie können sich mit dieser E-Mail-Adresse registrieren (muss nicht unbedingt existieren), und ihr Konto wird automatisch verknüpft.',
+			'remove_tracking_item' => 'Tracking - Element entfernen',
+			'remove' => 'Entfernen',
+			'manage_tracking_items' => 'Tracking - Elemente verwalten',
+			'add_new_item' => 'Neues Element hinzufügen',
+			'attendance' => 'Anwesenheit',
+			'manage' => 'Verwalten',
+			'use_dropdown' => 'Dropdown verwenden',
+			'use_tabs' => 'Tabs verwenden',
+			'no_tracking_items_have_been_configured_yet' => 'Es wurden noch keine Tracking - Elemente konfiguriert.',
+			'ask_a_manager_to_add_tracking_items_or_add_them_yourself' => 'Bitten Sie einen Manager, Tracking - Elemente hinzuzufügen, oder fügen Sie sie selbst hinzu.',
+			_ => null,
+		};
 	}
 }
-
