@@ -1277,42 +1277,56 @@ class _EditGroupsDialogState extends State<EditGroupsDialog> {
           children: [
             if (order.isNotEmpty)
               ConstrainedBox(
-                constraints: BoxConstraints(maxHeight: 300),
-                child: ListView.builder(
+                constraints: const BoxConstraints(maxHeight: 340),
+                child: ReorderableListView.builder(
                   shrinkWrap: true,
+                  buildDefaultDragHandles: false,
                   itemCount: order.length,
+                  onReorder: (oldIndex, newIndex) {
+                    setState(() {
+                      if (newIndex > oldIndex) newIndex -= 1;
+                      final moved = order.removeAt(oldIndex);
+                      order.insert(newIndex, moved);
+                    });
+                  },
                   itemBuilder: (context, index) {
                     final id = order[index];
                     final g = groups[id] as Map<String, dynamic>? ?? {};
                     final title = g['title'] ?? id;
                     final placeCount = (g['places'] as List?)?.length ?? 0;
                     return Card(
+                      key: ValueKey(id),
                       margin: const EdgeInsets.only(bottom: 8),
                       child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: theme.colorScheme.secondary.withOpacity(0.2),
-                          child: Text(
-                            placeCount.toString(),
-                            style: TextStyle(
-                              color: theme.colorScheme.secondary,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
+                        leading: ReorderableDragStartListener(
+                          index: index,
+                          child: CircleAvatar(
+                            backgroundColor: theme.colorScheme.secondary.withOpacity(0.2),
+                            child: Text(
+                              placeCount.toString(),
+                              style: TextStyle(
+                                color: theme.colorScheme.secondary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
                             ),
                           ),
                         ),
-                        title: Text(title, style: TextStyle(fontWeight: FontWeight.w600)),
+                        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
                         subtitle: Text(
                           '$placeCount ${translation(context: context, placeCount == 1 ? 'place' : 'places')}',
                         ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
+                        trailing: Wrap(
+                          spacing: 4,
                           children: [
                             IconButton(
-                              icon: Icon(Icons.edit, size: 20),
+                              icon: const Icon(Icons.edit, size: 20),
+                              tooltip: translation(context: context, 'Edit'),
                               onPressed: () => _editGroupTitle(id),
                             ),
                             IconButton(
-                              icon: Icon(Icons.delete_outline, size: 20),
+                              icon: const Icon(Icons.delete_outline, size: 20),
+                              tooltip: translation(context: context, 'Delete'),
                               onPressed: () => _deleteGroup(id),
                             ),
                           ],
