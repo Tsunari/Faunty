@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.23.0] - 02-12-2025
+### Changed
+- Catering list sorting by current day
+- Cleaning assign complete rework
+- Cleaning page rework
+- Web dev configs
+### Fixed
+- Fixes to snackbar and navigation bar
+
+
+
 ## [1.22.0] - 01-12-2025
 ### Added
 - Various statistics fixes and additions
