@@ -1,5 +1,9 @@
+import 'dart:ui';
 import 'package:faunty/components/custom_confirm_dialog.dart';
+import 'package:faunty/components/custom_chip.dart';
+import 'package:faunty/components/custom_snackbar.dart';
 import 'package:faunty/models/user_roles.dart';
+import 'package:faunty/models/user_entity.dart';
 import 'package:faunty/tools/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,27 +12,34 @@ import '../../state_management/cleaning_provider.dart';
 import 'package:faunty/components/custom_app_bar.dart';
 
 class CleaningAssignPage extends ConsumerStatefulWidget {
-  final Map<String, dynamic> initialData; // expects { places: {...}, groups: {...}, order: [...], groupOrder: [...] }
+  final Map<String, dynamic> initialData;
   const CleaningAssignPage({super.key, required this.initialData});
 
   @override
   ConsumerState<CleaningAssignPage> createState() => _CleaningAssignPageState();
 }
 
+enum CleaningViewMode { places, byPerson }
+
 class _CleaningAssignPageState extends ConsumerState<CleaningAssignPage> {
   late Map<String, dynamic> places;
   late Map<String, dynamic> groups;
   late List<String> groupOrder;
   bool isSaving = false;
+  // Multiple selectable group filters; empty means all groups
+  Set<String> selectedGroupFilters = {};
+  String searchQuery = '';
+  CleaningViewMode viewMode = CleaningViewMode.places;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-  final data = Map<String, dynamic>.from(widget.initialData);
-  places = Map<String, dynamic>.from(data['places'] ?? {});
-  groups = Map<String, dynamic>.from(data['groups'] ?? {});
-  groupOrder = (data['groupOrder'] as List?)?.cast<String>() ?? groups.keys.toList();
-    // ensure every place has a 'pos' (fallback to current index)
+    final data = Map<String, dynamic>.from(widget.initialData);
+    places = Map<String, dynamic>.from(data['places'] ?? {});
+    groups = Map<String, dynamic>.from(data['groups'] ?? {});
+    groupOrder = (data['groupOrder'] as List?)?.cast<String>() ?? groups.keys.toList();
+    
     var idx = 0;
     for (final pid in places.keys.toList()) {
       final p = places[pid] as Map<String, dynamic>;
@@ -37,64 +48,185 @@ class _CleaningAssignPageState extends ConsumerState<CleaningAssignPage> {
     }
   }
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   void _addPlaceDialog() async {
     final controller = TextEditingController();
-    final result = await showDialog<String>(
+    String? selectedGroup;
+    
+    final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(translation(context: context, 'Add Place')),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(labelText: translation(context: context, 'Place name')),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(translation(context: context, 'Add Place')),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller,
+                autofocus: true,
+                decoration: InputDecoration(
+                  labelText: translation(context: context, 'Place name'),
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String?>(
+                value: selectedGroup,
+                decoration: InputDecoration(
+                  labelText: translation(context: context, 'Group (Optional)'),
+                  border: OutlineInputBorder(),
+                ),
+                items: [
+                  DropdownMenuItem<String?>(
+                    value: null,
+                    child: Text(translation(context: context, 'No Group')),
+                  ),
+                  ...groupOrder.map((gid) {
+                    final g = groups[gid] as Map<String, dynamic>?;
+                    final title = g?['title'] ?? gid;
+                    return DropdownMenuItem<String?>(value: gid, child: Text(title));
+                  }),
+                ],
+                onChanged: (val) => setDialogState(() => selectedGroup = val),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(translation(context: context, 'Cancel')),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, {
+                'name': controller.text.trim(),
+                'group': selectedGroup,
+              }),
+              child: Text(translation(context: context, 'Add')),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text(translation(context: context, 'Cancel'))),
-          ElevatedButton(onPressed: () => Navigator.pop(context, controller.text.trim()), child: Text(translation(context: context, 'Add'))),
-        ],
       ),
     );
-    if (result != null && result.isNotEmpty) {
-      // Persist via service so order is managed server-side
+    
+    if (result != null && result['name'] != null && result['name'].isNotEmpty) {
       final service = ref.read(cleaningFirestoreServiceProvider);
-      final id = await service.addPlace(result);
-      // Update local view
+      final id = await service.addPlace(result['name']);
       setState(() {
-        places[id] = {'name': result, 'assignees': <String>[], 'group': null};
+        places[id] = {
+          'name': result['name'],
+          'assignees': <String>[],
+          'group': result['group'],
+        };
+        if (result['group'] != null) {
+          final plist = (groups[result['group']]!['places'] as List?)?.cast<String>() ?? [];
+          if (!plist.contains(id)) plist.add(id);
+          groups[result['group']]!['places'] = plist;
+        }
       });
+      if (mounted) {
+        showCustomSnackBar(context, translation(context: context, 'Place added successfully'));
+      }
     }
   }
 
-  // Group management is handled by EditGroupsDialog below
-
-  void _editPlaceDialog(String placeId, String currentName) async {
-    final controller = TextEditingController(text: currentName);
-    final result = await showDialog<String>(
+  void _editPlaceDialog(String placeId) async {
+    final place = places[placeId] as Map<String, dynamic>;
+    final controller = TextEditingController(text: place['name']);
+    String? selectedGroup = place['group'];
+    
+    final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(translation(context: context, 'Edit Place')),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(labelText: translation(context: context, 'Place name')),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(translation(context: context, 'Edit Place')),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller,
+                autofocus: true,
+                decoration: InputDecoration(
+                  labelText: translation(context: context, 'Place name'),
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String?>(
+                value: selectedGroup,
+                decoration: InputDecoration(
+                  labelText: translation(context: context, 'Group'),
+                  border: OutlineInputBorder(),
+                ),
+                items: [
+                  DropdownMenuItem<String?>(
+                    value: null,
+                    child: Text(translation(context: context, 'No Group')),
+                  ),
+                  ...groupOrder.map((gid) {
+                    final g = groups[gid] as Map<String, dynamic>?;
+                    final title = g?['title'] ?? gid;
+                    return DropdownMenuItem<String?>(value: gid, child: Text(title));
+                  }),
+                ],
+                onChanged: (val) => setDialogState(() => selectedGroup = val),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(translation(context: context, 'Cancel')),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, {
+                'name': controller.text.trim(),
+                'group': selectedGroup,
+              }),
+              child: Text(translation(context: context, 'Save')),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text(translation(context: context, 'Cancel'))),
-          ElevatedButton(onPressed: () => Navigator.pop(context, controller.text.trim()), child: Text(translation(context: context, 'Save'))),
-        ],
       ),
     );
-    if (result != null && result.isNotEmpty) {
+    
+    if (result != null && result['name'] != null && result['name'].isNotEmpty) {
       final service = ref.read(cleaningFirestoreServiceProvider);
-      await service.updatePlace(placeId, result);
+      await service.updatePlace(placeId, result['name']);
+      
+      final oldGroup = place['group'] as String?;
       setState(() {
-        // update local copy (service.updatePlace will also preserve order)
-        places[placeId]['name'] = result;
+        place['name'] = result['name'];
+        place['group'] = result['group'];
+        places[placeId] = place;
+        
+        if (oldGroup != result['group']) {
+          if (oldGroup != null && groups.containsKey(oldGroup)) {
+            final plist = (groups[oldGroup]!['places'] as List?)?.cast<String>() ?? [];
+            plist.remove(placeId);
+            groups[oldGroup]!['places'] = plist;
+          }
+          if (result['group'] != null) {
+            final plist = (groups[result['group']]!['places'] as List?)?.cast<String>() ?? [];
+            if (!plist.contains(placeId)) plist.add(placeId);
+            groups[result['group']]!['places'] = plist;
+          }
+        }
       });
+      await service.setCleaning(places);
+      await service.setGroups(groups);
+      if (mounted) {
+        showCustomSnackBar(context, translation(context: context, 'Place updated successfully'));
+      }
     }
   }
 
-  Future<void> _deletePlace(String placeId, String placeName) async {
+  Future<void> _deletePlace(String placeId) async {
+    final placeName = places[placeId]?['name'] ?? 'Unknown';
     final confirm = await showConfirmDialog(
       context: context,
       content: Column(
@@ -103,29 +235,29 @@ class _CleaningAssignPageState extends ConsumerState<CleaningAssignPage> {
           Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 48),
           const SizedBox(height: 16),
           Text(
-        'Delete $placeName?',
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 20,
-          color: Theme.of(context).colorScheme.error,
-        ),
-        textAlign: TextAlign.center,
+            '${translation(context: context, 'Delete')} "$placeName"?',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
           Text(
-        'This action cannot be undone.',
-        style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurface),
-        textAlign: TextAlign.center,
+            translation(context: context, 'This action cannot be undone.'),
+            style: TextStyle(fontSize: 15, color: Theme.of(context).colorScheme.onSurface),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
     );
+    
     if (confirm == true) {
       final service = ref.read(cleaningFirestoreServiceProvider);
       await service.deletePlace(placeId);
       setState(() {
         places.remove(placeId);
-        // Remove from any group locally
         for (final g in groups.entries) {
           final gMap = Map<String, dynamic>.from(g.value as Map<String, dynamic>);
           final plist = (gMap['places'] as List?)?.cast<String>() ?? [];
@@ -136,6 +268,9 @@ class _CleaningAssignPageState extends ConsumerState<CleaningAssignPage> {
           }
         }
       });
+      if (mounted) {
+        showCustomSnackBar(context, translation(context: context, 'Place deleted'));
+      }
     }
   }
 
@@ -155,277 +290,881 @@ class _CleaningAssignPageState extends ConsumerState<CleaningAssignPage> {
 
   Future<void> _saveAll() async {
     setState(() => isSaving = true);
-    final service = ref.read(cleaningFirestoreServiceProvider);
-    // ensure groups are persisted as well
-    await service.setCleaning(places);
-    await service.setGroups(groups);
-    setState(() => isSaving = false);
-    if (mounted) Navigator.of(context).pop();
+    try {
+      final service = ref.read(cleaningFirestoreServiceProvider);
+      await service.setCleaning(places);
+      await service.setGroups(groups);
+      if (mounted) {
+        showCustomSnackBar(context, translation(context: context, 'Saved successfully'));
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        showCustomSnackBar(
+          context,
+          translation(context: context, 'Error saving changes'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => isSaving = false);
+      }
+    }
+  }
+
+  List<MapEntry<String, dynamic>> _getFilteredPlaces() {
+    var entries = places.entries.toList();
+    
+    // Filter by group set (when not empty)
+    if (selectedGroupFilters.isNotEmpty) {
+      entries = entries.where((e) {
+        final place = e.value as Map<String, dynamic>;
+        final g = place['group'] as String?;
+        return g != null && selectedGroupFilters.contains(g);
+      }).toList();
+    }
+    
+    // Filter by search
+    if (searchQuery.isNotEmpty) {
+      entries = entries.where((e) {
+        final place = e.value as Map<String, dynamic>;
+        final name = (place['name'] ?? '').toString().toLowerCase();
+        final assignees = (place['assignees'] as List?)?.cast<String>() ?? [];
+        final assigneeNames = assignees.map((a) {
+          final parts = a.split('_');
+          return parts.length >= 3 ? '${parts[1]} ${parts[2]}'.toLowerCase() : '';
+        }).join(' ');
+        return name.contains(searchQuery.toLowerCase()) || 
+               assigneeNames.contains(searchQuery.toLowerCase());
+      }).toList();
+    }
+    
+    return entries;
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final rolesKey = [UserRole.talebe, UserRole.baskan].map((r) => r.name).join(',');
     final usersAsync = ref.watch(usersByRolesAndPlaceProvider(rolesKey));
 
     return Scaffold(
-      appBar: CustomAppBar(
-        title: translation(context: context, 'Edit Assignments'),
-        useModern: false,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: IconButton(
-              icon: const Icon(Icons.add),
-              tooltip: translation(context: context, 'Add Place'),
-              onPressed: _addPlaceDialog,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: IconButton(
-              icon: const Icon(Icons.folder_outlined),
-              tooltip: translation(context: context, 'Edit Groups'),
-              onPressed: () async {
-                // Open dialog to manage groups (list, add, edit, delete)
-                await showDialog<void>(
-                  context: context,
-                  builder: (context) => EditGroupsDialog(
-                    initialGroups: Map<String, dynamic>.from(groups),
-                    initialOrder: List<String>.from(groupOrder),
-                    onSave: (newGroups, newOrder) async {
-                      final service = ref.read(cleaningFirestoreServiceProvider);
-                      // Remove references to deleted groups from places
-                      final deletedGroupIds = groups.keys.where((k) => !newGroups.containsKey(k)).toSet();
-                      var changed = false;
-                      for (final pid in places.keys.toList()) {
-                        final p = places[pid] as Map<String, dynamic>;
-                        final pg = p['group'] as String?;
-                        if (pg != null && deletedGroupIds.contains(pg)) {
-                          p['group'] = null;
-                          places[pid] = p;
-                          changed = true;
-                        }
-                      }
-                      if (changed) await service.setCleaning(places);
-                      await service.setGroups(newGroups);
-                      setState(() {
-                        groups = Map<String, dynamic>.from(newGroups);
-                        groupOrder = List<String>.from(newOrder);
-                      });
-                    },
+        appBar: CustomAppBar(
+          title: translation(context: context, 'Edit Assignments'),
+          useModern: false,
+          actions: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4.0),
+              child: SegmentedButton<CleaningViewMode>(
+                style: const ButtonStyle(visualDensity: VisualDensity.compact),
+                segments: [
+                  ButtonSegment(
+                    value: CleaningViewMode.places,
+                    icon: const Icon(Icons.view_list_outlined, size: 16),
                   ),
-                );
-              },
+                  ButtonSegment(
+                    value: CleaningViewMode.byPerson,
+                    icon: const Icon(Icons.people_outline, size: 16),
+                  ),
+                ],
+                selected: {viewMode},
+                onSelectionChanged: (s) => setState(() => viewMode = s.first),
+              ),
             ),
-          ),
-        ],
-      ),
-      body: usersAsync.when(
-        data: (users) {
-          if (places.isEmpty) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 40.0),
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      translation(context: context, 'No places yet.'),
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.add),
-                      label: Text(translation(context: context, 'Create Place')),
-                      onPressed: _addPlaceDialog,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        textStyle: const TextStyle(fontSize: 16),
+            IconButton(
+              icon: const Icon(Icons.folder_outlined),
+              tooltip: translation(context: context, 'Manage Groups'),
+              onPressed: () => _showGroupsDialog(),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: IconButton(
+                icon: const Icon(Icons.add_location_alt_outlined),
+                tooltip: translation(context: context, 'Add Place'),
+                onPressed: _addPlaceDialog,
+              ),
+            ),
+          ],
+        ),
+        body: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 44,
+                      child: TextField(
+                        controller: _searchController,
+                        style: theme.textTheme.bodyMedium,
+                        decoration: InputDecoration(
+                          hintText: translation(context: context, 'Search...'),
+                          prefixIcon: const Icon(Icons.search, size: 20),
+                          suffixIcon: searchQuery.isNotEmpty
+                              ? IconButton(
+                                  padding: EdgeInsets.zero,
+                                  icon: const Icon(Icons.clear, size: 20),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    setState(() => searchQuery = '');
+                                  },
+                                )
+                              : null,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onChanged: (val) => setState(() => searchQuery = val),
                       ),
                     ),
-                  ],
+                  ),
+                  const SizedBox(width: 10),
+                  Tooltip(
+                    message: translation(context: context, 'Filter by group'),
+                    child: IconButton(
+                      visualDensity: VisualDensity.compact,
+                      icon: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Icon(
+                            selectedGroupFilters.isEmpty ? Icons.filter_list : Icons.filter_list_alt,
+                            size: 24,
+                            color: selectedGroupFilters.isEmpty ? theme.iconTheme.color : theme.colorScheme.primary,
+                          ),
+                          if (selectedGroupFilters.isNotEmpty)
+                            Positioned(
+                              right: 0,
+                              top: 4,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primary,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  selectedGroupFilters.length.toString(),
+                                  style: const TextStyle(fontSize: 10, color: Colors.black, fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      onPressed: _openGroupFilterSheet,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          // Tab view
+          Expanded(
+            child: viewMode == CleaningViewMode.places
+                ? _buildPlacesView(usersAsync, isDark, theme)
+                : _buildPersonView(usersAsync, isDark, theme),
+          ),
+        ],
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: isSaving ? null : _saveAll,
+          tooltip: translation(context: context, 'Save'),
+          backgroundColor: theme.colorScheme.primary,
+          foregroundColor: isDark ? Colors.black : Colors.white,
+          child: isSaving
+              ? SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: isDark ? Colors.black : Colors.white),
+                )
+              : const Icon(Icons.save),
+        ),
+      );
+  }
+
+  void _openGroupFilterSheet() async {
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: false,
+      showDragHandle: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.filter_list, color: Theme.of(context).colorScheme.primary),
+                      const SizedBox(width: 8),
+                      Text(
+                        translation(context: context, 'Filter Groups'),
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                      const Spacer(),
+                      TextButton(
+                        onPressed: () {
+                          selectedGroupFilters.clear();
+                          setSheetState(() {});
+                          Navigator.pop(context); // Close only when all cleared per requirement
+                        },
+                        child: Text(translation(context: context, 'All Groups')),
+                      )
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Flexible(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 320),
+                      child: ListView.builder(
+                        itemCount: groupOrder.length,
+                        itemBuilder: (context, index) {
+                          final gid = groupOrder[index];
+                          final g = groups[gid] as Map<String, dynamic>?;
+                          final title = g?['title'] ?? gid;
+                          final selected = selectedGroupFilters.contains(gid);
+                          return CheckboxListTile(
+                            dense: true,
+                            visualDensity: VisualDensity.compact,
+                            title: Text(title, overflow: TextOverflow.ellipsis),
+                            value: selected,
+                            onChanged: (_) {
+                              if (selected) {
+                                selectedGroupFilters.remove(gid);
+                              } else {
+                                selectedGroupFilters.add(gid);
+                              }
+                              setSheetState(() {});
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      TextButton(
+                        onPressed: () {
+                          selectedGroupFilters.clear();
+                          setSheetState(() {});
+                        },
+                        child: Text(translation(context: context, 'Clear')),
+                      ),
+                      const Spacer(),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          setState(() {}); // refresh list
+                        },
+                        icon: const Icon(Icons.check),
+                        label: Text(translation(context: context, 'Apply')),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+    setState(() {}); // ensure parent rebuild (in case closed via All Groups)
+  }
+
+  Widget _buildPlacesView(AsyncValue usersAsync, bool isDark, ThemeData theme) {
+    return usersAsync.when(
+      data: (users) {
+        final filteredEntries = _getFilteredPlaces();
+        
+        if (places.isEmpty) {
+          return _buildEmptyState();
+        }
+        
+        if (filteredEntries.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.search_off, size: 64, color: theme.disabledColor),
+                const SizedBox(height: 16),
+                Text(
+                  translation(context: context, 'No places found'),
+                  style: theme.textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() {
+                      searchQuery = '';
+                      // Clear all selected group filters
+                      selectedGroupFilters.clear();
+                    });
+                  },
+                  child: Text(translation(context: context, 'Clear filters')),
+                ),
+              ],
+            ),
+          );
+        }
+        
+        return ReorderableListView.builder(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+          itemCount: filteredEntries.length,
+          onReorder: (oldIndex, newIndex) {
+            setState(() {
+              if (newIndex > oldIndex) newIndex -= 1;
+              final moved = filteredEntries.removeAt(oldIndex);
+              filteredEntries.insert(newIndex, moved);
+              
+              final newMap = <String, dynamic>{};
+              for (final e in filteredEntries) {
+                newMap[e.key] = e.value;
+              }
+              places = Map<String, dynamic>.from(newMap);
+              
+              int pos = 0;
+              for (final pid in places.keys) {
+                final p = places[pid] as Map<String, dynamic>;
+                p['pos'] = pos;
+                places[pid] = p;
+                pos++;
+              }
+              final service = ref.read(cleaningFirestoreServiceProvider);
+              service.setCleaning(places);
+            });
+          },
+          buildDefaultDragHandles: false,
+          itemBuilder: (context, idx) {
+            final entry = filteredEntries[idx];
+            final placeId = entry.key;
+            final place = entry.value as Map<String, dynamic>;
+            final placeName = place['name'] ?? '';
+            final assignees = (place['assignees'] as List?)?.cast<String>() ?? [];
+            final currentGroup = place['group'] as String?;
+            
+            return _buildPlaceCard(
+              key: ValueKey(placeId),
+              placeId: placeId,
+              placeName: placeName,
+              assignees: assignees,
+              currentGroup: currentGroup,
+              users: users,
+              idx: idx,
+              isDark: isDark,
+              theme: theme,
+            );
+          },
+        );
+      },
+      loading: () => Center(
+        child: CircularProgressIndicator(color: theme.colorScheme.secondary),
+      ),
+      error: (e, st) => Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.error_outline, size: 64, color: theme.colorScheme.error),
+            const SizedBox(height: 16),
+            Text('${translation(context: context, 'Error loading users')}: $e'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPersonView(AsyncValue usersAsync, bool isDark, ThemeData theme) {
+    return usersAsync.when(
+      data: (users) {
+        final Map<UserEntity, List<String>> personAssignments = {
+          for (final u in users) u: []
+        };
+
+        // Map place assignments to user objects by robust parsing
+        for (final placeEntry in places.entries) {
+          final place = placeEntry.value as Map<String, dynamic>;
+          final placeGroup = place['group'] as String?;
+          // Apply group filter if selected
+          if (selectedGroupFilters.isNotEmpty && (placeGroup == null || !selectedGroupFilters.contains(placeGroup))) {
+            continue;
+          }
+          final placeAssignees = (place['assignees'] as List?)?.cast<String>() ?? [];
+          for (final encoded in placeAssignees) {
+            final parsed = _parseEncodedAssignee(encoded);
+            if (parsed == null) continue;
+            final uid = parsed['uid'] as String;
+            final first = parsed['first'] as String;
+            final last = parsed['last'] as String;
+            final user = users.firstWhere(
+              (u) => u.uid == uid,
+              orElse: () => UserEntity(
+                uid: uid,
+                email: '',
+                firstName: first,
+                lastName: last,
+                role: UserRole.user,
+                placeId: '',
+                isPlaceholder: true,
+              ),
+            );
+            personAssignments.putIfAbsent(user, () => []);
+            personAssignments[user]!.add(placeEntry.key);
+          }
+        }
+
+        final sortedEntries = personAssignments.entries.toList()
+          ..sort((a, b) {
+            final aCount = a.value.length;
+            final bCount = b.value.length;
+            if (bCount != aCount) return bCount.compareTo(aCount);
+            return _displayName(a.key).compareTo(_displayName(b.key));
+          });
+
+        // Apply search filtering for person view
+        List<MapEntry<UserEntity, List<String>>> filteredEntries = sortedEntries;
+        if (searchQuery.isNotEmpty) {
+          final q = searchQuery.toLowerCase().trim();
+            filteredEntries = sortedEntries.where((entry) {
+            final userName = _displayName(entry.key).toLowerCase();
+            final placeMatches = entry.value.any((pid) {
+              final place = places[pid] as Map<String, dynamic>?;
+              final pname = (place?['name'] ?? '').toString().toLowerCase();
+              return pname.contains(q);
+            });
+            return userName.contains(q) || placeMatches;
+          }).toList();
+        }
+        
+        return ListView.builder(
+          padding: const EdgeInsets.all(12),
+          itemCount: filteredEntries.length,
+          itemBuilder: (context, idx) {
+            final entry = filteredEntries[idx];
+            final user = entry.key;
+            final name = _displayName(user);
+            final placeIds = entry.value;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white.withOpacity(0.06) : Colors.white.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isDark ? Colors.white12 : Colors.black.withOpacity(0.08),
+                      ),
+                    ),
+                    child: Theme(
+                      data: theme.copyWith(dividerColor: Colors.transparent),
+                      child: ExpansionTile(
+                        leading: CircleAvatar(
+                          backgroundColor: theme.colorScheme.primary.withOpacity(0.2),
+                          child: Text(
+                            placeIds.length.toString(),
+                            style: TextStyle(
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        title: Text(
+                          name,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Text(
+                          '${placeIds.length} ${translation(context: context, placeIds.length == 1 ? 'place' : 'places')}',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        children: placeIds.isEmpty
+                            ? [
+                                Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Text(
+                                    translation(context: context, 'No assignments'),
+                                    style: TextStyle(color: theme.disabledColor),
+                                  ),
+                                ),
+                              ]
+                            : placeIds.map((placeId) {
+                                final place = places[placeId] as Map<String, dynamic>?;
+                                final placeName = place?['name'] ?? placeId;
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.place, size: 18),
+                                      const SizedBox(width: 12),
+                                      Expanded(child: Text(placeName)),
+                                      IconButton(
+                                        visualDensity: VisualDensity.compact,
+                                        icon: const Icon(Icons.close, size: 18),
+                                        onPressed: () => _toggleAssignee(placeId, user),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             );
-          }
-          // Use ReorderableListView so places can be re-ordered using a drag handle
-          final entries = places.entries.toList();
-          return ReorderableListView.builder(
-            padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
-            itemCount: entries.length,
-            onReorder: (oldIndex, newIndex) {
-              setState(() {
-                // Adjust newIndex when removing the old item
-                if (newIndex > oldIndex) newIndex -= 1;
-                final moved = entries.removeAt(oldIndex);
-                entries.insert(newIndex, moved);
-                // Rebuild the places map preserving new order
-                final newMap = <String, dynamic>{};
-                for (final e in entries) {
-                  newMap[e.key] = e.value;
-                }
-                places = Map<String, dynamic>.from(newMap);
-                // Update positions according to new global order and persist
-                int pos = 0;
-                for (final pid in places.keys) {
-                  final p = places[pid] as Map<String, dynamic>;
-                  p['pos'] = pos;
-                  places[pid] = p;
-                  pos++;
-                }
-                final service = ref.read(cleaningFirestoreServiceProvider);
-                service.setCleaning(places);
-              });
-            },
-            buildDefaultDragHandles: false,
-            itemBuilder: (context, idx) {
-              final entry = entries[idx];
-              final placeId = entry.key;
-              final place = entry.value as Map<String, dynamic>;
-              final placeName = place['name'] ?? '';
-              final assignees = (place['assignees'] as List?)?.cast<String>() ?? [];
-                final currentGroup = place['group'] as String?;
+          },
+        );
+      },
+      loading: () => Center(
+        child: CircularProgressIndicator(color: theme.colorScheme.secondary),
+      ),
+      error: (e, st) => Center(child: Text('Error: $e')),
+    );
+  }
 
-              return Card(
-                key: ValueKey(placeId),
-                margin: const EdgeInsets.fromLTRB(24.0, 8.0, 24.0, 0),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16.0, 8.0, 8.0, 16.0),
+  Widget _buildEmptyState() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 40.0),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.location_off, size: 80, color: Theme.of(context).disabledColor),
+            const SizedBox(height: 24),
+            Text(
+              translation(context: context, 'No places yet.'),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              translation(context: context, 'Add your first cleaning place to get started'),
+              style: TextStyle(fontSize: 14, color: Theme.of(context).textTheme.bodySmall?.color),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.add_location_alt),
+              label: Text(translation(context: context, 'Create Place')),
+              onPressed: _addPlaceDialog,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                textStyle: const TextStyle(fontSize: 16),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlaceCard({
+    required Key key,
+    required String placeId,
+    required String placeName,
+    required List<String> assignees,
+    required String? currentGroup,
+    required List users,
+    required int idx,
+    required bool isDark,
+    required ThemeData theme,
+  }) {
+    String? groupName;
+    if (currentGroup != null && groups.containsKey(currentGroup)) {
+      final g = groups[currentGroup] as Map<String, dynamic>?;
+      groupName = g?['title'];
+    }
+    
+    return Padding(
+      key: key,
+      padding: const EdgeInsets.only(bottom: 8),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+          child: Container(
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white.withOpacity(0.06) : Colors.white.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isDark ? Colors.white12 : Colors.black.withOpacity(0.08),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                        color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      ReorderableDragStartListener(
+                        index: idx,
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 12),
+                          child: Icon(Icons.drag_indicator, color: theme.iconTheme.color?.withOpacity(0.5)),
+                        ),
+                      ),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              placeName,
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            if (groupName != null) ...[
+                              const SizedBox(height: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.secondary.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  groupName,
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: theme.colorScheme.secondary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.edit, size: 20),
+                        tooltip: translation(context: context, 'Edit'),
+                        onPressed: () => _editPlaceDialog(placeId),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.delete_outline, size: 20),
+                        tooltip: translation(context: context, 'Delete'),
+                        onPressed: () => _deletePlace(placeId),
+                      ),
+                    ],
+                  ),
+                ),
+                // Assignees
+                Padding(
+                  padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          // Drag handle (3-line icon)
-                          ReorderableDragStartListener(
-                            index: idx,
-                            child: Padding(
-                              padding: const EdgeInsets.only(right: 12.0),
-                              child: Icon(Icons.drag_handle, color: Theme.of(context).iconTheme.color),
+                          Icon(Icons.people, size: 16, color: theme.textTheme.bodySmall?.color),
+                          const SizedBox(width: 6),
+                          Text(
+                            translation(context: context, 'Assigned People'),
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: theme.textTheme.bodySmall?.color,
                             ),
                           ),
-                          Expanded(
-                            child: Text(placeName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              assignees.length.toString(),
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.edit),
-                            tooltip: translation(context: context, 'Edit Place'),
-                            onPressed: () => _editPlaceDialog(placeId, placeName),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete),
-                            tooltip: translation(context: context, 'Delete Place'),
-                            onPressed: () => _deletePlace(placeId, placeName),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      // Group selector
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8.0),
-                        child: Row(
-                          children: [
-                            const Text('Group: '),
+                          // Warning icon if orphan assignees exist
+                          if (_hasOrphanAssignees(assignees, users)) ...[
                             const SizedBox(width: 8),
-                            DropdownButton<String?>(
-                              value: currentGroup,
-                              hint: Text(translation(context: context, 'None')),
-                              items: [
-                                DropdownMenuItem<String?>(value: null, child: Text(translation(context: context, 'None'))),
-                                ...groupOrder.map((gid) {
-                                  final g = groups[gid] as Map<String, dynamic>?;
-                                  final title = g == null ? gid : (g['title'] ?? gid);
-                                  return DropdownMenuItem<String?>(value: gid, child: Text(title));
-                                }).toList()
-                              ],
-                              onChanged: (val) async {
-                                // Update local mapping and groups lists
-                                final oldGroup = place['group'] as String?;
-                                setState(() {
-                                  place['group'] = val;
-                                  places[placeId] = place;
-                                  // remove from old group
-                                  if (oldGroup != null && groups.containsKey(oldGroup)) {
-                                    final plist = (groups[oldGroup]!['places'] as List?)?.cast<String>() ?? [];
-                                    plist.remove(placeId);
-                                    groups[oldGroup]!['places'] = plist;
-                                  }
-                                  // add to new group
-                                  if (val != null) {
-                                    final plist = (groups[val]!['places'] as List?)?.cast<String>() ?? [];
-                                    if (!plist.contains(placeId)) plist.add(placeId);
-                                    groups[val]!['places'] = plist;
-                                  }
-                                });
-                                // Persist groups and places
-                                final service = ref.read(cleaningFirestoreServiceProvider);
-                                await service.setCleaning(places);
-                                await service.setGroups(groups);
-                              },
+                            Tooltip(
+                              message: translation(context: context, 'Some assigned users are missing'),
+                              child: Icon(Icons.warning_amber_rounded, size: 18, color: Colors.orangeAccent),
                             ),
                           ],
-                        ),
+                        ],
                       ),
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(
-                          maxHeight: 120, // Set your desired max height here
-                        ),
-                        child: SingleChildScrollView(
-                          child: Wrap(
-                            spacing: 4.0,
-                            runSpacing: 4.0,
-                            children: [
-                              ...users.map((user) {
-                                final userName = '${user.firstName} ${user.lastName}';
-                                final entry = '${user.uid}_${user.firstName}_${user.lastName}';
-                                final isAssigned = assignees.contains(entry);
-                                return FilterChip(
-                                  label: Text(userName),
-                                  selected: isAssigned,
-                                  onSelected: (_) => _toggleAssignee(placeId, user),
-                                );
-                              }),
-                              // Show assigned users as Chips (for visual feedback)
-                              ...assignees.where((entry) {
-                                final parts = entry.split('_');
-                                return parts.length >= 3 && !users.any((u) => u.uid == parts[0]);
-                              }).map((entry) {
-                                final parts = entry.split('_');
-                                final label = parts.length >= 3 ? '${parts[1]} ${parts[2]}' : entry;
-                                return Chip(label: Text(label));
-                              }),
-                            ],
-                          ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: _buildAssigneeChips(
+                          theme: theme,
+                          users: users.cast<UserEntity>(),
+                          assignees: assignees,
+                          placeId: placeId,
                         ),
                       ),
                     ],
                   ),
                 ),
-              );
-            },
-          );
-        },
-        loading: () => Center(
-          child: CircularProgressIndicator(
-            color: Theme.of(context).colorScheme.secondary,
+              ],
+            ),
           ),
         ),
-        error: (e, st) => Center(child: Text('Error loading users: $e')),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: isSaving ? null : _saveAll,
-        tooltip: translation(context: context, 'Save'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: isDark ? Colors.black : Colors.white,
-        child: isSaving ? const Icon(Icons.save) : const Icon(Icons.save),
-        // child: isSaving ? CircularProgressIndicator(color: Theme.of(context).colorScheme.onPrimary) : const Icon(Icons.save),
+    );
+  }
+
+  String _displayName(UserEntity user) {
+    // Replace underscores in firstName, keep multiple name parts
+    final cleanFirst = user.firstName.replaceAll('_', ' ').trim();
+    final cleanLast = user.lastName.replaceAll('_', ' ').trim();
+    if (cleanFirst.isEmpty && cleanLast.isEmpty) return translation(context: context, 'Unknown');
+    if (cleanLast.isEmpty) return cleanFirst; // some placeholders may not have surname
+    if (cleanFirst.isEmpty) return cleanLast;
+    return '$cleanFirst $cleanLast';
+  }
+
+  bool _hasOrphanAssignees(List<String> assignees, List users) {
+    return assignees.any((entry) {
+      final parsed = _parseEncodedAssignee(entry);
+      if (parsed == null) return false;
+      final uid = parsed['uid'] as String;
+      return !users.any((u) => u.uid == uid);
+    });
+  }
+
+  List<Widget> _buildAssigneeChips({
+    required ThemeData theme,
+    required List<UserEntity> users,
+    required List<String> assignees,
+    required String placeId,
+  }) {
+    // Build full list: existing users + placeholder entries for orphan assignments
+    final List<UserEntity> list = [...users];
+    for (final entry in assignees) {
+      final parsed = _parseEncodedAssignee(entry);
+      if (parsed == null) continue;
+      final uid = parsed['uid'] as String;
+      if (!list.any((u) => u.uid == uid)) {
+        list.add(UserEntity(
+          uid: uid,
+          email: '',
+          firstName: parsed['first'] as String,
+          lastName: parsed['last'] as String,
+          role: UserRole.user,
+          placeId: '',
+          isPlaceholder: true,
+        ));
+      }
+    }
+    // Preserve original order: users list order, then orphan placeholders appended
+
+    return list.map((user) {
+      final encoded = '${user.uid}_${user.firstName}_${user.lastName}';
+      final isAssigned = assignees.contains(encoded);
+      final missing = !users.any((u) => u.uid == user.uid); // treat as missing only if not in Firestore list
+      final bg = missing
+          ? Colors.orange.withOpacity(0.25)
+          : (isAssigned ? theme.colorScheme.primary.withOpacity(0.2) : theme.colorScheme.surface.withOpacity(0.5));
+      final borderColor = missing
+          ? Colors.orangeAccent
+          : (isAssigned ? theme.colorScheme.primary : theme.dividerColor);
+      return GestureDetector(
+        onTap: () => _toggleAssignee(placeId, user),
+        child: Tooltip(
+          message: missing
+              ? translation(context: context, 'User no longer exists')
+              : (isAssigned ? translation(context: context, 'Tap to remove') : translation(context: context, 'Tap to assign')),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: borderColor, width: isAssigned ? 2 : 1),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (missing) ...[
+                  Icon(Icons.warning_amber_rounded, size: 14, color: Colors.orangeAccent),
+                  const SizedBox(width: 4),
+                ],
+                Text(
+                  _displayName(user),
+                  style: TextStyle(
+                    color: missing
+                        ? Colors.orangeAccent
+                        : (isAssigned ? theme.colorScheme.primary : theme.textTheme.bodyMedium?.color),
+                    fontWeight: isAssigned ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }).toList();
+  }
+
+  Map<String, String>? _parseEncodedAssignee(String entry) {
+    // Expected format: uid_first_last, but uid may itself contain underscores.
+    // Strategy: last two underscore-separated segments are first and last; everything before is uid.
+    final parts = entry.split('_');
+    if (parts.length < 3) return null; // invalid format
+    final last = parts.last;
+    final first = parts[parts.length - 2];
+    final uid = parts.sublist(0, parts.length - 2).join('_');
+    return {
+      'uid': uid,
+      'first': first,
+      'last': last,
+    };
+  }
+
+  void _showGroupsDialog() async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) => EditGroupsDialog(
+        initialGroups: Map<String, dynamic>.from(groups),
+        initialOrder: List<String>.from(groupOrder),
+        onSave: (newGroups, newOrder) async {
+          final service = ref.read(cleaningFirestoreServiceProvider);
+          final deletedGroupIds = groups.keys.where((k) => !newGroups.containsKey(k)).toSet();
+          var changed = false;
+          for (final pid in places.keys.toList()) {
+            final p = places[pid] as Map<String, dynamic>;
+            final pg = p['group'] as String?;
+            if (pg != null && deletedGroupIds.contains(pg)) {
+              p['group'] = null;
+              places[pid] = p;
+              changed = true;
+            }
+          }
+          if (changed) await service.setCleaning(places);
+          await service.setGroups(newGroups);
+          setState(() {
+            groups = Map<String, dynamic>.from(newGroups);
+            groupOrder = List<String>.from(newOrder);
+          });
+          if (mounted) {
+            showCustomSnackBar(context, translation(context: context, 'Groups updated'));
+          }
+        },
       ),
     );
   }
 }
 
+// Groups Dialog remains largely the same but with improved UI
 typedef EditGroupsOnSave = Future<void> Function(Map<String, dynamic> groups, List<String> order);
 
 class EditGroupsDialog extends StatefulWidget {
@@ -433,7 +1172,12 @@ class EditGroupsDialog extends StatefulWidget {
   final List<String> initialOrder;
   final EditGroupsOnSave onSave;
 
-  const EditGroupsDialog({super.key, required this.initialGroups, required this.initialOrder, required this.onSave});
+  const EditGroupsDialog({
+    super.key,
+    required this.initialGroups,
+    required this.initialOrder,
+    required this.onSave,
+  });
 
   @override
   State<EditGroupsDialog> createState() => _EditGroupsDialogState();
@@ -469,10 +1213,17 @@ class _EditGroupsDialogState extends State<EditGroupsDialog> {
   }
 
   Future<void> _deleteGroup(String id) async {
-    setState(() {
-      groups.remove(id);
-      order.remove(id);
-    });
+    final title = groups[id]?['title'] ?? id;
+    final confirm = await showConfirmDialog(
+      context: context,
+      content: Text('${translation(context: context, 'Delete group')} "$title"?'),
+    );
+    if (confirm == true) {
+      setState(() {
+        groups.remove(id);
+        order.remove(id);
+      });
+    }
   }
 
   Future<void> _editGroupTitle(String id) async {
@@ -481,10 +1232,23 @@ class _EditGroupsDialogState extends State<EditGroupsDialog> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(translation(context: context, 'Edit Group')),
-        content: TextField(controller: controller, autofocus: true, decoration: InputDecoration(labelText: translation(context: context, 'Group title'))),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: InputDecoration(
+            labelText: translation(context: context, 'Group title'),
+            border: OutlineInputBorder(),
+          ),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text(translation(context: context, 'Cancel'))),
-          ElevatedButton(onPressed: () => Navigator.pop(context, controller.text.trim()), child: Text(translation(context: context, 'Save'))),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(translation(context: context, 'Cancel')),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            child: Text(translation(context: context, 'Save')),
+          ),
         ],
       ),
     );
@@ -497,53 +1261,115 @@ class _EditGroupsDialogState extends State<EditGroupsDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return AlertDialog(
-      title: Text(translation(context: context, 'Manage Groups')),
+      title: Row(
+        children: [
+          Icon(Icons.folder_outlined),
+          const SizedBox(width: 12),
+          Text(translation(context: context, 'Manage Groups')),
+        ],
+      ),
       content: SizedBox(
-        width: 420,
+        width: 450,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // list of groups
             if (order.isNotEmpty)
-              ...order.map((id) {
-                final g = groups[id] as Map<String, dynamic>? ?? {};
-                final title = g['title'] ?? id;
-                return ListTile(
-                  key: ValueKey(id),
-                  title: Text(title),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(icon: Icon(Icons.edit), onPressed: () => _editGroupTitle(id)),
-                      IconButton(icon: Icon(Icons.delete), onPressed: () => _deleteGroup(id)),
-                    ],
-                  ),
-                );
-              }).toList()
+              ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: 300),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: order.length,
+                  itemBuilder: (context, index) {
+                    final id = order[index];
+                    final g = groups[id] as Map<String, dynamic>? ?? {};
+                    final title = g['title'] ?? id;
+                    final placeCount = (g['places'] as List?)?.length ?? 0;
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: theme.colorScheme.secondary.withOpacity(0.2),
+                          child: Text(
+                            placeCount.toString(),
+                            style: TextStyle(
+                              color: theme.colorScheme.secondary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        title: Text(title, style: TextStyle(fontWeight: FontWeight.w600)),
+                        subtitle: Text(
+                          '$placeCount ${translation(context: context, placeCount == 1 ? 'place' : 'places')}',
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: Icon(Icons.edit, size: 20),
+                              onPressed: () => _editGroupTitle(id),
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.delete_outline, size: 20),
+                              onPressed: () => _deleteGroup(id),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              )
             else
               Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Text(translation(context: context, 'No groups yet.')),
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  children: [
+                    Icon(Icons.folder_off, size: 48, color: theme.disabledColor),
+                    const SizedBox(height: 12),
+                    Text(
+                      translation(context: context, 'No groups yet.'),
+                      style: TextStyle(color: theme.textTheme.bodySmall?.color),
+                    ),
+                  ],
+                ),
               ),
-
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: TextField(controller: _newController, decoration: InputDecoration(hintText: translation(context: context, 'New group title')))),
+                Expanded(
+                  child: TextField(
+                    controller: _newController,
+                    decoration: InputDecoration(
+                      hintText: translation(context: context, 'New group title'),
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.add),
+                    ),
+                    onSubmitted: (_) => _addGroup(),
+                  ),
+                ),
                 const SizedBox(width: 8),
-                ElevatedButton(onPressed: _addGroup, child: Text(translation(context: context, 'Add'))),
+                ElevatedButton.icon(
+                  onPressed: _addGroup,
+                  icon: Icon(Icons.add),
+                  label: Text(translation(context: context, 'Add')),
+                ),
               ],
             ),
           ],
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: Text(translation(context: context, 'Cancel'))),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(translation(context: context, 'Cancel')),
+        ),
         ElevatedButton(
           onPressed: () async {
             await widget.onSave(groups, order);
-            Navigator.pop(context);
+            if (context.mounted) Navigator.pop(context);
           },
           child: Text(translation(context: context, 'Save')),
         ),

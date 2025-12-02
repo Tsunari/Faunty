@@ -67,6 +67,16 @@ class _CateringPageState extends ConsumerState<CateringPage> {
               }
               if (hasUser) visibleDays.add(day);
             }
+            // Sort visibleDays so today comes first
+            final todayIndex = now.weekday - 1; // 0=Monday, 6=Sunday
+            visibleDays.sort((a, b) {
+              // Calculate distance from today (wrapping around the week)
+              int distA = (a - todayIndex) % 7;
+              int distB = (b - todayIndex) % 7;
+              if (distA < 0) distA += 7;
+              if (distB < 0) distB += 7;
+              return distA.compareTo(distB);
+            });
             return Scaffold(
               appBar: CustomAppBar(
                 title: translation(context: context, 'Catering'),
