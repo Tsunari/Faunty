@@ -9,13 +9,25 @@ void showCustomSnackBar(BuildContext context, String message, {Color? background
     messenger.clearSnackBars();
     messenger.showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: backgroundColor ?? Theme.of(context).colorScheme.secondary,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         duration: duration ?? const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         dismissDirection: DismissDirection.horizontal,
+        content: Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+            decoration: BoxDecoration(
+              color: backgroundColor ?? Theme.of(context).colorScheme.secondary,
+              borderRadius: BorderRadius.circular(12.0),
+            ),
+            child: Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Theme.of(context).colorScheme.onSecondary),
+            ),
+          ),
+        ),
       ),
     );
   }
