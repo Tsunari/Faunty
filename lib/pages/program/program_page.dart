@@ -1,7 +1,6 @@
 import 'package:faunty/components/role_gate.dart';
 import 'package:faunty/globals.dart';
 import 'package:faunty/models/user_roles.dart';
-import 'package:faunty/pages/program/program_organisation_calendar.dart';
 import 'package:faunty/pages/program/program_organisation_calendar_v2.dart';
 import 'package:faunty/tools/pdf_generator/program_pdf_layout.dart';
 import 'package:faunty/tools/translation_helper.dart';
