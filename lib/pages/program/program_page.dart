@@ -1,6 +1,8 @@
 import 'package:faunty/components/role_gate.dart';
 import 'package:faunty/globals.dart';
 import 'package:faunty/models/user_roles.dart';
+import 'package:faunty/pages/program/program_organisation_calendar.dart';
+import 'package:faunty/pages/program/program_organisation_calendar_v2.dart';
 import 'package:faunty/tools/pdf_generator/program_pdf_layout.dart';
 import 'package:faunty/tools/translation_helper.dart';
 import 'package:flutter/material.dart';
@@ -35,6 +37,24 @@ class _ProgramPageState extends ConsumerState<ProgramPage> {
     return translation(context: context, short);
   }
 
+  int _minutesFromString(String? time) {
+    if (time == null || time.isEmpty) return 0;
+    final parts = time.split(':');
+    try {
+      final h = int.parse(parts[0]);
+      final m = parts.length > 1 ? int.parse(parts[1]) : 0;
+      return h * 60 + m;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  List<Map<String, dynamic>> _sortedCopyOfEntries(List<dynamic> entries) {
+    final copied = entries.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    copied.sort((a, b) => _minutesFromString(a['from'] as String?).compareTo(_minutesFromString(b['from'] as String?)));
+    return copied;
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -42,13 +62,19 @@ class _ProgramPageState extends ConsumerState<ProgramPage> {
     final weekProgramAsync = ref.watch(weekProgramProvider);
     return weekProgramAsync.when(
       data: (weekProgram) {
+        // Create a sorted copy of the week program (sorted by 'from' time)
+        final Map<String, List<Map<String, dynamic>>> sortedWeekProgram = {};
+        weekProgram.forEach((day, entries) {
+          sortedWeekProgram[day] = _sortedCopyOfEntries(entries ?? []);
+        });
+
         // Build a list of days (date, dayName, dayShort, entries) where entries is not empty
         final List<Map<String, dynamic>> daysWithPrograms = [];
         for (int idx = 0; idx < 7; idx++) {
           final date = now.add(Duration(days: idx));
           final dayName = getWeekdayFromDate(date);
           final dayShort = getWeekdayShort(date, context);
-          final entries = weekProgram[dayName] ?? [];
+          final entries = sortedWeekProgram[dayName] ?? [];
           if (entries.isNotEmpty) {
             daysWithPrograms.add({
               'date': date,
@@ -65,7 +91,7 @@ class _ProgramPageState extends ConsumerState<ProgramPage> {
             onGeneratePdf: () async {
               final Map<String, List<Map<String, dynamic>>> pdfData = {};
               for (final dayName in weekDays) {
-                final entries = weekProgram[dayName] ?? [];
+                final entries = sortedWeekProgram[dayName] ?? [];
                 if (entries.isEmpty) {
                   continue;
                 }
@@ -125,8 +151,8 @@ class _ProgramPageState extends ConsumerState<ProgramPage> {
                         int? currentEventIdx;
                         if (isToday) {
                           for (int i = 0; i < entries.length; i++) {
-                            final fromParts = entries[i]['from']!.split(':');
-                            final toParts = entries[i]['to']!.split(':');
+                            final fromParts = (entries[i]['from'] as String).split(':');
+                            final toParts = (entries[i]['to'] as String).split(':');
                             final from = TimeOfDay(hour: int.parse(fromParts[0]), minute: int.parse(fromParts[1]));
                             final to = TimeOfDay(hour: int.parse(toParts[0]), minute: int.parse(toParts[1]));
                             bool afterFrom = nowTime.hour > from.hour || (nowTime.hour == from.hour && nowTime.minute >= from.minute);
@@ -236,23 +262,38 @@ class _ProgramPageState extends ConsumerState<ProgramPage> {
           ),
           floatingActionButton: RoleGate(
             minRole: UserRole.baskan,
-            child: FloatingActionButton(
-              onPressed: () async {
-                final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ProgramOrganisationPage(
-                      weekProgram: weekProgram,
-                    ),
-                  ),
-                );
-                if (result != null && result is Map<String, List<Map<String, String>>>) {
-                  final service = ref.read(programFirestoreServiceProvider);
-                  await service.setWeekProgram(result);
-                }
-              },
-              tooltip: translation(context: context, 'Edit program'),
-              child: const Icon(Icons.edit),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FloatingActionButton(
+                  heroTag: 'editProgramFab',
+                  onPressed: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProgramOrganisationPage(
+                          weekProgram: weekProgram,
+                        ),
+                      ),
+                    );
+                    final service = ref.read(programFirestoreServiceProvider);
+                    await service.setWeekProgram(result);
+                  },
+                  tooltip: translation(context: context, 'Edit program'),
+                  child: const Icon(Icons.edit),
+                ),
+                const SizedBox(height: 8),
+                FloatingActionButton(
+                  heroTag: 'newCalendarFab',
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const ProgramOrganisationCalendarV2()),
+                    );
+                  },
+                  tooltip: translation(context: context, 'New calendar UI'),
+                  child: const Icon(Icons.calendar_view_day),
+                ),
+              ],
             ),
           ),
         );
