@@ -1,29 +1,14 @@
 # Changelog
 
 ## [1.24.1] - 04-12-2025
-### Added
-- New experimental program organisation page
-### Changed
-- Catering list sorting by current day
-- Cleaning assign complete rework
-- Cleaning page rework
-- Web dev configs
 ### Fixed
 - Fix missing import
-- Fixes to snackbar and navigation bar
 
 
 
 ## [1.24.0] - 04-12-2025
 ### Added
 - New experimental program organisation page
-### Changed
-- Catering list sorting by current day
-- Cleaning assign complete rework
-- Cleaning page rework
-- Web dev configs
-### Fixed
-- Fixes to snackbar and navigation bar
 
 
 

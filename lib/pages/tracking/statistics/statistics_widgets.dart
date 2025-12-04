@@ -29,13 +29,47 @@ class _StatisticsWidgetsState extends State<StatisticsWidgets> {
 	TimeGranularity _ratingSpan = TimeGranularity.week;
 	TimeGranularity _historySpan = TimeGranularity.month;
 
+	// Local selection state: the widget manages selection locally to avoid
+	// async races with parent-provided `selectedUser` and the async users list.
+	String? _localSelectedUser;
+
+	@override
+	void didUpdateWidget(covariant StatisticsWidgets old) {
+		super.didUpdateWidget(old);
+		final roster = (widget.attendance['roster'] as List?)?.cast<String>() ?? const <String>[];
+		final allowed = <String>{'all', ...roster};
+
+		// If the parent intentionally changed the selection, adopt it (if valid).
+		if (widget.selectedUser != null && widget.selectedUser != old.selectedUser) {
+			if (allowed.contains(widget.selectedUser)) {
+				setState(() {
+					_localSelectedUser = widget.selectedUser;
+				});
+			}
+		}
+
+		// If our local selection became invalid due to roster changes, pick a fallback.
+		if (_localSelectedUser != null && !allowed.contains(_localSelectedUser)) {
+			final fb = roster.isNotEmpty ? roster.first : 'all';
+			setState(() {
+				_localSelectedUser = fb;
+			});
+			widget.onUserChanged?.call(_localSelectedUser);
+		}
+	}
+
 	List<int> get _weekdays => ((widget.itemMeta['weekdays'] as List?)?.cast<int>() ?? const [1, 2, 3, 4, 5, 6, 7]);
 
 	@override
 	Widget build(BuildContext context) {
 		final keys = normalizedDatesForItem(widget.attendance, widget.itemId, weekdays: _weekdays);
     final roster = (widget.attendance['roster'] as List?)?.cast<String>() ?? const <String>[];
-	  final effectiveUser = widget.selectedUser ?? (roster.isNotEmpty ? roster.first : null);
+
+	  // Initialize local selection if not set. We avoid calling setState here
+	  // because this happens before first frame and assigning a field is fine.
+	  _localSelectedUser ??= widget.selectedUser ?? (roster.isNotEmpty ? roster.first : 'all');
+	  final effectiveUser = _localSelectedUser;
+  
 
 		final monthSeries = computeUserRatingSeries(widget.attendance, widget.itemId, granularity: TimeGranularity.month, userId: effectiveUser, weekdays: _weekdays);
 		final yearSeries = computeUserRatingSeries(widget.attendance, widget.itemId, granularity: TimeGranularity.year, userId: effectiveUser, weekdays: _weekdays);
@@ -86,6 +120,9 @@ class _StatisticsWidgetsState extends State<StatisticsWidgets> {
 																		iconSize: 18,
 																		style: Theme.of(context).textTheme.bodySmall,
 																		onChanged: (v) {
+																			setState(() {
+																				_localSelectedUser = v;
+																			});
 																			widget.onUserChanged?.call(v);
 																		},
 																		items: items,
