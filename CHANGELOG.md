@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.24.3] - 04-12-2025
+### Changed
+- V2 program organization enhancements
+
+
+
 ## [1.24.2] - 04-12-2025
 ### Fixed
 - Statistics dropdown async fix
