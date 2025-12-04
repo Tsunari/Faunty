@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.24.2] - 04-12-2025
+### Fixed
+- Statistics dropdown async fix
+
+
+
 ## [1.24.1] - 04-12-2025
 ### Fixed
 - Fix missing import
