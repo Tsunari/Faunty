@@ -1,10 +1,5 @@
-import 'dart:math';
-import 'package:faunty/models/user_roles.dart';
-import 'package:faunty/tools/sort_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../state_management/user_list_provider.dart';
-import '../models/user_entity.dart';
 
 // Generic models exported for consumers
 class Assignment {
@@ -29,9 +24,12 @@ class TableWidget extends ConsumerStatefulWidget {
   final bool editMode;
   final Future<void> Function(int index)? onDeleteAssignment;
   final Future<void> Function(int subsectionIndex)? onDeleteSubsection;
-  final Future<void> Function(int subsectionIndex, String newTitle)? onSaveSubsection;
+  final Future<void> Function(int subsectionIndex, String newTitle)?
+  onSaveSubsection;
   final VoidCallback? onAddAssignment;
   final VoidCallback? onAddSubsection;
+  final Future<void> Function(int oldIndex, int newIndex)?
+  onReorder; // For future drag-and-drop
 
   const TableWidget({
     super.key,
@@ -46,6 +44,7 @@ class TableWidget extends ConsumerStatefulWidget {
     this.onSaveSubsection,
     this.onAddAssignment,
     this.onAddSubsection,
+    this.onReorder,
   });
 
   @override
@@ -89,7 +88,10 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
   void _onSubsectionFocusChanged() {
     if (!_subsectionFocusNode.hasFocus && editingSubsectionItemIndex != null) {
       // Save when focus is lost
-      _saveSubsectionTitle(editingSubsectionItemIndex!, _subsectionController.text);
+      _saveSubsectionTitle(
+        editingSubsectionItemIndex!,
+        _subsectionController.text,
+      );
     }
   }
 
@@ -114,7 +116,10 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
     // Save subsection edit if active
     if (editingSubsectionItemIndex != null) {
       try {
-        _saveSubsectionTitle(editingSubsectionItemIndex!, _subsectionController.text);
+        _saveSubsectionTitle(
+          editingSubsectionItemIndex!,
+          _subsectionController.text,
+        );
       } catch (e) {
         // Ignore save errors when closing
       }
@@ -129,7 +134,9 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
 
   @override
   Widget build(BuildContext context) {
-  final headerStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600);
+    final headerStyle = Theme.of(
+      context,
+    ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600);
     final headerHeight = 36.0;
 
     final theme = Theme.of(context);
@@ -167,9 +174,9 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
               const SizedBox(height: 8),
               Text(
                 'Get started by adding your first assignment or subsection',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey.shade500,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade500),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -185,22 +192,28 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primary,
                           foregroundColor: theme.colorScheme.onPrimary,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
                         ),
                       ),
-                      if (widget.onAddSubsection != null) const SizedBox(width: 12),
+                      if (widget.onAddSubsection != null)
+                        const SizedBox(width: 12),
                     ],
                     if (widget.onAddSubsection != null) ...[
                       OutlinedButton.icon(
-                        onPressed: null, // widget.onAddSubsection
+                        onPressed: widget.onAddSubsection,
                         icon: const Icon(Icons.add, size: 18),
                         label: const Text('Add Subsection'),
                         style: OutlinedButton.styleFrom(
                           side: BorderSide(color: primary),
                           foregroundColor: primary,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
                         ),
-                        
                       ),
                     ],
                   ],
@@ -214,7 +227,8 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
 
     // Build blocks: either Tables of assignments or subsection header + table
     final blocks = <Widget>[];
-    final pending = <Assignment>[];
+    final pending =
+        <(Assignment, int)>[]; // Track assignment with its itemIndex
     int flatCounter = 0;
 
     void flushPending() {
@@ -226,7 +240,11 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
           horizontalInside: BorderSide(color: Colors.grey.shade300),
           verticalInside: BorderSide(color: Colors.grey.shade200),
         ),
-        children: pending.map((r) => _buildRow(context, r, flatCounter++)).toList(),
+        children: pending
+            .map(
+              (tuple) => _buildRow(context, tuple.$1, flatCounter++, tuple.$2),
+            )
+            .toList(),
       );
       blocks.add(table);
       pending.clear();
@@ -235,63 +253,120 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
     for (int itemIndex = 0; itemIndex < widget.items.length; itemIndex++) {
       final item = widget.items[itemIndex];
       if (item is Assignment) {
-        pending.add(item);
+        pending.add((item, itemIndex));
       } else if (item is Subsection) {
         // flush assignments before subsection
         flushPending();
         // subsection header: support inline editing when requested
         if (editingSubsectionItemIndex == itemIndex) {
-          blocks.add(Container(
-            height: headerHeight,
-            color: primary.withOpacity(0.12),
-            alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: SizedBox(
-              height: headerHeight,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Center(
-                      child: GestureDetector(
-                        onTap: () {}, // Consume tap to prevent exit editing
-                        child: TextField(
-                          controller: _subsectionController,
-                          textAlign: TextAlign.center,
-                          decoration: InputDecoration(border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)), isDense: true, contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12)),
-                          onSubmitted: (val) => _saveSubsectionTitle(itemIndex, val),
-                          onEditingComplete: () => _saveSubsectionTitle(itemIndex, _subsectionController.text),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ));
-        } else {
-          blocks.add(GestureDetector(
-            onTap: widget.editMode ? () => _startEditingSubsection(itemIndex, item.title) : null,
-            child: Container(
+          blocks.add(
+            Container(
               height: headerHeight,
               color: primary.withOpacity(0.12),
               alignment: Alignment.center,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(item.title, style: headerStyle?.copyWith(color: primary)),
-                  if (widget.editMode && widget.onDeleteSubsection != null) ...[
-                    const SizedBox(width: 8),
-                    IconButton(
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      icon: Icon(Icons.delete, size: 20, color: Colors.red),
-                      onPressed: () => widget.onDeleteSubsection!(itemIndex),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: SizedBox(
+                height: headerHeight,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Center(
+                        child: GestureDetector(
+                          onTap: () {}, // Consume tap to prevent exit editing
+                          child: TextField(
+                            controller: _subsectionController,
+                            textAlign: TextAlign.center,
+                            decoration: InputDecoration(
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 8,
+                                horizontal: 12,
+                              ),
+                            ),
+                            onSubmitted: (val) =>
+                                _saveSubsectionTitle(itemIndex, val),
+                            onEditingComplete: () => _saveSubsectionTitle(
+                              itemIndex,
+                              _subsectionController.text,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ],
-                ],
+                ),
               ),
             ),
-          ));
+          );
+        } else {
+          blocks.add(
+            GestureDetector(
+              onTap: widget.editMode
+                  ? () => _startEditingSubsection(itemIndex, item.title)
+                  : null,
+              child: Container(
+                height: headerHeight,
+                color: primary.withOpacity(0.12),
+                alignment: Alignment.center,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Move up/down buttons for reordering
+                    if (widget.editMode && widget.onReorder != null) ...[
+                      IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        icon: Icon(
+                          Icons.arrow_upward,
+                          size: 18,
+                          color: itemIndex > 0 ? primary : Colors.grey.shade300,
+                        ),
+                        onPressed: itemIndex > 0
+                            ? () => widget.onReorder!(itemIndex, itemIndex - 1)
+                            : null,
+                      ),
+                      IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        icon: Icon(
+                          Icons.arrow_downward,
+                          size: 18,
+                          color: itemIndex < widget.items.length - 1
+                              ? primary
+                              : Colors.grey.shade300,
+                        ),
+                        onPressed: itemIndex < widget.items.length - 1
+                            ? () => widget.onReorder!(itemIndex, itemIndex + 1)
+                            : null,
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    Text(
+                      item.title,
+                      style: headerStyle?.copyWith(color: primary),
+                    ),
+                    if (widget.editMode &&
+                        widget.onDeleteSubsection != null) ...[
+                      const SizedBox(width: 8),
+                      IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        icon: const Icon(
+                          Icons.delete,
+                          size: 20,
+                          color: Colors.red,
+                        ),
+                        onPressed: () => widget.onDeleteSubsection!(itemIndex),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          );
         }
 
         // add subsection rows as a separate table
@@ -302,7 +377,11 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
             horizontalInside: BorderSide(color: Colors.grey.shade300),
             verticalInside: BorderSide(color: Colors.grey.shade200),
           ),
-          children: item.rows.map((r) => _buildRow(context, r, flatCounter++)).toList(),
+          children: item.rows
+              .map(
+                (r) => _buildRow(context, r, flatCounter++, -1),
+              ) // -1 indicates subsection row (can't reorder individual rows)
+              .toList(),
         );
         blocks.add(subTable);
       }
@@ -311,22 +390,31 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
-      onTap: widget.editMode ? () async {
-        // Exit inline editing when tapped outside, but save changes first
-        if (editingRowIndex != null) {
-          await _saveEdit(editingRowIndex!, editingLeft, _controller.text);
-          setState(() {
-            editingRowIndex = null;
-            editingLeft = true;
-          });
-        }
-        if (editingSubsectionItemIndex != null) {
-          _saveSubsectionTitle(editingSubsectionItemIndex!, _subsectionController.text);
-          setState(() {
-            editingSubsectionItemIndex = null;
-          });
-        }
-      } : null,
+      onTap: widget.editMode
+          ? () async {
+              // Exit inline editing when tapped outside, but save changes first
+              if (editingRowIndex != null) {
+                await _saveEdit(
+                  editingRowIndex!,
+                  editingLeft,
+                  _controller.text,
+                );
+                setState(() {
+                  editingRowIndex = null;
+                  editingLeft = true;
+                });
+              }
+              if (editingSubsectionItemIndex != null) {
+                _saveSubsectionTitle(
+                  editingSubsectionItemIndex!,
+                  _subsectionController.text,
+                );
+                setState(() {
+                  editingSubsectionItemIndex = null;
+                });
+              }
+            }
+          : null,
       child: Container(
         alignment: Alignment.topCenter,
         constraints: const BoxConstraints(minWidth: 400), // Minimum width
@@ -343,64 +431,104 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
             children: [
               if (widget.showColumnHeaders) ...[
                 Table(
-                  columnWidths: const {0: FlexColumnWidth(1), 1: FlexColumnWidth(1)},
+                  columnWidths: const {
+                    0: FlexColumnWidth(1),
+                    1: FlexColumnWidth(1),
+                  },
                   children: [
-                    TableRow(children: [
-                      Container(padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12), child: Text(widget.leftHeader ?? 'Left', style: headerStyle)),
-                      Container(padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12), child: Text(widget.rightHeader ?? 'Right', style: headerStyle)),
-                    ]),
+                    TableRow(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 8,
+                            horizontal: 12,
+                          ),
+                          child: Text(
+                            widget.leftHeader ?? 'Left',
+                            style: headerStyle,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 8,
+                            horizontal: 12,
+                          ),
+                          child: Text(
+                            widget.rightHeader ?? 'Right',
+                            style: headerStyle,
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
                 const SizedBox(height: 6),
               ],
 
               // render blocks sequentially with separators between them so borders remain visible
-              ..._interleaveWithSeparators(blocks, Theme.of(context).dividerColor),
-
-            // Add buttons at the bottom when in edit mode
-            if (widget.editMode && (widget.onAddAssignment != null || widget.onAddSubsection != null)) ...[
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  border: Border(top: BorderSide(color: Colors.grey.shade300)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (widget.onAddAssignment != null) ...[
-                      ElevatedButton.icon(
-                        onPressed: widget.onAddAssignment,
-                        icon: const Icon(Icons.add, size: 18),
-                        label: const Text('Add Assignment'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primary,
-                          foregroundColor: theme.colorScheme.onPrimary,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        ),
-                      ),
-                      if (widget.onAddSubsection != null) const SizedBox(width: 12),
-                    ],
-                    if (widget.onAddSubsection != null) ...[
-                      OutlinedButton.icon(
-                        onPressed: null, // Disabled for now
-                        icon: const Icon(Icons.add, size: 18),
-                        label: const Text('Add Subsection'),
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: primary),
-                          foregroundColor: primary,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
+              ..._interleaveWithSeparators(
+                blocks,
+                Theme.of(context).dividerColor,
               ),
+
+              // Add buttons at the bottom when in edit mode
+              if (widget.editMode &&
+                  (widget.onAddAssignment != null ||
+                      widget.onAddSubsection != null)) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      top: BorderSide(color: Colors.grey.shade300),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (widget.onAddAssignment != null) ...[
+                        ElevatedButton.icon(
+                          onPressed: widget.onAddAssignment,
+                          icon: const Icon(Icons.add, size: 18),
+                          label: const Text('Add Assignment'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primary,
+                            foregroundColor: theme.colorScheme.onPrimary,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                          ),
+                        ),
+                        if (widget.onAddSubsection != null)
+                          const SizedBox(width: 12),
+                      ],
+                      if (widget.onAddSubsection != null) ...[
+                        OutlinedButton.icon(
+                          onPressed: widget.onAddSubsection,
+                          icon: const Icon(Icons.add, size: 18),
+                          label: const Text('Add Subsection'),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: primary),
+                            foregroundColor: primary,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
-    )
     );
   }
 
@@ -416,266 +544,241 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
     return out;
   }
 
-  TableRow _buildRow(BuildContext context, Assignment r, int index) {
+  TableRow _buildRow(
+    BuildContext context,
+    Assignment r,
+    int index,
+    int itemIndex,
+  ) {
     final textStyle = Theme.of(context).textTheme.bodySmall;
-  // watch users with roles hoca,baskan,talebe for the current place
-  final rolesKey = [UserRole.talebe, UserRole.baskan, UserRole.hoca].map((r) => r.name).join(',');
-  final usersAsync = ref.watch(usersByRolesAndPlaceProvider(rolesKey));
-  // final usersAsync = ref.watch(usersByRolesAndPlaceProviderWithOptions({'rolesKey': rolesKey, 'sort': const UserSortOption()})); DOESNT WORK RN
-  final usersList = usersAsync.asData?.value ?? <UserEntity>[];
-  final Map<String, UserEntity> usersByName = {for (var u in usersList) '${u.firstName} ${u.lastName}': u};
     final isEditing = editingRowIndex == index;
+    final canReorder =
+        widget.editMode && widget.onReorder != null && itemIndex >= 0;
+    final theme = Theme.of(context);
+    final primary = theme.colorScheme.primary;
     Widget leftCell;
     Widget rightCell;
 
     // Keep rows visually stable: fixed minimum height for both display and edit states
-    const minRowHeight = 44.0;
-    const iconSize = 20.0;
-
-    // Helper to build the trailing icon buttons (do nothing for now)
-    List<Widget> buildTrailingButtons() {
-      return [
-        // IconButton opens a dropdown anchored to the button; use Builder to get button context
-        Builder(builder: (btnCtx) {
-    return IconButton(
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            icon: Icon(
-              Icons.person,
-              size: iconSize,
-          color: (editingLeft ? r.left : r.right)
-            .split(',')
-            .map((s) => s.trim())
-            .any((p) => usersByName.containsKey(p))
-        ? Theme.of(context).colorScheme.primary
-        : null,
-            ),
-            onPressed: () => _showUserDropdown(index, editingLeft, btnCtx, usersList, editingLeft ? r.left : r.right),
-          );
-        }),
-        const SizedBox(width: 6),
-        IconButton(padding: EdgeInsets.zero, constraints: const BoxConstraints(), icon: const Icon(Icons.calendar_today, size: iconSize), onPressed: () {}),
-        const SizedBox(width: 6),
-        editingLeft ? Padding(
-          padding: const EdgeInsets.only(right: 8.0),
-          child: IconButton(padding: EdgeInsets.zero, constraints: const BoxConstraints(), icon: const Icon(Icons.access_time, size: iconSize), onPressed: () {}),
-        ) : IconButton(padding: EdgeInsets.zero, constraints: const BoxConstraints(), icon: const Icon(Icons.access_time, size: iconSize), onPressed: () {}),
-      ];
-    }
+    const minRowHeight = 52.0; // Increased for better mobile experience
 
     if (isEditing && editingLeft) {
       leftCell = ConstrainedBox(
         constraints: const BoxConstraints(minHeight: minRowHeight),
-        child: Row(children: [
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(left: 2),
-              child: GestureDetector(
-                onTap: () {}, // Consume tap to prevent exit editing
-                child: TextField(
-                  controller: _controller,
-                  focusNode: _focusNode,
-                  autofocus: true,
-                  decoration: InputDecoration(
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
-                  ),
-                    onSubmitted: (val) async => await _saveEdit(index, true, val),
-                    onEditingComplete: () async => await _saveEdit(index, true, _controller.text),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: GestureDetector(
+            onTap: () {}, // Consume tap to prevent exit editing
+            child: TextField(
+              controller: _controller,
+              focusNode: _focusNode,
+              autofocus: true,
+              decoration: InputDecoration(
+                isDense: false,
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 14,
+                  horizontal: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(6),
                 ),
               ),
+              onSubmitted: (val) async => await _saveEdit(index, true, val),
+              onEditingComplete: () async =>
+                  await _saveEdit(index, true, _controller.text),
             ),
           ),
-          const SizedBox(width: 8),
-          ...buildTrailingButtons(),
-        ]),
+        ),
       );
     } else {
       leftCell = ConstrainedBox(
         constraints: const BoxConstraints(minHeight: minRowHeight),
-        child: Row(children: [
-          Expanded(
+        child: Row(
+          children: [
+            // Reorder buttons for assignments
+            if (canReorder) ...[
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 24,
+                      minHeight: 24,
+                    ),
+                    icon: Icon(
+                      Icons.arrow_upward,
+                      size: 16,
+                      color: itemIndex > 0 ? primary : Colors.grey.shade300,
+                    ),
+                    onPressed: itemIndex > 0
+                        ? () => widget.onReorder!(itemIndex, itemIndex - 1)
+                        : null,
+                  ),
+                  IconButton(
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 24,
+                      minHeight: 24,
+                    ),
+                    icon: Icon(
+                      Icons.arrow_downward,
+                      size: 16,
+                      color: itemIndex < widget.items.length - 1
+                          ? primary
+                          : Colors.grey.shade300,
+                    ),
+                    onPressed: itemIndex < widget.items.length - 1
+                        ? () => widget.onReorder!(itemIndex, itemIndex + 1)
+                        : null,
+                  ),
+                ],
+              ),
+            ],
+            Expanded(
               child: GestureDetector(
-              onTap: widget.editMode ? () async => await _onCellTap(index, true, r.left) : null,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                child: () {
-                  final parts = r.left.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
-                  if (parts.isNotEmpty) {
-                    return Wrap(
-                      spacing: 6,
-                      runSpacing: 4,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: parts.map((t) => Padding(padding: const EdgeInsets.only(right: 6), child: Text(t, style: textStyle))).toList(),
-                    );
-                  }
-                  return Text(r.left, style: textStyle, softWrap: true);
-                }(),
+                onTap: widget.editMode
+                    ? () async => await _onCellTap(index, true, r.left)
+                    : null,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 10,
+                    horizontal: 12,
+                  ),
+                  child: () {
+                    final parts = r.left
+                        .split(',')
+                        .map((s) => s.trim())
+                        .where((s) => s.isNotEmpty)
+                        .toList();
+                    if (parts.isNotEmpty) {
+                      return Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: parts
+                            .map(
+                              (t) => Padding(
+                                padding: const EdgeInsets.only(right: 6),
+                                child: Text(t, style: textStyle),
+                              ),
+                            )
+                            .toList(),
+                      );
+                    }
+                    return Text(r.left, style: textStyle, softWrap: true);
+                  }(),
+                ),
               ),
             ),
-          ),
-        ]),
+          ],
+        ),
       );
     }
 
     if (isEditing && !editingLeft) {
       rightCell = ConstrainedBox(
         constraints: const BoxConstraints(minHeight: minRowHeight),
-        child: Row(children: [
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(left: 4),
-              child: GestureDetector(
-                onTap: () {}, // Consume tap to prevent exit editing
-                child: TextField(
-                  controller: _controller,
-                  autofocus: true,
-                  decoration: InputDecoration(
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
-                  ),
-                  onSubmitted: (val) async => await _saveEdit(index, false, val),
-                  onEditingComplete: () async => await _saveEdit(index, false, _controller.text),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: GestureDetector(
+            onTap: () {}, // Consume tap to prevent exit editing
+            child: TextField(
+              controller: _controller,
+              autofocus: true,
+              decoration: InputDecoration(
+                isDense: false,
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 14,
+                  horizontal: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(6),
                 ),
               ),
+              onSubmitted: (val) async => await _saveEdit(index, false, val),
+              onEditingComplete: () async =>
+                  await _saveEdit(index, false, _controller.text),
             ),
           ),
-          const SizedBox(width: 8),
-          ...buildTrailingButtons(),
-        ]),
+        ),
       );
     } else {
       rightCell = ConstrainedBox(
         constraints: const BoxConstraints(minHeight: minRowHeight),
-        child: Row(children: [
-          Expanded(
+        child: Row(
+          children: [
+            Expanded(
               child: GestureDetector(
-              onTap: widget.editMode ? () async => await _onCellTap(index, false, r.right) : null,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                child: () {
-                  final parts = r.right.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
-                  if (parts.isNotEmpty) {
-                    return Wrap(
-                      spacing: 6,
-                      runSpacing: 4,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: parts.map((t) => Padding(padding: const EdgeInsets.only(right: 6), child: Text(t, style: textStyle))).toList(),
-                    );
-                  }
-                  return Text(r.right, style: textStyle, softWrap: true);
-                }(),
+                onTap: widget.editMode
+                    ? () async => await _onCellTap(index, false, r.right)
+                    : null,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 10,
+                    horizontal: 12,
+                  ),
+                  child: () {
+                    final parts = r.right
+                        .split(',')
+                        .map((s) => s.trim())
+                        .where((s) => s.isNotEmpty)
+                        .toList();
+                    if (parts.isNotEmpty) {
+                      return Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: parts
+                            .map(
+                              (t) => Padding(
+                                padding: const EdgeInsets.only(right: 6),
+                                child: Text(t, style: textStyle),
+                              ),
+                            )
+                            .toList(),
+                      );
+                    }
+                    return Text(r.right, style: textStyle, softWrap: true);
+                  }(),
+                ),
               ),
             ),
-          ),
-          if (widget.editMode && widget.onDeleteAssignment != null) ...[
-            const SizedBox(width: 8),
-            IconButton(
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              icon: Icon(Icons.delete, size: iconSize, color: Colors.red),
-              onPressed: () => widget.onDeleteAssignment!(index),
-            ),
+            if (widget.editMode && widget.onDeleteAssignment != null) ...[
+              const SizedBox(width: 8),
+              IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                icon: const Icon(Icons.delete, size: 20, color: Colors.red),
+                onPressed: () => widget.onDeleteAssignment!(index),
+              ),
+            ],
           ],
-        ]),
+        ),
       );
     }
 
     return TableRow(children: [leftCell, rightCell]);
   }
 
-  Future<void> _showUserDropdown(int index, bool editingLeft, BuildContext buttonContext, List<UserEntity> usersList, String currentValue) async {
-    // currentValue now stores display names (comma separated)
-    final currentNames = currentValue.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toSet();
-    final selected = <String>{}..addAll(currentNames);
-
-    final items = <PopupMenuEntry<int>>[];
-    // use StatefulBuilder inside a custom menu to manage selection
-    items.add(PopupMenuItem<int>(enabled: false, child: SizedBox(height: 300, width: 300, child: StatefulBuilder(builder: (ctx, setState) {
-      return ListView.separated(
-        shrinkWrap: true,
-        itemCount: usersList.length,
-        separatorBuilder: (_, __) => const Divider(height: 1),
-        itemBuilder: (_, i) {
-          final u = usersList[i];
-          final displayName = '${u.firstName} ${u.lastName}';
-          final isSel = selected.contains(displayName);
-          return CheckboxListTile(
-            value: isSel,
-            onChanged: (v) async {
-              setState(() {
-                if (v == true) selected.add(displayName); else selected.remove(displayName);
-              });
-              // persist selection immediately and keep editing
-              await _saveEdit(index, editingLeft, selected.join(','), keepEditing: true);
-            },
-            title: Text(displayName),
-            controlAffinity: ListTileControlAffinity.leading,
-          );
-        },
-      );
-    }))));
-
-    // compute button position to anchor menu fully above or fully below the button
-    final RenderBox btnBox = buttonContext.findRenderObject() as RenderBox;
-    final btnPos = btnBox.localToGlobal(Offset.zero);
-    final btnSize = btnBox.size;
-    final screenSize = MediaQuery.of(buttonContext).size;
-    const double menuWidth = 300.0;
-    final double menuHeight = min(screenSize.height * 0.5, usersList.length * 56.0 + 16.0);
-    const double margin = 6.0;
-
-    // decide whether to show below or above based on available space
-    final double spaceBelow = screenSize.height - (btnPos.dy + btnSize.height) - margin;
-    final double spaceAbove = btnPos.dy - margin;
-    final bool showBelow = spaceBelow >= menuHeight || spaceBelow >= spaceAbove;
-
-    // compute horizontal left, clamp to screen
-    double left = btnPos.dx;
-    if (left + menuWidth + margin > screenSize.width) {
-      left = max(margin, screenSize.width - menuWidth - margin);
-    }
-
-    double top, bottom;
-    if (showBelow) {
-      top = btnPos.dy + btnSize.height + margin;
-      bottom = top + menuHeight;
-      // ensure bottom doesn't exceed screen; if it does, nudge top up
-      if (bottom + margin > screenSize.height) {
-        bottom = screenSize.height - margin;
-        top = bottom - menuHeight;
-      }
-    } else {
-      bottom = btnPos.dy - margin;
-      top = bottom - menuHeight;
-      // if top goes off-screen, clamp
-      if (top < margin) {
-        top = margin;
-        bottom = top + menuHeight;
-      }
-    }
-
-    await showMenu<int>(
-      context: buttonContext,
-      position: RelativeRect.fromLTRB(left, top, left + menuWidth, bottom),
-      items: items,
-    );
-  }
+  // User dropdown functionality removed - to be implemented in a different way
 
   Future<void> _onCellTap(int index, bool left, String currentValue) async {
     // Save and close any active subsection edit
     if (editingSubsectionItemIndex != null) {
       try {
-        _saveSubsectionTitle(editingSubsectionItemIndex!, _subsectionController.text);
+        _saveSubsectionTitle(
+          editingSubsectionItemIndex!,
+          _subsectionController.text,
+        );
       } catch (_) {
         // ignore save errors here
       }
       editingSubsectionItemIndex = null;
     }
     // if there is an active edit in a different cell, persist it first so we don't lose typed text
-    if (editingRowIndex != null && (editingRowIndex != index || editingLeft != left)) {
+    if (editingRowIndex != null &&
+        (editingRowIndex != index || editingLeft != left)) {
       try {
         final prevStored = _getStoredValueAt(editingRowIndex!, editingLeft);
         final currentText = _controller.text.trim();
@@ -691,7 +794,11 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
       editingLeft = left;
       // populate controller once when beginning to edit so caret/selection is stable
       // currentValue is already stored/display names (comma-separated)
-      final parts = currentValue.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+      final parts = currentValue
+          .split(',')
+          .map((s) => s.trim())
+          .where((s) => s.isNotEmpty)
+          .toList();
       _controller.text = parts.join(', ');
     });
   }
@@ -712,14 +819,23 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
     return '';
   }
 
-  Future<void> _saveEdit(int index, bool left, String newValue, {bool keepEditing = false}) async {
+  Future<void> _saveEdit(
+    int index,
+    bool left,
+    String newValue, {
+    bool keepEditing = false,
+  }) async {
     // Find corresponding item and update it in-place
     int counter = 0;
     for (int i = 0; i < widget.items.length; i++) {
       final item = widget.items[i];
       if (item is Assignment) {
         if (counter == index) {
-          final updated = Assignment(left: left ? newValue : item.left, right: left ? item.right : newValue, extras: item.extras);
+          final updated = Assignment(
+            left: left ? newValue : item.left,
+            right: left ? item.right : newValue,
+            extras: item.extras,
+          );
           setState(() {
             widget.items[i] = updated;
             editingRowIndex = keepEditing ? index : null;
@@ -730,7 +846,11 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
           }
           if (keepEditing) {
             // controller should reflect the display names (we store names now)
-            final tokens = newValue.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+            final tokens = newValue
+                .split(',')
+                .map((s) => s.trim())
+                .where((s) => s.isNotEmpty)
+                .toList();
             _controller.text = tokens.join(', ');
           }
           return;
@@ -740,7 +860,11 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
         for (int j = 0; j < item.rows.length; j++) {
           if (counter == index) {
             final old = item.rows[j];
-            final updated = Assignment(left: left ? newValue : old.left, right: left ? old.right : newValue, extras: old.extras);
+            final updated = Assignment(
+              left: left ? newValue : old.left,
+              right: left ? old.right : newValue,
+              extras: old.extras,
+            );
             final newRows = List<Assignment>.from(item.rows);
             newRows[j] = updated;
             final newSub = Subsection(title: item.title, rows: newRows);

@@ -37,7 +37,14 @@ void main() async {
   // LocaleSettings.setLocaleRaw(storedLocale);
   await LanguageNotifier().loadLanguage();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await dotenv.load(fileName: ".env");
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    // .env file not found or inaccessible, app will continue with defaults
+    if (kDebugMode) {
+      print('Warning: .env file not found or could not be loaded: $e');
+    }
+  }
 
   // Initialize the Notification Manager with OneSignal provider early
   final notificationManager = NotificationManager();
