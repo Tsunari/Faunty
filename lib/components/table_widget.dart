@@ -825,61 +825,23 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
     String newValue, {
     bool keepEditing = false,
   }) async {
-    // Find corresponding item and update it in-place
-    int counter = 0;
-    for (int i = 0; i < widget.items.length; i++) {
-      final item = widget.items[i];
-      if (item is Assignment) {
-        if (counter == index) {
-          final updated = Assignment(
-            left: left ? newValue : item.left,
-            right: left ? item.right : newValue,
-            extras: item.extras,
-          );
-          setState(() {
-            widget.items[i] = updated;
-            editingRowIndex = keepEditing ? index : null;
-          });
-          // delegate persistence to optional callback
-          if (widget.onSave != null) {
-            await widget.onSave!(index, left, newValue);
-          }
-          if (keepEditing) {
-            // controller should reflect the display names (we store names now)
-            final tokens = newValue
-                .split(',')
-                .map((s) => s.trim())
-                .where((s) => s.isNotEmpty)
-                .toList();
-            _controller.text = tokens.join(', ');
-          }
-          return;
-        }
-        counter++;
-      } else if (item is Subsection) {
-        for (int j = 0; j < item.rows.length; j++) {
-          if (counter == index) {
-            final old = item.rows[j];
-            final updated = Assignment(
-              left: left ? newValue : old.left,
-              right: left ? old.right : newValue,
-              extras: old.extras,
-            );
-            final newRows = List<Assignment>.from(item.rows);
-            newRows[j] = updated;
-            final newSub = Subsection(title: item.title, rows: newRows);
-            setState(() {
-              widget.items[i] = newSub;
-              editingRowIndex = null;
-            });
-            if (widget.onSave != null) {
-              await widget.onSave!(index, left, newValue);
-            }
-            return;
-          }
-          counter++;
-        }
-      }
+    if (widget.onSave != null) {
+      await widget.onSave!(index, left, newValue);
+    }
+
+    if (!mounted) return;
+    setState(() {
+      editingRowIndex = keepEditing ? index : null;
+      editingLeft = keepEditing ? left : true;
+    });
+
+    if (keepEditing) {
+      final tokens = newValue
+          .split(',')
+          .map((s) => s.trim())
+          .where((s) => s.isNotEmpty)
+          .toList();
+      _controller.text = tokens.join(', ');
     }
   }
 
@@ -905,19 +867,12 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
   }
 
   void _saveSubsectionTitle(int itemIndex, String newTitle) {
-    for (int i = 0; i < widget.items.length; i++) {
-      final item = widget.items[i];
-      if (item is Subsection && i == itemIndex) {
-        final updated = Subsection(title: newTitle, rows: item.rows);
-        setState(() {
-          widget.items[i] = updated;
-          editingSubsectionItemIndex = null;
-        });
-        if (widget.onSaveSubsection != null) {
-          widget.onSaveSubsection!(itemIndex, newTitle);
-        }
-        return;
-      }
+    if (widget.onSaveSubsection != null) {
+      widget.onSaveSubsection!(itemIndex, newTitle);
     }
+    if (!mounted) return;
+    setState(() {
+      editingSubsectionItemIndex = null;
+    });
   }
 }

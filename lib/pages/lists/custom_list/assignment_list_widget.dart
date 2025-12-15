@@ -39,6 +39,30 @@ class _AssignmentListWidgetState extends ConsumerState<AssignmentListWidget> {
   Map<String, dynamic> editedItems = {}; // Track edited values by item ID
   bool isSaving = false;
 
+  void _stageEdit(
+    String id,
+    Map<String, dynamic> patch, {
+    bool overwrite = false,
+  }) {
+    if (overwrite) {
+      editedItems[id] = Map<String, dynamic>.from(patch);
+      return;
+    }
+
+    final existing = Map<String, dynamic>.from(
+      editedItems[id] as Map<String, dynamic>? ?? {},
+    );
+
+    // If this item was newly added and we mark delete, drop it entirely
+    if (existing.containsKey('_add') && patch.containsKey('_delete')) {
+      editedItems.remove(id);
+      return;
+    }
+
+    existing.addAll(patch);
+    editedItems[id] = existing;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -252,32 +276,14 @@ class _AssignmentListWidgetState extends ConsumerState<AssignmentListWidget> {
             onReorder: editMode
                 ? (oldIndex, newIndex) async {
                     if (oldIndex == newIndex) return;
-
-                    // Reorder items immediately
                     final reordered = List<ListItem>.from(currentItems);
-                    final item = reordered.removeAt(oldIndex);
-                    reordered.insert(newIndex, item);
+                    final moved = reordered.removeAt(oldIndex);
+                    reordered.insert(newIndex, moved);
 
-                    // Update order fields and track edits
                     for (int i = 0; i < reordered.length; i++) {
                       if (reordered[i].order != i) {
-                        editedItems[reordered[i].id] = {'order': i};
+                        _stageEdit(reordered[i].id, {'order': i});
                       }
-                    }
-
-                    // Save immediately for reorder operations
-                    final itemIds = reordered
-                        .map((item) => item.id)
-                        .where((id) => !id.startsWith('tmp_'))
-                        .toList();
-                    if (itemIds.isNotEmpty) {
-                      await ref
-                          .read(customListActionsProvider)
-                          .reorderItems(
-                            widget.placeId,
-                            widget.list.id,
-                            itemIds,
-                          );
                     }
 
                     setState(() {});
@@ -303,7 +309,7 @@ class _AssignmentListWidgetState extends ConsumerState<AssignmentListWidget> {
                     }
 
                     setState(() {
-                      editedItems[item.id] = {'payload': newPayload};
+                      _stageEdit(item.id, {'payload': newPayload});
                     });
                   }
                 : null,
@@ -313,7 +319,11 @@ class _AssignmentListWidgetState extends ConsumerState<AssignmentListWidget> {
                     if (rowIndex == null) {
                       // Delete the entire assignment item
                       setState(() {
-                        editedItems[item.id] = {'_delete': true};
+                        if (item.id.startsWith('tmp_')) {
+                          editedItems.remove(item.id);
+                        } else {
+                          _stageEdit(item.id, {'_delete': true});
+                        }
                       });
                     } else {
                       // Delete a row from subsection
@@ -326,7 +336,7 @@ class _AssignmentListWidgetState extends ConsumerState<AssignmentListWidget> {
                       if (rows.isEmpty) {
                         // If no rows left, delete the subsection
                         setState(() {
-                          editedItems[item.id] = {'_delete': true};
+                          _stageEdit(item.id, {'_delete': true});
                         });
                       } else {
                         // Update subsection with one less row
@@ -335,7 +345,7 @@ class _AssignmentListWidgetState extends ConsumerState<AssignmentListWidget> {
                         );
                         newPayload['rows'] = rows;
                         setState(() {
-                          editedItems[item.id] = {'payload': newPayload};
+                          _stageEdit(item.id, {'payload': newPayload});
                         });
                       }
                     }
@@ -346,7 +356,11 @@ class _AssignmentListWidgetState extends ConsumerState<AssignmentListWidget> {
                     final item = subsectionIndexMap[subsectionIndex];
                     if (item != null) {
                       setState(() {
-                        editedItems[item.id] = {'_delete': true};
+                        if (item.id.startsWith('tmp_')) {
+                          editedItems.remove(item.id);
+                        } else {
+                          _stageEdit(item.id, {'_delete': true});
+                        }
                       });
                     }
                   }
@@ -360,7 +374,7 @@ class _AssignmentListWidgetState extends ConsumerState<AssignmentListWidget> {
                       );
                       newPayload['title'] = newTitle;
                       setState(() {
-                        editedItems[item.id] = {'payload': newPayload};
+                        _stageEdit(item.id, {'payload': newPayload});
                       });
                     }
                   }
@@ -371,11 +385,11 @@ class _AssignmentListWidgetState extends ConsumerState<AssignmentListWidget> {
                     final tmpId = 'tmp_${const Uuid().v4()}';
                     final newOrder = currentItems.length;
                     setState(() {
-                      editedItems[tmpId] = {
+                      _stageEdit(tmpId, {
                         '_add': true,
                         'order': newOrder,
                         'payload': {'left': '', 'right': ''},
-                      };
+                      }, overwrite: true);
                     });
                   }
                 : null,
@@ -385,7 +399,7 @@ class _AssignmentListWidgetState extends ConsumerState<AssignmentListWidget> {
                     final tmpId = 'tmp_${const Uuid().v4()}';
                     final newOrder = currentItems.length;
                     setState(() {
-                      editedItems[tmpId] = {
+                      _stageEdit(tmpId, {
                         '_add': true,
                         'order': newOrder,
                         'payload': {
@@ -395,7 +409,7 @@ class _AssignmentListWidgetState extends ConsumerState<AssignmentListWidget> {
                             {'left': '', 'right': ''},
                           ],
                         },
-                      };
+                      }, overwrite: true);
                     });
                   }
                 : null,
