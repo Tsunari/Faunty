@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.24.5] - 17-12-2025
+### Fixed
+- Fixes to assignment list custom
+- Fixes to assignment list custom again
+
+
+
 ## [1.24.4] - 17-12-2025
 ### Fixed
 - Fixes to assignment list custom
