@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.24.4] - 17-12-2025
+### Fixed
+- Fixes to assignment list custom
+- Fixes to assignment list custom again
+
+
+
 ## [1.24.3] - 04-12-2025
 ### Changed
 - V2 program organization enhancements
