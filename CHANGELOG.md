@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.24.5] - 17-12-2025
+### Changed
+- Flutter channel from stable to main
+
+
+
 ## [1.24.4] - 17-12-2025
 ### Fixed
 - Fixes to assignment list custom
