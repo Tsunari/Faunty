@@ -33,6 +33,14 @@ class _StatisticsWidgetsState extends State<StatisticsWidgets> {
 	// async races with parent-provided `selectedUser` and the async users list.
 	String? _localSelectedUser;
 
+	// Cached computations
+	List<RatingPoint>? _cachedMonthSeries;
+	List<RatingPoint>? _cachedYearSeries;
+	List<RatingPoint>? _cachedAllTimeSeries;
+	int? _cachedTotal;
+	String? _lastComputedUser;
+	int? _lastAttendanceHash;
+
 	@override
 	void didUpdateWidget(covariant StatisticsWidgets old) {
 		super.didUpdateWidget(old);
@@ -69,11 +77,40 @@ class _StatisticsWidgetsState extends State<StatisticsWidgets> {
 	  // because this happens before first frame and assigning a field is fine.
 	  _localSelectedUser ??= widget.selectedUser ?? (roster.isNotEmpty ? roster.first : 'all');
 	  final effectiveUser = _localSelectedUser;
-  
 
-		final monthSeries = computeUserRatingSeries(widget.attendance, widget.itemId, granularity: TimeGranularity.month, userId: effectiveUser, weekdays: _weekdays);
-		final yearSeries = computeUserRatingSeries(widget.attendance, widget.itemId, granularity: TimeGranularity.year, userId: effectiveUser, weekdays: _weekdays);
-		final allTimeSeries = computeUserRatingSeries(widget.attendance, widget.itemId, granularity: TimeGranularity.year, userId: effectiveUser, weekdays: _weekdays, allTime: true);
+		// Only recompute series if user or attendance data changed
+		final currentHash = widget.attendance.hashCode;
+		final needsRecompute = _lastComputedUser != effectiveUser || _lastAttendanceHash != currentHash;
+		
+		if (needsRecompute) {
+			_cachedMonthSeries = computeUserRatingSeries(widget.attendance, widget.itemId, granularity: TimeGranularity.month, userId: effectiveUser, weekdays: _weekdays);
+			_cachedYearSeries = computeUserRatingSeries(widget.attendance, widget.itemId, granularity: TimeGranularity.year, userId: effectiveUser, weekdays: _weekdays);
+			_cachedAllTimeSeries = computeUserRatingSeries(widget.attendance, widget.itemId, granularity: TimeGranularity.year, userId: effectiveUser, weekdays: _weekdays, allTime: true);
+			
+			// Compute total
+			_cachedTotal = keys.where((k) {
+				final rec = (widget.attendance[k] as Map?)?[widget.itemId] as Map?;
+				if (rec == null) return false;
+				if (effectiveUser == 'all' || effectiveUser == null) {
+					final t = totalsForDate(widget.attendance, k, widget.itemId);
+					return (t.present + t.onLeave + t.absent) > 0;
+				} else {
+					final isDefault = ((rec['default'] as List?)?.cast<String>() ?? const <String>[]).contains(effectiveUser);
+					if (isDefault) return false;
+					final present = ((rec['present'] as List?)?.cast<String>() ?? const <String>[]).contains(effectiveUser);
+					final onLeave = ((rec['onLeave'] as List?)?.cast<String>() ?? const <String>[]).contains(effectiveUser);
+					final absent = ((rec['absent'] as List?)?.cast<String>() ?? const <String>[]).contains(effectiveUser);
+					return present || onLeave || absent;
+				}
+			}).length;
+			
+			_lastComputedUser = effectiveUser;
+			_lastAttendanceHash = currentHash;
+		}
+
+		final monthSeries = _cachedMonthSeries!;
+		final yearSeries = _cachedYearSeries!;
+		final allTimeSeries = _cachedAllTimeSeries!;
 
 		final currentRating = allTimeSeries.isEmpty ? 0.0 : allTimeSeries.last.rating;
 		final monthDelta = monthSeries.length >= 2 ? (monthSeries.last.rating - monthSeries[monthSeries.length - 2].rating) : 0.0;
@@ -94,44 +131,21 @@ class _StatisticsWidgetsState extends State<StatisticsWidgets> {
 									if (roster.isNotEmpty)
 										Padding(
 											padding: const EdgeInsets.only(bottom: 8.0),
-											child: Consumer(
-												builder: (context, ref, _) {
-													final usersAsync = ref.watch(usersByCurrentPlaceProvider);
-													final users = usersAsync.asData?.value;
-													final byId = users == null ? <String, String>{} : {for (final u in users) u.uid: '${u.firstName} ${u.lastName}'.trim()};
-													final items = [
-														DropdownMenuItem<String>(value: 'all', child: Text(translation(context: context, 'All Users'))),
-														for (final id in roster)
-															DropdownMenuItem<String>(value: id, child: Text(byId[id] ?? id)),
-													];
-													return Row(
-														mainAxisAlignment: MainAxisAlignment.center,
-														children: [
-															Container(
-																padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-																decoration: BoxDecoration(
-																	borderRadius: BorderRadius.circular(8),
-																	border: Border.all(color: Theme.of(context).dividerColor),
-																),
-																child: DropdownButtonHideUnderline(
-																	child: DropdownButton<String>(
-																		value: effectiveUser,
-																		isDense: true,
-																		iconSize: 18,
-																		style: Theme.of(context).textTheme.bodySmall,
-																		onChanged: (v) {
-																			setState(() {
-																				_localSelectedUser = v;
-																			});
-																			widget.onUserChanged?.call(v);
-																		},
-																		items: items,
-																		alignment: Alignment.center,
-																	),
-																),
-															),
-														],
-													);
+											child: _UserDropdown(
+												roster: roster,
+												selectedUser: effectiveUser,
+												onChanged: (v) {
+													setState(() {
+														_localSelectedUser = v;
+													});
+													widget.onUserChanged?.call(v);
+												},
+												onValidationChange: (v) {
+													if (mounted) {
+														setState(() {
+															_localSelectedUser = v;
+														});
+													}
 												},
 											),
 										),
@@ -139,26 +153,7 @@ class _StatisticsWidgetsState extends State<StatisticsWidgets> {
 										rating: currentRating,
 										monthDelta: monthDelta,
 										yearDelta: yearDelta,
-										total: keys.where((k) {
-											final rec = (widget.attendance[k] as Map?)?[widget.itemId] as Map?;
-											if (rec == null) return false;
-											if (effectiveUser == 'all' || effectiveUser == null) {
-												// For 'all', we count if ANYONE is present/leave/absent? 
-												// Or do we count days where data exists?
-												// If we look at totalsForDate, it sums up these counts.
-												// If sum > 0, it's a valid day.
-												final t = totalsForDate(widget.attendance, k, widget.itemId);
-												return (t.present + t.onLeave + t.absent) > 0;
-											} else {
-												// Specific user
-												final isDefault = ((rec['default'] as List?)?.cast<String>() ?? const <String>[]).contains(effectiveUser);
-												if (isDefault) return false;
-												final present = ((rec['present'] as List?)?.cast<String>() ?? const <String>[]).contains(effectiveUser);
-												final onLeave = ((rec['onLeave'] as List?)?.cast<String>() ?? const <String>[]).contains(effectiveUser);
-												final absent = ((rec['absent'] as List?)?.cast<String>() ?? const <String>[]).contains(effectiveUser);
-												return present || onLeave || absent;
-											}
-										}).length,
+										total: _cachedTotal!,
 									),
 									const SizedBox(height: 16),
 									_SectionHeader(
@@ -1010,5 +1005,70 @@ class _Bubble extends StatelessWidget {
 		);
 	}
 }
+
+// Separate widget for user dropdown to avoid rebuilding entire statistics when users list updates
+class _UserDropdown extends ConsumerWidget {
+	final List<String> roster;
+	final String? selectedUser;
+	final ValueChanged<String?> onChanged;
+	final ValueChanged<String?>? onValidationChange;
+
+	const _UserDropdown({
+		required this.roster,
+		required this.selectedUser,
+		required this.onChanged,
+		this.onValidationChange,
+	});
+
+	@override
+	Widget build(BuildContext context, WidgetRef ref) {
+		final usersAsync = ref.watch(usersByCurrentPlaceProvider);
+		final users = usersAsync.asData?.value;
+		final byId = users == null ? <String, String>{} : {for (final u in users) u.uid: '${u.firstName} ${u.lastName}'.trim()};
+		final uniqueRoster = roster.toSet();
+		final items = [
+			DropdownMenuItem<String>(value: 'all', child: Text(translation(context: context, 'All Users'))),
+			for (final id in uniqueRoster)
+				DropdownMenuItem<String>(value: id, child: Text(byId[id] ?? id)),
+		];
+		
+		// Ensure the value exists in items, otherwise reset to a valid value
+		final validUser = (selectedUser == 'all' || uniqueRoster.contains(selectedUser)) 
+			? selectedUser 
+			: 'all';
+		
+		// Sync local state if validation changed the value
+		if (validUser != selectedUser) {
+			WidgetsBinding.instance.addPostFrameCallback((_) {
+				onValidationChange?.call(validUser);
+			});
+		}
+		
+		return Row(
+			mainAxisAlignment: MainAxisAlignment.center,
+			children: [
+				Container(
+					padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+					decoration: BoxDecoration(
+						borderRadius: BorderRadius.circular(8),
+						border: Border.all(color: Theme.of(context).dividerColor),
+					),
+					child: DropdownButtonHideUnderline(
+						child: DropdownButton<String>(
+							value: validUser,
+							isDense: true,
+							iconSize: 18,
+							style: Theme.of(context).textTheme.bodySmall,
+							onChanged: onChanged,
+							items: items,
+							alignment: Alignment.center,
+						),
+					),
+				),
+			],
+		);
+	}
+}
+
 
 
