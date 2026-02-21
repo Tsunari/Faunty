@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.25.0] - 21-02-2026
+### Added
+- Add quran and prayer progression trackers
+### Changed
+- Enhancements to progression tracking
+### Fixed
+- Stats page roster fix and optimization
+
+
+
 ## [1.24.5] - 17-12-2025
 ### Changed
 - Flutter channel from stable to main
