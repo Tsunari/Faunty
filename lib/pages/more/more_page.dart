@@ -16,6 +16,7 @@ import 'settings_page.dart';
 import 'package:faunty/components/language_dropdown.dart';
 import 'package:faunty/pages/more/ui_test_page.dart';
 import 'feedback/feedback_page.dart';
+import 'tools/tools_page.dart';
 
 class MorePage extends ConsumerWidget {
   const MorePage({super.key});
@@ -45,7 +46,7 @@ class MorePage extends ConsumerWidget {
                       image: AssetImage(
                         Theme.of(context).brightness == Brightness.light
                             ? 'assets/Logo.png'
-                          : 'assets/LogoInverse.png'
+                            : 'assets/LogoInverse.png',
                       ),
                       fit: BoxFit.contain,
                     ),
@@ -149,16 +150,12 @@ class MorePage extends ConsumerWidget {
         ),
         ListTile(
           leading: Icon(Icons.extension_outlined, color: primaryColor),
-          title: Row(
-            children: [
-              Text(translation(context: context, 'Tools')),
-              const SizedBox(width: 4),
-              CustomContainerChip(
-                label: translation(context: context, 'Under Construction'),
-              ),
-            ],
-          ),
-          onTap: () {},
+          title: Text(translation(context: context, 'Tools')),
+          onTap: () {
+            Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (context) => const ToolsPage()));
+          },
         ),
         const Divider(),
         ListTile(
@@ -184,9 +181,7 @@ class MorePage extends ConsumerWidget {
           title: Text(translation(context: context, 'Feedback')),
           onTap: () {
             Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const FeedbackPage(),
-              ),
+              MaterialPageRoute(builder: (context) => const FeedbackPage()),
             );
           },
         ),
