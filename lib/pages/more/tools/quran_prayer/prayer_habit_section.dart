@@ -1,6 +1,6 @@
 import 'package:faunty/tools/translation_helper.dart';
 import 'package:flutter/material.dart';
-import 'prayer_models.dart';
+import 'quran_prayer_models.dart';
 
 class PrayerHabitSection extends StatelessWidget {
   final List<String> prayerNames;
@@ -361,19 +361,11 @@ class _PrayerDayTile extends StatelessWidget {
       ),
       children: [
         for (final prayer in prayerNames)
-          CheckboxListTile(
-            contentPadding: EdgeInsets.zero,
-            dense: true,
-            value: trackingMode == PrayerTrackingMode.missedOnly
-                ? !(day.prayers[prayer] ?? false)
-                : (day.prayers[prayer] ?? false),
-            onChanged: (value) {
-              onTogglePrayer(day.date, prayer, value ?? false);
-            },
-            title: Text(translation(context: context, prayer)),
-            subtitle: trackingMode == PrayerTrackingMode.missedOnly
-                ? Text(translation(context: context, 'Missed'))
-                : null,
+          _PrayerCheckboxTile(
+            day: day,
+            prayer: prayer,
+            trackingMode: trackingMode,
+            onTogglePrayer: onTogglePrayer,
           ),
       ],
     );
@@ -381,5 +373,64 @@ class _PrayerDayTile extends StatelessWidget {
 
   static bool _isSameDay(DateTime a, DateTime b) {
     return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+}
+
+class _PrayerCheckboxTile extends StatelessWidget {
+  final PrayerDayData day;
+  final String prayer;
+  final PrayerTrackingMode trackingMode;
+  final void Function(DateTime date, String prayerName, bool value)
+  onTogglePrayer;
+
+  const _PrayerCheckboxTile({
+    required this.day,
+    required this.prayer,
+    required this.trackingMode,
+    required this.onTogglePrayer,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isMissedMode = trackingMode == PrayerTrackingMode.missedOnly;
+
+    // In missed mode: value represents "is missed" (false = not missed, true = missed)
+    // In manual mode: value represents "is completed" (false = not done, true = done)
+    final isMarked = isMissedMode
+        ? !(day.prayers[prayer] ?? false)
+        : (day.prayers[prayer] ?? false);
+
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      dense: true,
+      title: Text(translation(context: context, prayer)),
+      onTap: () {
+        onTogglePrayer(day.date, prayer, !isMarked);
+      },
+      trailing: Container(
+        width: 24,
+        height: 24,
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: isMissedMode && isMarked
+                ? Colors.red
+                : theme.colorScheme.outline,
+            width: 2,
+          ),
+          borderRadius: BorderRadius.circular(4),
+          color: isMissedMode && isMarked
+              ? Colors.red.withOpacity(0.1)
+              : Colors.transparent,
+        ),
+        child: isMarked
+            ? Icon(
+                isMissedMode ? Icons.close : Icons.check,
+                size: 16,
+                color: isMissedMode ? Colors.red : theme.colorScheme.primary,
+              )
+            : null,
+      ),
+    );
   }
 }

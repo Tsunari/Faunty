@@ -3,7 +3,7 @@ import 'package:faunty/tools/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'prayer_habit_section.dart';
-import 'prayer_models.dart';
+import 'quran_prayer_models.dart';
 import 'prayer_storage.dart';
 import 'quran_progress_section.dart';
 import 'section_header.dart';
@@ -64,6 +64,8 @@ class _QuranPrayerPageState extends State<QuranPrayerPage> {
 
   bool _isLoading = true;
   int _currentPage = 1;
+  Map<String, QuranProgressProfile> _quranProfiles = {};
+  String _activeQuranProfileId = '';
   PrayerTrackingMode _trackingMode = PrayerTrackingMode.missedOnly;
   PrayerStatsScope _statsScope = PrayerStatsScope.weekly;
   Map<String, Map<String, bool>> _entries = {};
@@ -81,11 +83,48 @@ class _QuranPrayerPageState extends State<QuranPrayerPage> {
     if (!mounted) return;
 
     setState(() {
-      _currentPage = state.currentPage ?? 1;
+      final fallbackPage = state.currentPage ?? 1;
+      _quranProfiles = state.quranProfiles;
+      _activeQuranProfileId = state.activeQuranProfileId ?? '';
+      _ensureDefaultProfile(fallbackPage);
+      _currentPage = _activeProfile.currentPage;
       _trackingMode = state.trackingMode;
       _entries = state.entries;
       _isLoading = false;
     });
+  }
+
+  void _ensureDefaultProfile(int fallbackPage) {
+    if (_quranProfiles.isNotEmpty && _activeQuranProfileId.isNotEmpty) {
+      if (_quranProfiles.containsKey(_activeQuranProfileId)) {
+        return;
+      }
+    }
+
+    if (_quranProfiles.isEmpty) {
+      final profile = QuranProgressProfile(
+        id: 'default',
+        name: translation(context: context, 'Default'),
+        currentPage: fallbackPage,
+      );
+      _quranProfiles = {'default': profile};
+    }
+
+    _activeQuranProfileId = _quranProfiles.keys.first;
+    _storage.saveQuranProfiles(_quranProfiles);
+    _storage.saveActiveQuranProfileId(_activeQuranProfileId);
+  }
+
+  QuranProgressProfile get _activeProfile {
+    return _quranProfiles[_activeQuranProfileId] ?? _quranProfiles.values.first;
+  }
+
+  List<QuranProgressProfile> get _orderedProfiles {
+    final profiles = _quranProfiles.values.toList();
+    profiles.sort(
+      (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+    );
+    return profiles;
   }
 
   int _juzFromPage(int page) {
@@ -118,18 +157,121 @@ class _QuranPrayerPageState extends State<QuranPrayerPage> {
   }
 
   void _setPage(int page) {
+    final nextPage = page.clamp(1, _totalPages);
     setState(() {
-      _currentPage = page.clamp(1, _totalPages);
+      _currentPage = nextPage;
+      final profile = _activeProfile.copyWith(currentPage: nextPage);
+      _quranProfiles[_activeProfile.id] = profile;
     });
-    _storage.saveCurrentPage(_currentPage);
+    _storage.saveQuranProfiles(_quranProfiles);
   }
 
   void _setJuz(int juz) {
     final page = _pageFromJuz(juz.clamp(1, _totalJuz));
     setState(() {
       _currentPage = page;
+      final profile = _activeProfile.copyWith(currentPage: page);
+      _quranProfiles[_activeProfile.id] = profile;
     });
-    _storage.saveCurrentPage(_currentPage);
+    _storage.saveQuranProfiles(_quranProfiles);
+  }
+
+  void _selectQuranProfile(String id) {
+    if (!_quranProfiles.containsKey(id)) return;
+    setState(() {
+      _activeQuranProfileId = id;
+      _currentPage = _quranProfiles[id]?.currentPage ?? _currentPage;
+    });
+    _storage.saveActiveQuranProfileId(id);
+  }
+
+  Future<void> _addQuranProfile() async {
+    final name = await _showProfileNameDialog(
+      title: translation(context: context, 'Add progress'),
+      initialValue: '',
+    );
+    if (name == null || name.trim().isEmpty) return;
+
+    final id = DateTime.now().millisecondsSinceEpoch.toString();
+    final profile = QuranProgressProfile(
+      id: id,
+      name: name.trim(),
+      currentPage: _currentPage,
+    );
+
+    setState(() {
+      _quranProfiles[id] = profile;
+      _activeQuranProfileId = id;
+    });
+
+    _storage.saveQuranProfiles(_quranProfiles);
+    _storage.saveActiveQuranProfileId(id);
+  }
+
+  Future<void> _renameQuranProfile(String id) async {
+    final profile = _quranProfiles[id];
+    if (profile == null) return;
+
+    final name = await _showProfileNameDialog(
+      title: translation(context: context, 'Rename progress'),
+      initialValue: profile.name,
+    );
+    if (name == null || name.trim().isEmpty) return;
+
+    setState(() {
+      _quranProfiles[id] = profile.copyWith(name: name.trim());
+    });
+
+    _storage.saveQuranProfiles(_quranProfiles);
+  }
+
+  void _deleteQuranProfile(String id) {
+    if (_quranProfiles.length <= 1) return;
+    if (!_quranProfiles.containsKey(id)) return;
+
+    setState(() {
+      _quranProfiles.remove(id);
+      if (_activeQuranProfileId == id) {
+        _activeQuranProfileId = _quranProfiles.keys.first;
+        _currentPage =
+            _quranProfiles[_activeQuranProfileId]?.currentPage ?? _currentPage;
+      }
+    });
+
+    _storage.saveQuranProfiles(_quranProfiles);
+    _storage.saveActiveQuranProfileId(_activeQuranProfileId);
+  }
+
+  Future<String?> _showProfileNameDialog({
+    required String title,
+    required String initialValue,
+  }) {
+    final controller = TextEditingController(text: initialValue);
+
+    return showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(title),
+          content: TextField(
+            controller: controller,
+            decoration: InputDecoration(
+              labelText: translation(context: context, 'Name'),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(translation(context: context, 'Cancel')),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, controller.text),
+              child: Text(translation(context: context, 'Save')),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _setTrackingMode(PrayerTrackingMode mode) {
@@ -357,6 +499,12 @@ class _QuranPrayerPageState extends State<QuranPrayerPage> {
                   totalPages: _totalPages,
                   juzStartPage: _juzStartPage(_currentJuz),
                   juzEndPage: _juzEndPage(_currentJuz),
+                  profiles: _orderedProfiles,
+                  activeProfileId: _activeQuranProfileId,
+                  onSelectProfile: _selectQuranProfile,
+                  onAddProfile: _addQuranProfile,
+                  onRenameProfile: _renameQuranProfile,
+                  onDeleteProfile: _deleteQuranProfile,
                   accentColor: theme.colorScheme.primary,
                   onJuzChanged: _setJuz,
                   onPageChanged: _setPage,

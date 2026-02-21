@@ -1,5 +1,6 @@
 import 'package:faunty/tools/translation_helper.dart';
 import 'package:flutter/material.dart';
+import 'quran_prayer_models.dart';
 
 class QuranProgressSection extends StatelessWidget {
   final int currentJuz;
@@ -8,6 +9,12 @@ class QuranProgressSection extends StatelessWidget {
   final int totalPages;
   final int juzStartPage;
   final int juzEndPage;
+  final List<QuranProgressProfile> profiles;
+  final String activeProfileId;
+  final ValueChanged<String> onSelectProfile;
+  final VoidCallback onAddProfile;
+  final ValueChanged<String> onRenameProfile;
+  final ValueChanged<String> onDeleteProfile;
   final Color accentColor;
   final ValueChanged<int> onJuzChanged;
   final ValueChanged<int> onPageChanged;
@@ -21,6 +28,12 @@ class QuranProgressSection extends StatelessWidget {
     required this.totalPages,
     required this.juzStartPage,
     required this.juzEndPage,
+    required this.profiles,
+    required this.activeProfileId,
+    required this.onSelectProfile,
+    required this.onAddProfile,
+    required this.onRenameProfile,
+    required this.onDeleteProfile,
     required this.accentColor,
     required this.onJuzChanged,
     required this.onPageChanged,
@@ -34,6 +47,7 @@ class QuranProgressSection extends StatelessWidget {
     final juzLength = (juzEndPage - juzStartPage + 1).clamp(1, totalPages);
     final juzIndex = (currentPage - juzStartPage + 1).clamp(1, juzLength);
     final pagesLeft = (juzEndPage - currentPage + 1).clamp(0, totalPages);
+    final canDeleteProfile = profiles.length > 1;
 
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
@@ -65,6 +79,66 @@ class QuranProgressSection extends StatelessWidget {
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurface.withOpacity(0.7),
               ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    translation(context: context, 'Progress profiles'),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                PopupMenuButton<_ProfileAction>(
+                  onSelected: (value) {
+                    switch (value) {
+                      case _ProfileAction.rename:
+                        onRenameProfile(activeProfileId);
+                        break;
+                      case _ProfileAction.delete:
+                        onDeleteProfile(activeProfileId);
+                        break;
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: _ProfileAction.rename,
+                      child: Text(
+                        translation(context: context, 'Rename progress'),
+                      ),
+                    ),
+                    if (canDeleteProfile)
+                      PopupMenuItem(
+                        value: _ProfileAction.delete,
+                        child: Text(
+                          translation(context: context, 'Delete progress'),
+                        ),
+                      ),
+                  ],
+                  icon: const Icon(Icons.more_vert),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                for (final profile in profiles)
+                  ChoiceChip(
+                    label: Text(profile.name),
+                    selected: profile.id == activeProfileId,
+                    showCheckmark: false,
+                    onSelected: (_) => onSelectProfile(profile.id),
+                  ),
+                ActionChip(
+                  avatar: const Icon(Icons.add, size: 18),
+                  label: Text(translation(context: context, 'Add progress')),
+                  onPressed: onAddProfile,
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             LinearProgressIndicator(
@@ -239,3 +313,5 @@ class _SliderRow extends StatelessWidget {
     );
   }
 }
+
+enum _ProfileAction { rename, delete }

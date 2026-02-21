@@ -263,5 +263,11 @@
   "juz_starts_at": "Cüz başlangıcı",
   "juz_ends_at": "Cüz bitişi",
   "previous_page": "Önceki sayfa",
-  "next_page": "Sonraki sayfa"
+  "next_page": "Sonraki sayfa",
+  "progress_profiles": "İlerleme profilleri",
+  "add_progress": "İlerleme ekle",
+  "rename_progress": "İlerlemeyi yeniden adlandır",
+  "delete_progress": "İlerlemeyi sil",
+  "default": "Varsayılan",
+  "name": "Ad"
 }

@@ -263,5 +263,11 @@
   "juz_starts_at": "Juz starts at",
   "juz_ends_at": "Juz ends at",
   "previous_page": "Previous page",
-  "next_page": "Next page"
+  "next_page": "Next page",
+  "progress_profiles": "Progress profiles",
+  "add_progress": "Add progress",
+  "rename_progress": "Rename progress",
+  "delete_progress": "Delete progress",
+  "default": "Default",
+  "name": "Name"
 }

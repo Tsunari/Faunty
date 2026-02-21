@@ -43,3 +43,26 @@ class PrayerChartBucket {
 
   PrayerChartBucket({required this.label, required this.ratio});
 }
+
+class QuranProgressProfile {
+  final String id;
+  final String name;
+  final int currentPage;
+
+  QuranProgressProfile({
+    required this.id,
+    required this.name,
+    required this.currentPage,
+  });
+
+  QuranProgressProfile copyWith({
+    String? name,
+    int? currentPage,
+  }) {
+    return QuranProgressProfile(
+      id: id,
+      name: name ?? this.name,
+      currentPage: currentPage ?? this.currentPage,
+    );
+  }
+}

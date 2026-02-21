@@ -715,6 +715,144 @@ class Translations with BaseTranslations<AppLocale, Translations> {
 
 	/// en: 'Ask a manager to add tracking items or add them yourself.'
 	String get ask_a_manager_to_add_tracking_items_or_add_them_yourself => 'Ask a manager to add tracking items or add them yourself.';
+
+	/// en: 'Quran Progress'
+	String get quran_progress => 'Quran Progress';
+
+	/// en: 'Juz and prayer tracker'
+	String get juz_and_prayer_tracker => 'Juz and prayer tracker';
+
+	/// en: 'Juz Progress'
+	String get juz_progress => 'Juz Progress';
+
+	/// en: 'Page Progress'
+	String get page_progress => 'Page Progress';
+
+	/// en: 'Current Juz'
+	String get current_juz => 'Current Juz';
+
+	/// en: 'Current Page'
+	String get current_page => 'Current Page';
+
+	/// en: 'Daily Prayers'
+	String get daily_prayers => 'Daily Prayers';
+
+	/// en: 'Mark today's prayers'
+	String get mark_today_s_prayers => 'Mark today\'s prayers';
+
+	/// en: 'Reset Day'
+	String get reset_day => 'Reset Day';
+
+	/// en: 'Completed'
+	String get completed => 'Completed';
+
+	/// en: 'Fajr'
+	String get fajr => 'Fajr';
+
+	/// en: 'Dhuhr'
+	String get dhuhr => 'Dhuhr';
+
+	/// en: 'Asr'
+	String get asr => 'Asr';
+
+	/// en: 'Maghrib'
+	String get maghrib => 'Maghrib';
+
+	/// en: 'Isha'
+	String get isha => 'Isha';
+
+	/// en: 'Quran and Prayers'
+	String get quran_and_prayers => 'Quran and Prayers';
+
+	/// en: 'Quran pages, juz, and prayers'
+	String get quran_pages_juz_and_prayers => 'Quran pages, juz, and prayers';
+
+	/// en: 'Juz and page are synced'
+	String get juz_and_page_are_synced => 'Juz and page are synced';
+
+	/// en: 'Prayer Habit Tracker'
+	String get prayer_habit_tracker => 'Prayer Habit Tracker';
+
+	/// en: 'Weekly overview'
+	String get weekly_overview => 'Weekly overview';
+
+	/// en: 'Weekly completion'
+	String get weekly_completion => 'Weekly completion';
+
+	/// en: 'Monthly completion'
+	String get monthly_completion => 'Monthly completion';
+
+	/// en: 'Yearly completion'
+	String get yearly_completion => 'Yearly completion';
+
+	/// en: 'Days completed'
+	String get days_completed => 'Days completed';
+
+	/// en: 'Current streak'
+	String get current_streak => 'Current streak';
+
+	/// en: 'Stats overview'
+	String get stats_overview => 'Stats overview';
+
+	/// en: 'Weekly'
+	String get weekly => 'Weekly';
+
+	/// en: 'Monthly'
+	String get monthly => 'Monthly';
+
+	/// en: 'Yearly'
+	String get yearly => 'Yearly';
+
+	/// en: 'Missed mode'
+	String get missed_mode => 'Missed mode';
+
+	/// en: 'Manual mode'
+	String get manual_mode => 'Manual mode';
+
+	/// en: 'Mark missed prayers'
+	String get mark_missed_prayers => 'Mark missed prayers';
+
+	/// en: 'Mark completed prayers'
+	String get mark_completed_prayers => 'Mark completed prayers';
+
+	/// en: 'Missed'
+	String get missed => 'Missed';
+
+	/// en: 'In this juz'
+	String get in_this_juz => 'In this juz';
+
+	/// en: 'Pages left'
+	String get pages_left => 'Pages left';
+
+	/// en: 'Juz starts at'
+	String get juz_starts_at => 'Juz starts at';
+
+	/// en: 'Juz ends at'
+	String get juz_ends_at => 'Juz ends at';
+
+	/// en: 'Previous page'
+	String get previous_page => 'Previous page';
+
+	/// en: 'Next page'
+	String get next_page => 'Next page';
+
+	/// en: 'Progress profiles'
+	String get progress_profiles => 'Progress profiles';
+
+	/// en: 'Add progress'
+	String get add_progress => 'Add progress';
+
+	/// en: 'Rename progress'
+	String get rename_progress => 'Rename progress';
+
+	/// en: 'Delete progress'
+	String get delete_progress => 'Delete progress';
+
+	/// en: 'Default'
+	String get kDefault => 'Default';
+
+	/// en: 'Name'
+	String get name => 'Name';
 }
 
 /// The flat map containing all translations for locale <en>.
@@ -950,6 +1088,52 @@ extension on Translations {
 			'use_tabs' => 'Use tabs',
 			'no_tracking_items_have_been_configured_yet' => 'No tracking items have been configured yet.',
 			'ask_a_manager_to_add_tracking_items_or_add_them_yourself' => 'Ask a manager to add tracking items or add them yourself.',
+			'quran_progress' => 'Quran Progress',
+			'juz_and_prayer_tracker' => 'Juz and prayer tracker',
+			'juz_progress' => 'Juz Progress',
+			'page_progress' => 'Page Progress',
+			'current_juz' => 'Current Juz',
+			'current_page' => 'Current Page',
+			'daily_prayers' => 'Daily Prayers',
+			'mark_today_s_prayers' => 'Mark today\'s prayers',
+			'reset_day' => 'Reset Day',
+			'completed' => 'Completed',
+			'fajr' => 'Fajr',
+			'dhuhr' => 'Dhuhr',
+			'asr' => 'Asr',
+			'maghrib' => 'Maghrib',
+			'isha' => 'Isha',
+			'quran_and_prayers' => 'Quran and Prayers',
+			'quran_pages_juz_and_prayers' => 'Quran pages, juz, and prayers',
+			'juz_and_page_are_synced' => 'Juz and page are synced',
+			'prayer_habit_tracker' => 'Prayer Habit Tracker',
+			'weekly_overview' => 'Weekly overview',
+			'weekly_completion' => 'Weekly completion',
+			'monthly_completion' => 'Monthly completion',
+			'yearly_completion' => 'Yearly completion',
+			'days_completed' => 'Days completed',
+			'current_streak' => 'Current streak',
+			'stats_overview' => 'Stats overview',
+			'weekly' => 'Weekly',
+			'monthly' => 'Monthly',
+			'yearly' => 'Yearly',
+			'missed_mode' => 'Missed mode',
+			'manual_mode' => 'Manual mode',
+			'mark_missed_prayers' => 'Mark missed prayers',
+			'mark_completed_prayers' => 'Mark completed prayers',
+			'missed' => 'Missed',
+			'in_this_juz' => 'In this juz',
+			'pages_left' => 'Pages left',
+			'juz_starts_at' => 'Juz starts at',
+			'juz_ends_at' => 'Juz ends at',
+			'previous_page' => 'Previous page',
+			'next_page' => 'Next page',
+			'progress_profiles' => 'Progress profiles',
+			'add_progress' => 'Add progress',
+			'rename_progress' => 'Rename progress',
+			'delete_progress' => 'Delete progress',
+			'kDefault' => 'Default',
+			'name' => 'Name',
 			_ => null,
 		};
 	}
