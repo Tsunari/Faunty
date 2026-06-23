@@ -636,8 +636,8 @@ class HomeDrawer extends ConsumerWidget {
           minChildSize: 0.3,
           maxChildSize: 0.9,
           expand: false,
-          builder: (context, scrollController) {
-            final theme = Theme.of(context);
+          builder: (sheetCtx, scrollController) {
+            final theme = Theme.of(sheetCtx);
             return Container(
               decoration: BoxDecoration(
                 color: theme.scaffoldBackgroundColor,
@@ -846,7 +846,7 @@ class HomeDrawer extends ConsumerWidget {
                           Expanded(
                             child: OutlinedButton.icon(
                               onPressed: () {
-                                Navigator.of(context).pop();
+                                Navigator.of(sheetCtx).pop();
                               },
                               icon: const Icon(Icons.open_in_new, size: 18),
                               label: Text(
@@ -906,6 +906,11 @@ class HomeDrawer extends ConsumerWidget {
                                 ),
                               );
                               if (confirm != true) return;
+
+                              if (sheetCtx.mounted) {
+                                Navigator.of(sheetCtx).pop();
+                              }
+
                               final userAsync = ref.read(userProvider);
                               final currentUser = userAsync.asData?.value;
                               if (currentUser == null) {
@@ -940,7 +945,6 @@ class HomeDrawer extends ConsumerWidget {
                                       'Place updated',
                                     ),
                                   );
-                                  Navigator.of(context).pop();
                                 }
                               } catch (e) {
                                 if (context.mounted)
