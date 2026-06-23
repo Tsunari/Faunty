@@ -1,12 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/user_entity.dart';
-import 'firestore_quota_service.dart';
 
 class UserFirestoreService {
   CollectionReference get _usersCollection => FirebaseFirestore.instance.collection('user_list');
 
-  Future<void> createUser(UserEntity user, {FirestoreQuotaService? quota, Map<String, dynamic>? extraFields}) async {
+  Future<void> createUser(UserEntity user, {Map<String, dynamic>? extraFields}) async {
     final data = {
       ...user.toMap(),
       if (extraFields != null) ...extraFields,
@@ -18,7 +17,6 @@ class UserFirestoreService {
       data['authUid'] = user.uid;
     }
     await _usersCollection.doc(user.uid).set(data);
-    try { await quota?.recordWrite(); } catch (_) {}
   }
 
   Future<UserEntity?> getUserByUid({required String uid}) async {
@@ -29,13 +27,11 @@ class UserFirestoreService {
     return null;
   }
 
-  Future<void> updateUser(UserEntity user, {FirestoreQuotaService? quota}) async {
+  Future<void> updateUser(UserEntity user) async {
     await _usersCollection.doc(user.uid).update(user.toMap());
-    try { await quota?.recordWrite(); } catch (_) {}
   }
 
-  Future<void> deleteUser(UserEntity user, {FirestoreQuotaService? quota}) async {
+  Future<void> deleteUser(UserEntity user) async {
     await _usersCollection.doc(user.uid).delete();
-    try { await quota?.recordWrite(); } catch (_) {}
   }
 }

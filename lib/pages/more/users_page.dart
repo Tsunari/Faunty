@@ -12,8 +12,6 @@ import '../../models/user_entity.dart';
 import '../../models/user_roles.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../../state_management/firestore_quota_provider.dart';
 import 'package:faunty/components/custom_app_bar.dart';
 class UsersPage extends ConsumerStatefulWidget {
   const UsersPage({super.key});
@@ -137,10 +135,6 @@ class _UsersPageState extends ConsumerState<UsersPage> {
                                     final docs = snap.data?.docs ?? [];
                                     final users = docs.map((d) => UserEntity.fromMap(d.data())).toList();
                                     users.sort((a, b) => compareUsersByOption(a, b, const UserSortOption(field: UserSortField.firstName, order: SortOrder.asc)));
-                                    // record a read for this snapshot update (sampled internally)
-                                    try {
-                                      ref.read(firestoreQuotaProvider).recordRead();
-                                    } catch (_) {}
                                     return _buildUsersForPlace(users, colorScheme, user);
                                   },
                                 );
@@ -292,10 +286,6 @@ class _RoleDropdownState extends State<RoleDropdown> {
                           .doc(widget.user.uid)
                           .update({'role': newRole.name});
                       setState(() => _selectedRole = newRole);
-                      // record a write
-                      try {
-                        ProviderScope.containerOf(context).read(firestoreQuotaProvider).recordWrite();
-                      } catch (_) {}
                     } catch (e) {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -395,10 +385,6 @@ class EditNameDialogState extends State<EditNameDialog> {
                       'firstName': newFirst,
                       'lastName': newLast,
                     });
-                    // record a write
-                    try {
-                      ProviderScope.containerOf(context).read(firestoreQuotaProvider).recordWrite();
-                    } catch (_) {}
                     if (context.mounted) {
                       Navigator.of(context).pop();
                     }
@@ -477,10 +463,6 @@ class _ChangePlaceDialogState extends ConsumerState<ChangePlaceDialog> {
                     try {
                     // TODO: Migrate user data to new place
                     await FirebaseFirestore.instance.collection('user_list').doc(widget.user.uid).update({'placeId': _selectedPlaceId});
-                    // record a write
-                    try {
-                      ProviderScope.containerOf(context).read(firestoreQuotaProvider).recordWrite();
-                    } catch (_) {}
                     if (context.mounted) Navigator.of(context).pop();
                   } catch (e) {
                     if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(translation(context: context, 'Failed to change place: ') + e.toString())));
@@ -568,11 +550,6 @@ class _CreateUserDialogState extends State<CreateUserDialog> {
         'createdBy': widget.currentUser.uid,
         'createdAt': FieldValue.serverTimestamp(),
       });
-      // record a write for creating the user
-      try {
-        ProviderScope.containerOf(context).read(firestoreQuotaProvider).recordWrite();
-      } catch (_) {}
-
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(

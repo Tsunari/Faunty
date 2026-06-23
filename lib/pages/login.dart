@@ -13,7 +13,6 @@ import 'package:faunty/components/language_dropdown.dart';
 import 'package:faunty/components/custom_snackbar.dart';
 import 'package:faunty/tools/pwa_install.dart';
 import '../state_management/user_provider.dart';
-import '../state_management/firestore_quota_provider.dart';
 import '../notifications/notification_manager.dart';
 
 Future<(User?, String?)> registerWithEmail(BuildContext context, String email, String password) async {
@@ -168,7 +167,6 @@ class _LoginPageState extends ConsumerState<LoginPage> with SingleTickerProvider
       if (user != null) {
         // Fetch user document to determine role
     final doc = await FirebaseFirestore.instance.collection('user_list').doc(user.uid).get();
-    try { ref.read(firestoreQuotaProvider).recordRead(); } catch (_) {}
         String? role;
         if (doc.exists && doc.data() != null) {
           final data = doc.data()!;
@@ -299,7 +297,6 @@ class _LoginPageState extends ConsumerState<LoginPage> with SingleTickerProvider
         .where('isPlaceholder', isEqualTo: true)
         .limit(1)
         .get();
-      try { ref.read(firestoreQuotaProvider).recordRead(); } catch (_) {}
 
       if (placeholderQuery.docs.isNotEmpty) {
         // Link with existing placeholder user
@@ -320,7 +317,6 @@ class _LoginPageState extends ConsumerState<LoginPage> with SingleTickerProvider
           'linkedAt': FieldValue.serverTimestamp(),
           'linkedBy': 'Mail Registration',
         });
-        try { ref.read(firestoreQuotaProvider).recordWrite(); } catch (_) {}
       } else {
         // Normal registration - create new user
         final newUser = UserEntity(
@@ -332,7 +328,6 @@ class _LoginPageState extends ConsumerState<LoginPage> with SingleTickerProvider
           placeId: _selectedPlace!.id,
         );
         await UserFirestoreService().createUser(newUser);
-        try { ref.read(firestoreQuotaProvider).recordWrite(); } catch (_) {}
       }
 
       // Invalidate userProvider to ensure fresh user state from StreamProvider

@@ -6,7 +6,6 @@ import '../../state_management/user_provider.dart';
 import '../../models/user_roles.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:faunty/tools/translation_helper.dart';
-import '../../state_management/firestore_quota_provider.dart';
 
 
 class UserWelcomePage extends ConsumerStatefulWidget {
@@ -166,17 +165,16 @@ class _UserWelcomePageState extends ConsumerState<UserWelcomePage> {
                                     : () async {
                                         if (!(_formKey.currentState?.validate() ?? false)) return;
                                         setState(() => _saving = true);
-                                        try {
-                                          final u = userAsync.value!;
-                                          final newFirst = _firstNameController.text.trim();
-                                          final newLast = _lastNameController.text.trim();
-                                          await FirebaseFirestore.instance.collection('user_list').doc(u.uid).update({
-                                            'firstName': newFirst,
-                                            'lastName': newLast,
-                                          });
-                                          try { ref.read(firestoreQuotaProvider).recordWrite(); } catch (_) {}
-                                          if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Name updated.'));
-                                        } catch (e) {
+                                          try {
+                                            final u = userAsync.value!;
+                                            final newFirst = _firstNameController.text.trim();
+                                            final newLast = _lastNameController.text.trim();
+                                            await FirebaseFirestore.instance.collection('user_list').doc(u.uid).update({
+                                              'firstName': newFirst,
+                                              'lastName': newLast,
+                                            });
+                                            if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Name updated.'));
+                                          } catch (e) {
                                           if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Failed to update name: ') + e.toString());
                                         } finally {
                                           if (mounted) setState(() => _saving = false);
