@@ -78,7 +78,6 @@ class _UsersPageState extends ConsumerState<UsersPage> {
         return Scaffold(
           appBar: CustomAppBar(
             title: translation(context: context, 'Users'),
-            useModern: false,
             actions: [
               // Superuser-only toggle to view all places as tabs
               RoleGate(

@@ -23,7 +23,6 @@ class AccountPage extends ConsumerWidget {
     return Scaffold(
       appBar: CustomAppBar(
         title: translation(context: context, 'Account'),
-        useModern: false,
       ),
       body: user == null
           ? Center(
@@ -72,8 +71,6 @@ class AccountPage extends ConsumerWidget {
                   ),
                   const SizedBox(height: 32),
                   Card(
-                    color: surfaceColor,
-                    elevation: 2,
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Column(
@@ -138,7 +135,7 @@ class AccountPage extends ConsumerWidget {
                                                           backgroundColor: primaryColor,
                                                           foregroundColor: surfaceColor,
                                                           padding: const EdgeInsets.symmetric(vertical: 14),
-                                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                                         ),
                                                         icon: isLoading
                                                             ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
@@ -237,7 +234,7 @@ class AccountPage extends ConsumerWidget {
                         backgroundColor: primaryColor,
                         foregroundColor: surfaceColor,
                         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       icon: const Icon(Icons.logout),
                       label: const Text('Sign Out'),

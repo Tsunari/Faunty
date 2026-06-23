@@ -16,7 +16,9 @@ class LanguageDropdown extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final primaryColor = Theme.of(context).colorScheme.primary;
+    final theme = Theme.of(context);
+    final primaryColor = theme.colorScheme.primary;
+    final isDark = theme.brightness == Brightness.dark;
     final locales = AppLocale.values;
     final localeNames = {
       AppLocale.en: 'English',
@@ -29,38 +31,44 @@ class LanguageDropdown extends ConsumerWidget {
       (loc) => loc.languageTag == selectedCode,
       orElse: () => AppLocale.en,
     );
-    return Container(
-      padding: padding,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(borderRadius),
-        border: Border.all(color: borderColor ?? primaryColor.withOpacity(0.5)),
-        color: Theme.of(context).colorScheme.surface,
-      ),
-      child: DropdownButton<AppLocale>(
-        value: selectedLocale,
-        icon: Icon(Icons.arrow_drop_down, color: primaryColor),
-        underline: SizedBox(),
-        borderRadius: BorderRadius.circular(borderRadius),
-        style: Theme.of(context).textTheme.bodyMedium,
-        dropdownColor: Theme.of(context).colorScheme.surface,
-        items: locales.map((loc) {
-          return DropdownMenuItem<AppLocale>(
-            value: loc,
-            child: Row(
-              children: [
-                Icon(Icons.flag, size: 18, color: primaryColor),
-                const SizedBox(width: 8),
-                Text(localeNames[loc] ?? loc.languageTag),
-              ],
+    final selectedName = localeNames[selectedLocale] ?? selectedLocale.languageTag;
+
+    return PopupMenuButton<AppLocale>(
+      onSelected: (newLocale) {
+        LocaleSettings.setLocale(newLocale);
+        ref.read(languageProvider.notifier).setLanguage(newLocale.languageTag);
+      },
+      itemBuilder: (context) => locales.map((loc) => PopupMenuItem<AppLocale>(
+        value: loc,
+        child: Row(
+          children: [
+            Icon(Icons.translate, size: 16, color: primaryColor),
+            const SizedBox(width: 12),
+            Text(localeNames[loc] ?? loc.languageTag),
+          ],
+        ),
+      )).toList(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: borderColor ?? primaryColor.withOpacity(0.12)),
+          color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.02),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              selectedName,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
             ),
-          );
-        }).toList(),
-        onChanged: (newLocale) {
-          if (newLocale != null) {
-            LocaleSettings.setLocale(newLocale);
-            ref.read(languageProvider.notifier).setLanguage(newLocale.languageTag);
-          }
-        },
+            const SizedBox(width: 4),
+            Icon(Icons.keyboard_arrow_down, size: 16, color: primaryColor),
+          ],
+        ),
       ),
     );
   }

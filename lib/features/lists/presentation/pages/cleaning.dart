@@ -5,12 +5,11 @@ import 'package:faunty/core/utils/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:faunty/features/lists/presentation/pages/cleaning_assign.dart';
-import 'package:faunty/core/widgets/custom_app_bar.dart';
-import 'package:faunty/core/widgets/custom_chip.dart';
 import 'package:faunty/features/lists/presentation/controllers/cleaning_provider.dart';
 import 'package:faunty/features/profile/presentation/controllers/user_list_provider.dart';
 import 'package:faunty/features/auth/presentation/controllers/user_provider.dart';
 import 'package:faunty/features/auth/domain/entities/user_entity.dart';
+import 'package:faunty/core/widgets/tab_page.dart';
 
 class CleaningPage extends ConsumerStatefulWidget {
   const CleaningPage({super.key});
@@ -103,9 +102,8 @@ class _CleaningPageState extends ConsumerState<CleaningPage> {
       return entry; // ultimate fallback
     }
 
-    return Scaffold(
-      appBar: CustomAppBar(
-        title: translation(context: context, 'Cleaning'),
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(tabAppBarConfigProvider('Cleaning').notifier).state = TabAppBarConfig(
         actions: [
           if (canReorder)
             IconButton(
@@ -130,8 +128,11 @@ class _CleaningPageState extends ConsumerState<CleaningPage> {
           }
           return pdfData;
         },
-        // actions: [],
-      ),
+      );
+    });
+
+    return Scaffold(
+      appBar: null,
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 600),

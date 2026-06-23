@@ -13,6 +13,7 @@ import 'package:faunty/features/tracking/presentation/pages/attendance/attendanc
 import 'package:faunty/features/profile/presentation/controllers/user_list_provider.dart';
 import 'package:faunty/features/auth/domain/entities/user_entity.dart';
 import 'package:faunty/features/tracking/data/repositories/attendance_firestore_service.dart';
+import 'package:faunty/core/widgets/tab_page.dart';
 
 class AttendanceViewer extends ConsumerStatefulWidget {
   const AttendanceViewer({super.key});
@@ -80,87 +81,110 @@ class _AttendanceViewerState extends ConsumerState<AttendanceViewer> {
       });
     }
 
-    return Scaffold(
-      appBar: CustomAppBar(
-        title: translation(context: context, 'Attendance'),
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(tabAppBarConfigProvider('Attendance').notifier).state = TabAppBarConfig(
         actions: [
-          itemsMeta.isNotEmpty
-              ? RoleGate(
-                  minRole: UserRole.baskan,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: Row(
-                      children: [
-                        if (!_useTabs)
-                          DropdownButton<String>(
-                            value: itemIds.contains(_selectedItem) ? _selectedItem : null,
-                            alignment: Alignment.center,
-                            underline: const SizedBox.shrink(),
-                            onChanged: (val) async {
-                              if (val == null) return;
-                              const manageKey = '__manage__';
-                              if (val == manageKey) {
-                                await Navigator.of(context).push(MaterialPageRoute(builder: (ctx) => AttendanceItemsPage(placeId: user.placeId)));
-                                if (!mounted) return;
-                                setState(() {});
-                                return;
-                              }
-                              setState(() => _selectedItem = val);
-                              final sp = await SharedPreferences.getInstance();
-                              await sp.setString('attendance_default_${user.placeId}', val);
-                              final metaMap = await AttendanceFirestoreService(user.placeId).getAttendanceMeta();
-                              if (metaMap.containsKey('default')) {
-                                metaMap.remove('default');
-                                await AttendanceFirestoreService(user.placeId).setAttendanceMeta(metaMap);
-                              }
-                            },
-                            items: [
-                              ...itemsMeta.map((it) => DropdownMenuItem(
-                                    value: it['id'] as String? ?? it['name'],
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
-                                      child: Text(it['name'] as String? ?? ''),
-                                    ),
-                                  )),
-                              const DropdownMenuItem(
-                                value: '__manage__',
-                                alignment: Alignment.center,
-                                child: Padding(
-                                  padding: EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
-                                  child: Text('Manage'),
-                                ),
+          if (itemsMeta.isNotEmpty)
+            RoleGate(
+              minRole: UserRole.baskan,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (!_useTabs)
+                    PopupMenuButton<String>(
+                      onSelected: (val) async {
+                        const manageKey = '__manage__';
+                        if (val == manageKey) {
+                          await Navigator.of(context).push(MaterialPageRoute(builder: (ctx) => AttendanceItemsPage(placeId: user.placeId)));
+                          if (!mounted) return;
+                          setState(() {});
+                          return;
+                        }
+                        setState(() => _selectedItem = val);
+                        final sp = await SharedPreferences.getInstance();
+                        await sp.setString('attendance_default_${user.placeId}', val);
+                        final metaMap = await AttendanceFirestoreService(user.placeId).getAttendanceMeta();
+                        if (metaMap.containsKey('default')) {
+                          metaMap.remove('default');
+                          await AttendanceFirestoreService(user.placeId).setAttendanceMeta(metaMap);
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        ...itemsMeta.map((it) => PopupMenuItem<String>(
+                              value: it['id'] as String? ?? it['name'],
+                              child: Row(
+                                children: [
+                                  Icon(Icons.checklist_outlined, size: 16, color: theme.colorScheme.primary),
+                                  const SizedBox(width: 12),
+                                  Text(it['name'] as String? ?? ''),
+                                ],
                               ),
+                            )),
+                        PopupMenuItem<String>(
+                          value: '__manage__',
+                          child: Row(
+                            children: [
+                              Icon(Icons.settings, size: 16, color: theme.colorScheme.primary),
+                              const SizedBox(width: 12),
+                              const Text('Manage'),
                             ],
                           ),
-                        if (_useTabs)
-                        IconButton(
-                          icon: const Icon(Icons.settings),
-                          tooltip: translation(context: context, 'Manage'),
-                          onPressed: () {
-                            Navigator.of(context).push(MaterialPageRoute(builder: (ctx) => AttendanceItemsPage(placeId: user.placeId))).then((_) {
-                              if (!mounted) return;
-                              setState(() {});
-                            });
-                          },
-                        ),
-                        IconButton(
-                          icon: Icon(_useTabs ? Icons.view_list : Icons.tab),
-                          tooltip: _useTabs ? translation(context: context, 'Use dropdown') : translation(context: context, 'Use tabs'),
-                          onPressed: () async {
-                            final next = !_useTabs;
-                            final sp = await SharedPreferences.getInstance();
-                            await sp.setBool('attendance_use_tabs', next);
-                            if (!mounted) return;
-                            setState(() => _useTabs = next);
-                          },
                         ),
                       ],
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: theme.colorScheme.primary.withOpacity(0.12)),
+                          color: theme.brightness == Brightness.dark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.02),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              itemsMeta.firstWhere((e) => e['id'] == _selectedItem, orElse: () => {'name': ''})['name'] as String? ?? '',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(Icons.keyboard_arrow_down, size: 16, color: theme.colorScheme.primary),
+                          ],
+                        ),
+                      ),
                     ),
+                  if (_useTabs)
+                    IconButton(
+                      icon: const Icon(Icons.settings),
+                      tooltip: translation(context: context, 'Manage'),
+                      onPressed: () {
+                        Navigator.of(context).push(MaterialPageRoute(builder: (ctx) => AttendanceItemsPage(placeId: user.placeId))).then((_) {
+                          if (!mounted) return;
+                          setState(() {});
+                        });
+                      },
+                    ),
+                  IconButton(
+                    icon: Icon(_useTabs ? Icons.view_list : Icons.tab),
+                    tooltip: _useTabs ? translation(context: context, 'Use dropdown') : translation(context: context, 'Use tabs'),
+                    onPressed: () async {
+                      final next = !_useTabs;
+                      final sp = await SharedPreferences.getInstance();
+                      await sp.setBool('attendance_use_tabs', next);
+                      if (!mounted) return;
+                      setState(() => _useTabs = next);
+                    },
                   ),
-                )
-              : const SizedBox.shrink(),
+                ],
+              ),
+            ),
         ],
-      ),
+      );
+    });
+
+    return Scaffold(
+      appBar: null,
       body: itemsMeta.isEmpty
           ? Center(
               child: Padding(

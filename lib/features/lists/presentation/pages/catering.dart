@@ -1,4 +1,3 @@
-import 'package:faunty/core/widgets/custom_app_bar.dart';
 import 'package:faunty/features/auth/presentation/widgets/role_gate.dart';
 import 'package:faunty/globals.dart';
 import 'package:faunty/features/auth/domain/entities/user_roles.dart';
@@ -11,6 +10,7 @@ import 'package:faunty/features/lists/presentation/controllers/catering_provider
 import 'package:faunty/features/profile/presentation/controllers/user_list_provider.dart';
 import 'package:faunty/features/lists/presentation/pages/widgets/catering_classic_view.dart';
 import 'package:faunty/features/lists/presentation/pages/widgets/catering_modern_view.dart';
+import 'package:faunty/core/widgets/tab_page.dart';
 
 final List<String> meals = ['Breakfast', 'Lunch', 'Dinner'];
 
@@ -77,9 +77,8 @@ class _CateringPageState extends ConsumerState<CateringPage> {
               if (distB < 0) distB += 7;
               return distA.compareTo(distB);
             });
-            return Scaffold(
-              appBar: CustomAppBar(
-                title: translation(context: context, 'Catering'),
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              ref.read(tabAppBarConfigProvider('Catering').notifier).state = TabAppBarConfig(
                 pdfLayout: CateringPdfLayout(),
                 onGeneratePdf: () async {
                   final Map<String, List<Map<String, dynamic>>> pdfData = {};
@@ -126,18 +125,19 @@ class _CateringPageState extends ConsumerState<CateringPage> {
                   return pdfData;
                 },
                 actions: [
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: IconButton(
-                      tooltip: _modernView
-                          ? translation(context: context, 'Switch to classic view')
-                          : translation(context: context, 'Switch to modern view'),
-                      icon: Icon(_modernView ? Icons.view_list : Icons.auto_awesome),
-                      onPressed: () => setState(() => _modernView = !_modernView),
-                    ),
+                  IconButton(
+                    tooltip: _modernView
+                        ? translation(context: context, 'Switch to classic view')
+                        : translation(context: context, 'Switch to modern view'),
+                    icon: Icon(_modernView ? Icons.view_list : Icons.auto_awesome),
+                    onPressed: () => setState(() => _modernView = !_modernView),
                   ),
                 ],
-              ),
+              );
+            });
+
+            return Scaffold(
+              appBar: null,
               body: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 600),

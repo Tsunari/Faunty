@@ -15,6 +15,7 @@ import 'package:faunty/core/utils/pdf_generator/statistics_pdf_layout.dart';
 
 import 'package:faunty/features/tracking/presentation/pages/statistics/statistics_widgets.dart';
 import 'package:faunty/features/tracking/presentation/pages/statistics/stats_utils.dart';
+import 'package:faunty/core/widgets/tab_page.dart';
 
 class StatisticsPage extends ConsumerStatefulWidget {
   const StatisticsPage({super.key});
@@ -80,48 +81,64 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
       });
     }
 
-    return Scaffold(
-      appBar: CustomAppBar(
-        title: translation(context: context, 'Statistics'),
-        useModern: false,
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(tabAppBarConfigProvider('Statistics').notifier).state = TabAppBarConfig(
         actions: [
           if (items.isNotEmpty) ...[
-            // TODO: Add PDF export
-            // IconButton(
-            //   icon: const Icon(Icons.picture_as_pdf),
-            //   onPressed: () => _generatePdf(context, attendance, items.firstWhere((e) => e['id'] == _selectedItem, orElse: () => items.first), user.placeId),
-            // ),
             IconButton(
               icon: const Icon(Icons.share),
               onPressed: () => _captureAndShare(context),
             ),
-            Padding(
-              padding: const EdgeInsets.only(right: 8.0),
-              child: DropdownButton<String>(
-                value: items.any((e) => e['id'] == _selectedItem) ? _selectedItem : null,
-                underline: const SizedBox.shrink(),
-                onChanged: (val) async {
-                  if (val == null) return;
-                  if (!mounted) return;
-                  setState(() => _selectedItem = val);
-                  final sp = await SharedPreferences.getInstance();
-                  await sp.setString('stats_default_${user.placeId}', val);
-                },
-                items: [
-                  for (final it in items)
-                    DropdownMenuItem(
-                      value: it['id'] as String,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
-                        child: Text(it['name'] as String? ?? ''),
+            PopupMenuButton<String>(
+              onSelected: (val) async {
+                if (!mounted) return;
+                setState(() => _selectedItem = val);
+                final sp = await SharedPreferences.getInstance();
+                await sp.setString('stats_default_${user.placeId}', val);
+              },
+              itemBuilder: (context) => [
+                for (final it in items)
+                  PopupMenuItem(
+                    value: it['id'] as String,
+                    child: Row(
+                      children: [
+                        Icon(Icons.bar_chart_outlined, size: 16, color: Theme.of(context).colorScheme.primary),
+                        const SizedBox(width: 12),
+                        Text(it['name'] as String? ?? ''),
+                      ],
+                    ),
+                  ),
+              ],
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.12)),
+                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.02),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      items.firstWhere((e) => e['id'] == _selectedItem, orElse: () => {'name': ''})['name'] as String? ?? '',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
                       ),
                     ),
-                ],
+                    const SizedBox(width: 4),
+                    Icon(Icons.keyboard_arrow_down, size: 16, color: Theme.of(context).colorScheme.primary),
+                  ],
+                ),
               ),
             ),
           ],
         ],
-      ),
+      );
+    });
+
+    return Scaffold(
+      appBar: null,
       body: _selectedItem.isEmpty || items.isEmpty
           ? Center(child: Text(translation(context: context, 'Create a tracking item to see statistics.')))
           : Padding(
@@ -158,48 +175,48 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
     }
   }
 
-  Future<void> _generatePdf(BuildContext context, Map<String, dynamic> attendance, Map<String, dynamic> itemMeta, String placeId) async {
-    final itemName = itemMeta['name'] as String? ?? 'Unknown';
-    final itemId = itemMeta['id'] as String;
-    final now = DateTime.now();
-    final dateStr = DateFormat('yyyy-MM-dd HH:mm').format(now);
-
-    final weekdays = (itemMeta['weekdays'] as List?)?.cast<int>() ?? const [1, 2, 3, 4, 5, 6, 7];
-    final userId = _selectedUser ?? 'all';
-    
-    final ratingSeries = computeUserRatingSeries(attendance, itemId, granularity: TimeGranularity.year, userId: userId, weekdays: weekdays);
-    final currentRating = ratingSeries.isNotEmpty ? ratingSeries.last.rating : 0.0;
-    
-    final historyBars = computeUserHistory(attendance, itemId, granularity: TimeGranularity.month, userId: userId, weekdays: weekdays);
-    final recentHistory = historyBars.length > 6 ? historyBars.sublist(historyBars.length - 6) : historyBars;
-    final historyData = recentHistory.map((h) => [
-      DateFormat('MMM yyyy').format(h.start),
-      h.present.toString(),
-      h.onLeave.toString(),
-    ]).toList();
-
-    final runs = computeBestUserSeries(attendance, itemId, userId: userId, weekdays: weekdays, limit: 5);
-    final streaksData = runs.map((r) => {
-      'start': DateFormat('yyyy-MM-dd').format(r.start),
-      'end': DateFormat('yyyy-MM-dd').format(r.end),
-      'length': r.length.toString(),
-    }).toList();
-
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => PdfPreviewPage(
-          title: 'Statistics_${itemName}_${userId}_$dateStr',
-          data: const {}, 
-          layout: StatisticsPdfLayout(
-            itemName: '$itemName ($userId)',
-            dateStr: dateStr,
-            currentRating: '${(currentRating * 100).round()}%',
-            totalRecords: '${normalizedDatesForItem(attendance, itemId, weekdays: weekdays).length}',
-            historyData: historyData,
-            streaksData: streaksData,
-          ),
-        ),
-      ),
-    );
-  }
+  // Future<void> _generatePdf(BuildContext context, Map<String, dynamic> attendance, Map<String, dynamic> itemMeta, String placeId) async {
+  //   final itemName = itemMeta['name'] as String? ?? 'Unknown';
+  //   final itemId = itemMeta['id'] as String;
+  //   final now = DateTime.now();
+  //   final dateStr = DateFormat('yyyy-MM-dd HH:mm').format(now);
+  // 
+  //   final weekdays = (itemMeta['weekdays'] as List?)?.cast<int>() ?? const [1, 2, 3, 4, 5, 6, 7];
+  //   final userId = _selectedUser ?? 'all';
+  //   
+  //   final ratingSeries = computeUserRatingSeries(attendance, itemId, granularity: TimeGranularity.year, userId: userId, weekdays: weekdays);
+  //   final currentRating = ratingSeries.isNotEmpty ? ratingSeries.last.rating : 0.0;
+  //   
+  //   final historyBars = computeUserHistory(attendance, itemId, granularity: TimeGranularity.month, userId: userId, weekdays: weekdays);
+  //   final recentHistory = historyBars.length > 6 ? historyBars.sublist(historyBars.length - 6) : historyBars;
+  //   final historyData = recentHistory.map((h) => [
+  //     DateFormat('MMM yyyy').format(h.start),
+  //     h.present.toString(),
+  //     h.onLeave.toString(),
+  //   ]).toList();
+  // 
+  //   final runs = computeBestUserSeries(attendance, itemId, userId: userId, weekdays: weekdays, limit: 5);
+  //   final streaksData = runs.map((r) => {
+  //     'start': DateFormat('yyyy-MM-dd').format(r.start),
+  //     'end': DateFormat('yyyy-MM-dd').format(r.end),
+  //     'length': r.length.toString(),
+  //   }).toList();
+  // 
+  //   Navigator.of(context).push(
+  //     MaterialPageRoute(
+  //       builder: (context) => PdfPreviewPage(
+  //         title: 'Statistics_${itemName}_${userId}_$dateStr',
+  //         data: const {}, 
+  //         layout: StatisticsPdfLayout(
+  //           itemName: '$itemName ($userId)',
+  //           dateStr: dateStr,
+  //           currentRating: '${(currentRating * 100).round()}%',
+  //           totalRecords: '${normalizedDatesForItem(attendance, itemId, weekdays: weekdays).length}',
+  //           historyData: historyData,
+  //           streaksData: streaksData,
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
 }

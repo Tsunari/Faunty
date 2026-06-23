@@ -1,7 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:faunty/core/widgets/glass_container.dart';
+import 'package:faunty/core/widgets/custom_app_bar.dart';
+import 'package:faunty/core/utils/pdf_generator/base_pdf_layout.dart';
+
+class TabAppBarConfig {
+  final List<Widget>? actions;
+  final Future<Map<String, List<Map<String, dynamic>>>> Function()? onGeneratePdf;
+  final BasePdfLayout? pdfLayout;
+
+  const TabAppBarConfig({
+    this.actions,
+    this.onGeneratePdf,
+    this.pdfLayout,
+  });
+}
+
+final tabAppBarConfigProvider = StateProvider.family<TabAppBarConfig?, String>((ref, tabId) => null);
 
 class TabMeta {
   final String title;
@@ -126,65 +141,54 @@ class _TabPageState extends ConsumerState<TabPage> with TickerProviderStateMixin
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
+    final activeIndex = ref.watch(widget.tabIndexProvider) ?? 0;
+    // Clamp index to ensure we don't index out of bounds in race conditions
+    final clampedIndex = activeIndex.clamp(0, widget.tabs.length - 1);
+    final activeTab = widget.tabs[clampedIndex];
+    final activeConfig = ref.watch(tabAppBarConfigProvider(activeTab.title));
+
     return Scaffold(
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: GlassContainer(
-              borderRadius: 24,
-              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-              boxShadow: [
-                BoxShadow(
-                  color: isDark ? Colors.black45 : Colors.black.withOpacity(0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-              child: TabBar(
-                controller: _tabController,
-                tabs: [
-                  for (int i = 0; i < widget.tabs.length; i++)
-                    Tab(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(widget.tabs[i].icon, size: 16),
-                          const SizedBox(width: 6),
-                          Text(
-                            widget.tabs[i].title,
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                    )
-                ],
-                isScrollable: true,
-                dividerColor: Colors.transparent, // remove standard Material 3 tab divider
-                indicator: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  color: isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.06),
-                  border: Border.all(
-                    color: isDark ? Colors.white.withOpacity(0.2) : Colors.black.withOpacity(0.1),
-                    width: 1,
+      appBar: CustomAppBar(
+        title: activeTab.title,
+        titleWidget: SizedBox(
+          height: 38,
+          child: TabBar(
+            controller: _tabController,
+            splashBorderRadius: BorderRadius.circular(16),
+            tabs: [
+              for (int i = 0; i < widget.tabs.length; i++)
+                Tab(
+                  icon: Tooltip(
+                    message: widget.tabs[i].title,
+                    child: Icon(widget.tabs[i].icon, size: 20),
                   ),
-                ),
-                indicatorSize: TabBarIndicatorSize.tab,
-                labelColor: isDark ? Colors.white : Colors.black,
-                unselectedLabelColor: isDark ? Colors.white38 : Colors.black38,
-                labelPadding: const EdgeInsets.symmetric(horizontal: 14.0),
-                tabAlignment: TabAlignment.center,
+                )
+            ],
+            isScrollable: true,
+            dividerColor: Colors.transparent, // remove standard Material 3 tab divider
+            indicator: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.06),
+              border: Border.all(
+                color: isDark ? Colors.white.withOpacity(0.2) : Colors.black.withOpacity(0.1),
+                width: 1,
               ),
             ),
+            indicatorSize: TabBarIndicatorSize.tab,
+            labelColor: isDark ? Colors.white : Colors.black,
+            unselectedLabelColor: isDark ? Colors.white38 : Colors.black38,
+            labelPadding: const EdgeInsets.symmetric(horizontal: 14.0),
+            tabAlignment: TabAlignment.center,
           ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              physics: const BouncingScrollPhysics(),
-              children: [for (final tab in widget.tabs) tab.page],
-            ),
-          ),
-        ],
+        ),
+        actions: activeConfig?.actions,
+        onGeneratePdf: activeConfig?.onGeneratePdf,
+        pdfLayout: activeConfig?.pdfLayout,
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        physics: const BouncingScrollPhysics(),
+        children: [for (final tab in widget.tabs) tab.page],
       ),
     );
   }

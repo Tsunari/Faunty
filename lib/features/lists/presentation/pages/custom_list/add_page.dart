@@ -6,7 +6,6 @@ import 'package:faunty/features/lists/presentation/controllers/custom_list_provi
 import 'package:faunty/features/auth/presentation/controllers/user_provider.dart';
 import 'package:faunty/core/widgets/icon_picker.dart';
 import 'package:faunty/core/utils/icon_registry.dart';
-import 'package:faunty/core/widgets/custom_app_bar.dart';
 
 class AddPage extends ConsumerStatefulWidget {
   const AddPage({super.key});
@@ -31,12 +30,7 @@ class _AddPageState extends ConsumerState<AddPage> {
     final listsAsync = ref.watch(customListsProvider(placeId));
 
     return Scaffold(
-      appBar: CustomAppBar(
-        title: _editingListId == null
-            ? 'Create custom list'
-            : 'Edit custom list',
-        useModern: false,
-      ),
+      appBar: null,
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(

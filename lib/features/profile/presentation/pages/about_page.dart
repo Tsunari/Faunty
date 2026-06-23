@@ -19,7 +19,6 @@ class AboutPage extends StatelessWidget {
     return Scaffold(
       appBar: CustomAppBar(
         title: translation(context: context, 'About'),
-        useModern: false,
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -51,9 +50,6 @@ class AboutPage extends StatelessWidget {
               ),
               const SizedBox(height: 32),
               Card(
-                color: surface,
-                elevation: 2,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 child: Padding(
                   padding: const EdgeInsets.all(20.0),
                   child: Column(
@@ -73,9 +69,6 @@ class AboutPage extends StatelessWidget {
               ),
               const SizedBox(height: 32),
               Card(
-                color: surface,
-                elevation: 2,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 child: Padding(
                   padding: const EdgeInsets.all(20.0),
                   child: Column(

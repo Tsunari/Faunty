@@ -746,73 +746,58 @@ class _CleaningAssignPageState extends ConsumerState<CleaningAssignPage> {
             final user = entry.key;
             final name = _displayName(user);
             final placeIds = entry.value;
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: isDark ? Colors.white.withOpacity(0.06) : Colors.white.withOpacity(0.5),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isDark ? Colors.white12 : Colors.black.withOpacity(0.08),
-                      ),
-                    ),
-                    child: Theme(
-                      data: theme.copyWith(dividerColor: Colors.transparent),
-                      child: ExpansionTile(
-                        leading: CircleAvatar(
-                          backgroundColor: theme.colorScheme.primary.withOpacity(0.2),
-                          child: Text(
-                            placeIds.length.toString(),
-                            style: TextStyle(
-                              color: theme.colorScheme.primary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        title: Text(
-                          name,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        subtitle: Text(
-                          '${placeIds.length} ${translation(context: context, placeIds.length == 1 ? 'place' : 'places')}',
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                        children: placeIds.isEmpty
-                            ? [
-                                Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Text(
-                                    translation(context: context, 'No assignments'),
-                                    style: TextStyle(color: theme.disabledColor),
-                                  ),
-                                ),
-                              ]
-                            : placeIds.map((placeId) {
-                                final place = places[placeId] as Map<String, dynamic>?;
-                                final placeName = place?['name'] ?? placeId;
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.place, size: 18),
-                                      const SizedBox(width: 12),
-                                      Expanded(child: Text(placeName)),
-                                      IconButton(
-                                        visualDensity: VisualDensity.compact,
-                                        icon: const Icon(Icons.close, size: 18),
-                                        onPressed: () => _toggleAssignee(placeId, user),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }).toList(),
+            return Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: Theme(
+                data: theme.copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  leading: CircleAvatar(
+                    backgroundColor: theme.colorScheme.primary.withOpacity(0.2),
+                    child: Text(
+                      placeIds.length.toString(),
+                      style: TextStyle(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
+                  title: Text(
+                    name,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    '${placeIds.length} ${translation(context: context, placeIds.length == 1 ? 'place' : 'places')}',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                  children: placeIds.isEmpty
+                      ? [
+                          Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Text(
+                              translation(context: context, 'No assignments'),
+                              style: TextStyle(color: theme.disabledColor),
+                            ),
+                          ),
+                        ]
+                      : placeIds.map((placeId) {
+                          final place = places[placeId] as Map<String, dynamic>?;
+                          final placeName = place?['name'] ?? placeId;
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.place, size: 18),
+                                const SizedBox(width: 12),
+                                Expanded(child: Text(placeName)),
+                                IconButton(
+                                  visualDensity: VisualDensity.compact,
+                                  icon: const Icon(Icons.close, size: 18),
+                                  onPressed: () => _toggleAssignee(placeId, user),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
                 ),
               ),
             );
@@ -878,147 +863,132 @@ class _CleaningAssignPageState extends ConsumerState<CleaningAssignPage> {
       groupName = g?['title'];
     }
     
-    return Padding(
+    return Card(
       key: key,
-      padding: const EdgeInsets.only(bottom: 8),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-          child: Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.06) : Colors.white.withOpacity(0.5),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isDark ? Colors.white12 : Colors.black.withOpacity(0.08),
+              border: Border(
+                bottom: BorderSide(
+                  color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
+                ),
               ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                // Header
-                Container(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
-                  decoration: BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(
-                        color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
-                      ),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      ReorderableDragStartListener(
-                        index: idx,
-                        child: Padding(
-                          padding: const EdgeInsets.only(right: 12),
-                          child: Icon(Icons.drag_indicator, color: theme.iconTheme.color?.withOpacity(0.5)),
-                        ),
-                      ),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              placeName,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            if (groupName != null) ...[
-                              const SizedBox(height: 4),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.secondary.withOpacity(0.15),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  groupName,
-                                  style: theme.textTheme.labelSmall?.copyWith(
-                                    color: theme.colorScheme.secondary,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.edit, size: 20),
-                        tooltip: translation(context: context, 'Edit'),
-                        onPressed: () => _editPlaceDialog(placeId),
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.delete_outline, size: 20),
-                        tooltip: translation(context: context, 'Delete'),
-                        onPressed: () => _deletePlace(placeId),
-                      ),
-                    ],
+                ReorderableDragStartListener(
+                  index: idx,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: Icon(Icons.drag_indicator, color: theme.iconTheme.color?.withOpacity(0.5)),
                   ),
                 ),
-                // Assignees
-                Padding(
-                  padding: const EdgeInsets.all(16),
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Icon(Icons.people, size: 16, color: theme.textTheme.bodySmall?.color),
-                          const SizedBox(width: 6),
-                          Text(
-                            translation(context: context, 'Assigned People'),
-                            style: theme.textTheme.labelMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: theme.textTheme.bodySmall?.color,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primary.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              assignees.length.toString(),
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: theme.colorScheme.primary,
-                              ),
-                            ),
-                          ),
-                          // Warning icon if orphan assignees exist
-                          if (_hasOrphanAssignees(assignees, users)) ...[
-                            const SizedBox(width: 8),
-                            Tooltip(
-                              message: translation(context: context, 'Some assigned users are missing'),
-                              child: Icon(Icons.warning_amber_rounded, size: 18, color: Colors.orangeAccent),
-                            ),
-                          ],
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: _buildAssigneeChips(
-                          theme: theme,
-                          users: users.cast<UserEntity>(),
-                          assignees: assignees,
-                          placeId: placeId,
+                      Text(
+                        placeName,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
+                      if (groupName != null) ...[
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.secondary.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            groupName,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.secondary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.edit, size: 20),
+                  tooltip: translation(context: context, 'Edit'),
+                  onPressed: () => _editPlaceDialog(placeId),
+                ),
+                IconButton(
+                  icon: Icon(Icons.delete_outline, size: 20),
+                  tooltip: translation(context: context, 'Delete'),
+                  onPressed: () => _deletePlace(placeId),
+                ),
+              ],
+            ),
+          ),
+          // Assignees
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.people, size: 16, color: theme.textTheme.bodySmall?.color),
+                    const SizedBox(width: 6),
+                    Text(
+                      translation(context: context, 'Assigned People'),
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: theme.textTheme.bodySmall?.color,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        assignees.length.toString(),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                    // Warning icon if orphan assignees exist
+                    if (_hasOrphanAssignees(assignees, users)) ...[
+                      const SizedBox(width: 8),
+                      Tooltip(
+                        message: translation(context: context, 'Some assigned users are missing'),
+                        child: Icon(Icons.warning_amber_rounded, size: 18, color: Colors.orangeAccent),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: _buildAssigneeChips(
+                    theme: theme,
+                    users: users.cast<UserEntity>(),
+                    assignees: assignees,
+                    placeId: placeId,
                   ),
                 ),
               ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }

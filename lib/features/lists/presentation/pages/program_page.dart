@@ -6,9 +6,9 @@ import 'package:faunty/core/utils/pdf_generator/program_pdf_layout.dart';
 import 'package:faunty/core/utils/translation_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:faunty/core/widgets/custom_app_bar.dart';
 import 'package:faunty/features/lists/presentation/pages/program_organisation_page.dart';
 import 'package:faunty/features/lists/presentation/controllers/program_provider.dart';
+import 'package:faunty/core/widgets/tab_page.dart';
 
 
 const List<String> weekDays = [
@@ -83,9 +83,8 @@ class _ProgramPageState extends ConsumerState<ProgramPage> {
             });
           }
         }
-        return Scaffold(
-          appBar: CustomAppBar(
-            title: translation(context: context, 'Program'),
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ref.read(tabAppBarConfigProvider('Program').notifier).state = TabAppBarConfig(
             pdfLayout: ProgramPdfLayout(),
             onGeneratePdf: () async {
               final Map<String, List<Map<String, dynamic>>> pdfData = {};
@@ -102,7 +101,11 @@ class _ProgramPageState extends ConsumerState<ProgramPage> {
               }
               return pdfData;
             },
-          ),
+          );
+        });
+
+        return Scaffold(
+          appBar: null,
           body: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 600),

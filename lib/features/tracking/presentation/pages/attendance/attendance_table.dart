@@ -1214,11 +1214,11 @@ class _InlineCellState extends State<_InlineCell> {
               Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  InkWell(onTap: () => adjust(-5), child: const CustomChip(label: '-5', fontSize: 11)),
+                  InkWell(borderRadius: BorderRadius.circular(16), onTap: () => adjust(-5), child: const CustomChip(label: '-5', fontSize: 11)),
                   const SizedBox(height: 6),
-                  InkWell(onTap: () => adjust(-15), child: const CustomChip(label: '-15', fontSize: 11)),
+                  InkWell(borderRadius: BorderRadius.circular(16), onTap: () => adjust(-15), child: const CustomChip(label: '-15', fontSize: 11)),
                   const SizedBox(height: 6),
-                  InkWell(onTap: () => adjust(-30), child: const CustomChip(label: '-30', fontSize: 11)),
+                  InkWell(borderRadius: BorderRadius.circular(16), onTap: () => adjust(-30), child: const CustomChip(label: '-30', fontSize: 11)),
                 ],
               ),
               const SizedBox(width: 12),
@@ -1250,11 +1250,11 @@ class _InlineCellState extends State<_InlineCell> {
               Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  InkWell(onTap: () => adjust(5), child: const CustomChip(label: '+5', fontSize: 11)),
+                  InkWell(borderRadius: BorderRadius.circular(16), onTap: () => adjust(5), child: const CustomChip(label: '+5', fontSize: 11)),
                   const SizedBox(height: 6),
-                  InkWell(onTap: () => adjust(15), child: const CustomChip(label: '+15', fontSize: 11)),
+                  InkWell(borderRadius: BorderRadius.circular(16), onTap: () => adjust(15), child: const CustomChip(label: '+15', fontSize: 11)),
                   const SizedBox(height: 6),
-                  InkWell(onTap: () => adjust(30), child: const CustomChip(label: '+30', fontSize: 11)),
+                  InkWell(borderRadius: BorderRadius.circular(16), onTap: () => adjust(30), child: const CustomChip(label: '+30', fontSize: 11)),
                 ],
               ),
             ],

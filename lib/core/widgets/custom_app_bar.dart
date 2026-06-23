@@ -7,6 +7,7 @@ import 'package:faunty/core/utils/translation_helper.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
+  final Widget? titleWidget;
   final List<Widget>? actions;
   final bool useModern;
   final Future<Map<String, List<Map<String, dynamic>>>> Function()? onGeneratePdf;
@@ -15,6 +16,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   const CustomAppBar({
     super.key,
     required this.title,
+    this.titleWidget,
     this.actions,
     this.useModern = true,
     this.onGeneratePdf,
@@ -24,16 +26,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    if (!useModern) {
-      // Old AppBar style
-      return AppBar(
-        title: Text(title),
-        actions: actions,
-        backgroundColor: theme.colorScheme.surface,
-        foregroundColor: theme.colorScheme.onSurface,
-        elevation: 0.5,
-      );
-    }
 
     List<Widget> allActions = actions?.toList() ?? [];
     if (onGeneratePdf != null) {
@@ -73,21 +65,33 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       );
     }
 
+    final isDark = theme.brightness == Brightness.dark;
+    final appBarBgColor = isDark
+        ? Colors.white.withOpacity(0.06)
+        : Colors.black.withOpacity(0.04);
+    final appBarBorderColor = isDark
+        ? Colors.white.withOpacity(0.12)
+        : Colors.black.withOpacity(0.08);
+
     // Modern AppBar style
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(18),
+              color: appBarBgColor,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: appBarBorderColor,
+                width: 1,
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: theme.shadowColor.withOpacity(0.12),
-                  blurRadius: 16,
+                  color: isDark ? Colors.black45 : Colors.black.withOpacity(0.04),
+                  blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
               ],
@@ -95,11 +99,12 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
             child: AppBar(
               backgroundColor: Colors.transparent,
               elevation: 0,
-              title: Text(
+              scrolledUnderElevation: 0,
+              title: titleWidget ?? Text(
                 title,
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
-                  fontSize: 22,
+                  fontSize: 20,
                   letterSpacing: 0.5,
                   color: theme.colorScheme.onSurface,
                 ),
@@ -115,5 +120,5 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   @override
-  Size get preferredSize => Size.fromHeight(kToolbarHeight + (useModern ? 8 : 0));
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight + 16);
 }

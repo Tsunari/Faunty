@@ -2,11 +2,11 @@ import 'package:faunty/features/auth/presentation/controllers/user_provider.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:faunty/core/widgets/custom_app_bar.dart';
 import 'package:faunty/core/utils/translation_helper.dart';
 import 'package:faunty/features/communication/presentation/controllers/survey_provider.dart';
 import 'package:faunty/features/profile/presentation/controllers/user_list_provider.dart';
 import 'package:faunty/features/auth/domain/entities/user_roles.dart';
+import 'package:faunty/core/widgets/tab_page.dart';
 
 class SurveyPage extends ConsumerStatefulWidget {
   const SurveyPage({super.key});
@@ -41,10 +41,15 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
           error: (e, st) => Center(child: Text(translation('Error loading users', context: context))),
           data: (usersByPlace) {
             final userMap = {for (final u in usersByPlace) u.uid: u};
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              ref.read(tabAppBarConfigProvider('Surveys').notifier).state = const TabAppBarConfig(
+                actions: null,
+                onGeneratePdf: null,
+                pdfLayout: null,
+              );
+            });
             return Scaffold(
-              appBar: CustomAppBar(
-                title: translation('Survey', context: context),
-              ),
+              appBar: null,
               body: surveyAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (e, st) => Center(child: Text(translation('Error loading surveys', context: context))),

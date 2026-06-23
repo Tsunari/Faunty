@@ -34,7 +34,6 @@ class CateringClassicView extends StatelessWidget {
         final dayIdx = visibleDays[idx];
         final date = monday.add(Duration(days: dayIdx));
         return Card(
-          color: isDark ? Colors.grey[850] : null,
           margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
           child: Padding(
             padding: const EdgeInsets.all(12.0),
@@ -45,7 +44,7 @@ class CateringClassicView extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.grey[800] : Colors.blue.shade50,
+                    color: Theme.of(context).colorScheme.primary.withOpacity(isDark ? 0.12 : 0.06),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(

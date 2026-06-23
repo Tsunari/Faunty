@@ -66,114 +66,160 @@ class HomeDrawer extends ConsumerWidget {
             children: [
               // User header section
               placesAsync.when(
-                data: (places) => _buildHeader(context, userAsync, places: places),
+                data: (places) =>
+                    _buildHeader(context, userAsync, places: places),
                 loading: () => _buildHeader(context, userAsync),
                 error: (_, __) => _buildHeader(context, userAsync),
               ),
-            
-            const SizedBox(height: 8),
-            
-            Expanded(
-              child: placesAsync.when(
-                data: (places) => SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  child: Column(
-                    children: [
-                      // Section title
-                      Padding(
-                        padding: const EdgeInsets.only(left: 16.0, top: 12.0, bottom: 4.0),
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            translation(context: context, 'Places').toUpperCase(),
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.primary.withOpacity(0.6),
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.2,
+
+              const SizedBox(height: 8),
+
+              Expanded(
+                child: placesAsync.when(
+                  data: (places) => SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      children: [
+                        // Section title
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            left: 16.0,
+                            top: 12.0,
+                            bottom: 4.0,
+                          ),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              translation(
+                                context: context,
+                                'Places',
+                              ).toUpperCase(),
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.primary.withOpacity(
+                                  0.6,
+                                ),
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.2,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      
-                      // List of places grouped in card
-                      _buildPlacesCardList(context, places, ref, buildGroupCard),
-                      
-                      // Admin controls if applicable
-                      _buildAdminControls(context, buildGroupCard),
-                    ],
-                  ),
-                ),
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, st) => Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Text(translation(context: context, 'Error loading places: $e')),
-                  ),
-                ),
-              ),
-            ),
-            
-            const Divider(height: 1),
-            
-            // Footer with App Version
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 8.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      translation(context: context, 'App version'),
-                      style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
+
+                        // List of places grouped in card
+                        _buildPlacesCardList(
+                          context,
+                          places,
+                          ref,
+                          buildGroupCard,
+                        ),
+
+                        // Admin controls if applicable
+                        _buildAdminControls(context, buildGroupCard),
+                      ],
                     ),
                   ),
-                  FutureBuilder<PackageInfo>(
-                    future: getAppInfo(),
-                    builder: (context, snapshot) {
-                      Widget label;
-                      final stored = UpdateService.storedVersion;
-                      if (stored != null) {
-                        label = Text(stored, style: theme.textTheme.bodySmall);
-                      } else if (snapshot.connectionState == ConnectionState.waiting) {
-                        label = Text(translation(context: context, 'Loading...'), style: theme.textTheme.bodySmall);
-                      } else if (snapshot.hasError) {
-                        label = Text(translation(context: context, 'Version unavailable'), style: theme.textTheme.bodySmall);
-                      } else {
-                        final info = snapshot.data;
-                        label = Text(info?.version ?? '-', style: theme.textTheme.bodySmall);
-                      }
-                      return Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          label,
-                          const SizedBox(width: 4),
-                          IconButton(
-                            tooltip: translation(context: context, 'Check for updates'),
-                            icon: const Icon(Icons.refresh, size: 16),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            onPressed: () {
-                              UpdateService.manualCheck(
-                                forceDialog: true,
-                                showUpToDateSnack: false,
-                                promptRefreshIfUpToDate: true,
-                              );
-                            },
-                          ),
-                        ],
-                      );
-                    },
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (e, st) => Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text(
+                        translation(
+                          context: context,
+                          'Error loading places: $e',
+                        ),
+                      ),
+                    ),
                   ),
-                ],
+                ),
               ),
-            ),
-          ],
+
+              const Divider(height: 1),
+
+              // Footer with App Version
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 8.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        translation(context: context, 'App version'),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
+                    FutureBuilder<PackageInfo>(
+                      future: getAppInfo(),
+                      builder: (context, snapshot) {
+                        Widget label;
+                        final stored = UpdateService.storedVersion;
+                        if (stored != null) {
+                          label = Text(
+                            stored,
+                            style: theme.textTheme.bodySmall,
+                          );
+                        } else if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          label = Text(
+                            translation(context: context, 'Loading...'),
+                            style: theme.textTheme.bodySmall,
+                          );
+                        } else if (snapshot.hasError) {
+                          label = Text(
+                            translation(
+                              context: context,
+                              'Version unavailable',
+                            ),
+                            style: theme.textTheme.bodySmall,
+                          );
+                        } else {
+                          final info = snapshot.data;
+                          label = Text(
+                            info?.version ?? '-',
+                            style: theme.textTheme.bodySmall,
+                          );
+                        }
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            label,
+                            const SizedBox(width: 4),
+                            IconButton(
+                              tooltip: translation(
+                                context: context,
+                                'Check for updates',
+                              ),
+                              icon: const Icon(Icons.refresh, size: 16),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              onPressed: () {
+                                UpdateService.manualCheck(
+                                  forceDialog: true,
+                                  showUpToDateSnack: false,
+                                  promptRefreshIfUpToDate: true,
+                                );
+                              },
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
-  Widget _buildHeader(BuildContext context, AsyncValue<UserEntity?> userAsync, {List<PlaceModel>? places}) {
+  Widget _buildHeader(
+    BuildContext context,
+    AsyncValue<UserEntity?> userAsync, {
+    List<PlaceModel>? places,
+  }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -193,7 +239,9 @@ class HomeDrawer extends ConsumerWidget {
               children: [
                 const CircleAvatar(radius: 24, child: Icon(Icons.person)),
                 const SizedBox(width: 12),
-                Expanded(child: Text(translation(context: context, 'Not signed in'))),
+                Expanded(
+                  child: Text(translation(context: context, 'Not signed in')),
+                ),
               ],
             ),
           );
@@ -206,10 +254,14 @@ class HomeDrawer extends ConsumerWidget {
           margin: const EdgeInsets.fromLTRB(12, 12, 12, 4),
           padding: const EdgeInsets.all(16.0),
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.02),
+            color: isDark
+                ? Colors.white.withOpacity(0.04)
+                : Colors.black.withOpacity(0.02),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.06),
+              color: isDark
+                  ? Colors.white.withOpacity(0.08)
+                  : Colors.black.withOpacity(0.06),
               width: 1,
             ),
           ),
@@ -234,20 +286,28 @@ class HomeDrawer extends ConsumerWidget {
                   children: [
                     Text(
                       fullName.isEmpty ? user.email : fullName,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
                     Text(
                       user.email,
-                      style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.grey,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.primary.withOpacity(0.08),
                         borderRadius: BorderRadius.circular(12),
@@ -264,7 +324,10 @@ class HomeDrawer extends ConsumerWidget {
                     const SizedBox(height: 4),
                     Text(
                       '${translation(context: context, 'Place')}: ${resolvePlaceDisplay(user)}',
-                      style: theme.textTheme.bodySmall?.copyWith(fontSize: 11, color: Colors.grey),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontSize: 11,
+                        color: Colors.grey,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -315,28 +378,47 @@ class HomeDrawer extends ConsumerWidget {
     for (int i = 0; i < places.length; i++) {
       final p = places[i];
       final isCurrentPlace = currentUser != null && currentUser.placeId == p.id;
-      
+
       listTiles.add(
         ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16.0,
+            vertical: 4.0,
+          ),
           leading: p.imageUrl != null && p.imageUrl!.isNotEmpty
-              ? CircleAvatar(radius: 16, backgroundImage: NetworkImage(p.imageUrl!))
-              : const CircleAvatar(radius: 16, child: Icon(Icons.place, size: 16)),
+              ? CircleAvatar(
+                  radius: 16,
+                  backgroundImage: NetworkImage(p.imageUrl!),
+                )
+              : const CircleAvatar(
+                  radius: 16,
+                  child: Icon(Icons.place, size: 16),
+                ),
           title: Text(
             p.displayName ?? p.name,
             style: TextStyle(
               fontWeight: isCurrentPlace ? FontWeight.bold : FontWeight.normal,
-              color: isCurrentPlace ? theme.colorScheme.primary : theme.textTheme.bodyLarge?.color,
+              color: isCurrentPlace
+                  ? theme.colorScheme.primary
+                  : theme.textTheme.bodyLarge?.color,
             ),
           ),
-          subtitle: p.description != null 
-              ? Text(p.description!, maxLines: 1, overflow: TextOverflow.ellipsis) 
+          subtitle: p.description != null
+              ? Text(
+                  p.description!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                )
               : null,
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               if (isCurrentPlace)
-                Icon(Icons.how_to_reg, color: theme.colorScheme.primary, size: 18),
+                Icon(
+                  Icons.how_to_reg,
+                  color: theme.colorScheme.primary,
+                  size: 18,
+                ),
               const SizedBox(width: 6),
               RoleGate(
                 minRole: UserRole.superuser,
@@ -372,23 +454,42 @@ class HomeDrawer extends ConsumerWidget {
   }
 
   Future<void> _showRenameDialog(BuildContext context, PlaceModel place) async {
-    final controller = TextEditingController(text: place.displayName ?? place.name);
+    final controller = TextEditingController(
+      text: place.displayName ?? place.name,
+    );
     final result = await showDialog<String?>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(translation(context: context, 'Rename place')),
-        content: TextField(controller: controller, decoration: InputDecoration(hintText: translation(context: context, 'Place name'))),
+        content: TextField(
+          controller: controller,
+          decoration: InputDecoration(
+            hintText: translation(context: context, 'Place name'),
+          ),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: Text(translation(context: context, 'Cancel'))),
-          ElevatedButton(onPressed: () => Navigator.of(ctx).pop(controller.text.trim()), child: Text(translation(context: context, 'Save'))),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(translation(context: context, 'Cancel')),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
+            child: Text(translation(context: context, 'Save')),
+          ),
         ],
       ),
     );
     if (result == null || result.isEmpty) return;
     try {
-      await PlaceFirestoreService.updatePlace(place.id, {'displayName': result, 'name': result});
+      await PlaceFirestoreService.updatePlace(place.id, {
+        'displayName': result,
+        'name': result,
+      });
     } catch (e) {
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error renaming place: $e')));
+      if (context.mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error renaming place: $e')));
     }
   }
 
@@ -397,10 +498,22 @@ class HomeDrawer extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(translation(context: context, 'Delete place?')),
-        content: Text(translation(context: context, 'Are you sure you want to delete this place? This action cannot be undone.')),
+        content: Text(
+          translation(
+            context: context,
+            'Are you sure you want to delete this place? This action cannot be undone.',
+          ),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(translation(context: context, 'Cancel'))),
-          ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.of(ctx).pop(true), child: Text(translation(context: context, 'Delete'))),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(translation(context: context, 'Cancel')),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(translation(context: context, 'Delete')),
+          ),
         ],
       ),
     );
@@ -408,15 +521,21 @@ class HomeDrawer extends ConsumerWidget {
     try {
       await PlaceFirestoreService.deletePlace(placeId);
     } catch (e) {
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error deleting place: $e')));
+      if (context.mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error deleting place: $e')));
     }
   }
 
   /// Admin controls to add a new place - only visible to superuser
-  Widget _buildAdminControls(BuildContext context, Widget Function(List<Widget>) buildGroupCard) {
+  Widget _buildAdminControls(
+    BuildContext context,
+    Widget Function(List<Widget>) buildGroupCard,
+  ) {
     final nameController = TextEditingController();
     final theme = Theme.of(context);
-    
+
     return RoleGate(
       minRole: UserRole.superuser,
       child: Padding(
@@ -443,7 +562,10 @@ class HomeDrawer extends ConsumerWidget {
                   decoration: InputDecoration(
                     hintText: translation(context: context, 'New place name'),
                     border: const OutlineInputBorder(),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                   ),
                 ),
               ),
@@ -453,20 +575,36 @@ class HomeDrawer extends ConsumerWidget {
                   onPressed: () async {
                     final name = nameController.text.trim();
                     if (name.isEmpty) return;
-                    final newPlace = PlaceModel(id: '', name: name, displayName: name);
+                    final newPlace = PlaceModel(
+                      id: '',
+                      name: name,
+                      displayName: name,
+                    );
                     try {
                       await PlaceFirestoreService.addPlace(newPlace);
                       nameController.clear();
-                      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(translation(context: context, 'Place added'))));
+                      if (context.mounted)
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              translation(context: context, 'Place added'),
+                            ),
+                          ),
+                        );
                     } catch (e) {
-                      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error adding place: $e')));
+                      if (context.mounted)
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error adding place: $e')),
+                        );
                     }
                   },
                   icon: const Icon(Icons.add, size: 18),
                   label: Text(translation(context: context, 'Add place')),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                 ),
               ),
@@ -478,7 +616,10 @@ class HomeDrawer extends ConsumerWidget {
   }
 
   String _initials(String name) {
-    final parts = name.split(RegExp(r'\s+')).where((s) => s.isNotEmpty).toList();
+    final parts = name
+        .split(RegExp(r'\s+'))
+        .where((s) => s.isNotEmpty)
+        .toList();
     if (parts.isEmpty) return '';
     if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
     return (parts[0].substring(0, 1) + parts[1].substring(0, 1)).toUpperCase();
@@ -500,7 +641,9 @@ class HomeDrawer extends ConsumerWidget {
             return Container(
               decoration: BoxDecoration(
                 color: theme.scaffoldBackgroundColor,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24.0)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(24.0),
+                ),
               ),
               child: SingleChildScrollView(
                 controller: scrollController,
@@ -522,7 +665,10 @@ class HomeDrawer extends ConsumerWidget {
                       ),
                       Text(
                         place.displayName ?? place.name,
-                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 16),
                       if (place.imageUrl != null && place.imageUrl!.isNotEmpty)
@@ -535,11 +681,15 @@ class HomeDrawer extends ConsumerWidget {
                             fit: BoxFit.cover,
                           ),
                         ),
-                      if (place.imageUrl != null && place.imageUrl!.isNotEmpty) const SizedBox(height: 16),
-                      if (place.description != null && place.description!.isNotEmpty)
+                      if (place.imageUrl != null && place.imageUrl!.isNotEmpty)
+                        const SizedBox(height: 16),
+                      if (place.description != null &&
+                          place.description!.isNotEmpty)
                         Text(
                           place.description!,
-                          style: theme.textTheme.bodyMedium?.copyWith(height: 1.4),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            height: 1.4,
+                          ),
                         ),
                       const SizedBox(height: 20),
                       SingleChildScrollView(
@@ -548,8 +698,12 @@ class HomeDrawer extends ConsumerWidget {
                         child: Row(
                           children: [
                             Chip(
-                              label: Text('${translation(context: context, 'ID')}: ${place.id}'),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              label: Text(
+                                '${translation(context: context, 'ID')}: ${place.id}',
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                             ),
                             const SizedBox(width: 8),
                             RoleGate(
@@ -559,62 +713,131 @@ class HomeDrawer extends ConsumerWidget {
                                   '${translation(context: context, 'Registration mode')}: ${place.registrationMode ? translation(context: context, 'On') : translation(context: context, 'Off')}',
                                 ),
                                 backgroundColor: place.registrationMode
-                                    ? theme.colorScheme.primary.withOpacity(0.12)
+                                    ? theme.colorScheme.primary.withOpacity(
+                                        0.12,
+                                      )
                                     : theme.colorScheme.surface,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
-                              child: Consumer(builder: (ctx, ref2, _) {
-                                final placesAsync = ref2.watch(placeStreamProvider);
-                                final current = placesAsync.asData?.value.firstWhere((pl) => pl.id == place.id, orElse: () => place);
-                                final regOn = current?.registrationMode ?? place.registrationMode;
-                                return InkWell(
-                                  borderRadius: BorderRadius.circular(16),
-                                  onTap: () async {
-                                    try {
-                                      await PlaceFirestoreService.updatePlace(place.id, {'registrationMode': !regOn});
-                                      if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Registration mode updated'));
-                                    } catch (e) {
-                                      if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Error updating registration mode: $e'));
-                                    }
-                                  },
-                                  child: Chip(
-                                    label: Text('${translation(context: context, 'Registration mode')}: ${regOn ? translation(context: context, 'On') : translation(context: context, 'Off')}'),
-                                    backgroundColor: regOn ? theme.colorScheme.primary.withOpacity(0.12) : theme.colorScheme.surface,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                  ),
-                                );
-                              }),
+                              child: Consumer(
+                                builder: (ctx, ref2, _) {
+                                  final placesAsync = ref2.watch(
+                                    placeStreamProvider,
+                                  );
+                                  final current = placesAsync.asData?.value
+                                      .firstWhere(
+                                        (pl) => pl.id == place.id,
+                                        orElse: () => place,
+                                      );
+                                  final regOn =
+                                      current?.registrationMode ??
+                                      place.registrationMode;
+                                  return InkWell(
+                                    borderRadius: BorderRadius.circular(16),
+                                    onTap: () async {
+                                      try {
+                                        await PlaceFirestoreService.updatePlace(
+                                          place.id,
+                                          {'registrationMode': !regOn},
+                                        );
+                                        if (context.mounted)
+                                          showCustomSnackBar(
+                                            context,
+                                            translation(
+                                              context: context,
+                                              'Registration mode updated',
+                                            ),
+                                          );
+                                      } catch (e) {
+                                        if (context.mounted)
+                                          showCustomSnackBar(
+                                            context,
+                                            translation(
+                                              context: context,
+                                              'Error updating registration mode: $e',
+                                            ),
+                                          );
+                                      }
+                                    },
+                                    child: Chip(
+                                      label: Text(
+                                        '${translation(context: context, 'Registration mode')}: ${regOn ? translation(context: context, 'On') : translation(context: context, 'Off')}',
+                                      ),
+                                      backgroundColor: regOn
+                                          ? theme.colorScheme.primary
+                                                .withOpacity(0.12)
+                                          : theme.colorScheme.surface,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
                             ),
                           ],
                         ),
                       ),
                       const SizedBox(height: 24),
-                      
+
                       // Action buttons in details sheet
                       Row(
                         children: [
-                          if (place.mapsUrl != null && place.mapsUrl!.isNotEmpty) ...[
+                          if (place.mapsUrl != null &&
+                              place.mapsUrl!.isNotEmpty) ...[
                             Expanded(
                               child: ElevatedButton.icon(
                                 onPressed: () async {
                                   final uri = Uri.tryParse(place.mapsUrl!);
                                   if (uri == null) {
-                                    if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Invalid Maps URL'));
+                                    if (context.mounted)
+                                      showCustomSnackBar(
+                                        context,
+                                        translation(
+                                          context: context,
+                                          'Invalid Maps URL',
+                                        ),
+                                      );
                                     return;
                                   }
                                   try {
-                                    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-                                      if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Could not open URL'));
+                                    if (!await launchUrl(
+                                      uri,
+                                      mode: LaunchMode.externalApplication,
+                                    )) {
+                                      if (context.mounted)
+                                        showCustomSnackBar(
+                                          context,
+                                          translation(
+                                            context: context,
+                                            'Could not open URL',
+                                          ),
+                                        );
                                     }
                                   } catch (e) {
-                                    if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Error opening URL: $e'));
+                                    if (context.mounted)
+                                      showCustomSnackBar(
+                                        context,
+                                        translation(
+                                          context: context,
+                                          'Error opening URL: $e',
+                                        ),
+                                      );
                                   }
                                 },
                                 icon: const Icon(Icons.map, size: 18),
-                                label: Text(translation(context: context, 'Open in Maps')),
+                                label: Text(
+                                  translation(context: context, 'Open in Maps'),
+                                ),
                                 style: ElevatedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                 ),
                               ),
                             ),
@@ -626,17 +849,23 @@ class HomeDrawer extends ConsumerWidget {
                                 Navigator.of(context).pop();
                               },
                               icon: const Icon(Icons.open_in_new, size: 18),
-                              label: Text(translation(context: context, 'Open')),
+                              label: Text(
+                                translation(context: context, 'Open'),
+                              ),
                               style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 12),
-                      
+
                       RoleGate(
                         minRole: UserRole.hoca,
                         child: SizedBox(
@@ -646,11 +875,33 @@ class HomeDrawer extends ConsumerWidget {
                               final confirm = await showDialog<bool?>(
                                 context: context,
                                 builder: (ctx) => AlertDialog(
-                                  title: Text(translation(context: context, 'Change user place')),
-                                  content: Text(translation(context: context, 'Do you want to set your current place to "${place.displayName ?? place.name}"?')),
+                                  title: Text(
+                                    translation(
+                                      context: context,
+                                      'Change user place',
+                                    ),
+                                  ),
+                                  content: Text(
+                                    translation(
+                                      context: context,
+                                      'Do you want to set your current place to "${place.displayName ?? place.name}"?',
+                                    ),
+                                  ),
                                   actions: [
-                                    TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(translation(context: context, 'Cancel'))),
-                                    ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: Text(translation(context: context, 'Yes'))),
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(ctx).pop(false),
+                                      child: Text(
+                                        translation(context: context, 'Cancel'),
+                                      ),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: () =>
+                                          Navigator.of(ctx).pop(true),
+                                      child: Text(
+                                        translation(context: context, 'Yes'),
+                                      ),
+                                    ),
                                   ],
                                 ),
                               );
@@ -658,7 +909,14 @@ class HomeDrawer extends ConsumerWidget {
                               final userAsync = ref.read(userProvider);
                               final currentUser = userAsync.asData?.value;
                               if (currentUser == null) {
-                                if (context.mounted) showCustomSnackBar(context, translation(context: context, 'No current user loaded'));
+                                if (context.mounted)
+                                  showCustomSnackBar(
+                                    context,
+                                    translation(
+                                      context: context,
+                                      'No current user loaded',
+                                    ),
+                                  );
                                 return;
                               }
                               final updated = UserEntity(
@@ -671,62 +929,126 @@ class HomeDrawer extends ConsumerWidget {
                                 isPlaceholder: currentUser.isPlaceholder,
                               );
                               try {
-                                await UserFirestoreService().updateUser(updated);
+                                await UserFirestoreService().updateUser(
+                                  updated,
+                                );
                                 if (context.mounted) {
-                                  showCustomSnackBar(context, translation(context: context, 'Place updated'));
+                                  showCustomSnackBar(
+                                    context,
+                                    translation(
+                                      context: context,
+                                      'Place updated',
+                                    ),
+                                  );
                                   Navigator.of(context).pop();
                                 }
                               } catch (e) {
-                                if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Error updating place: $e'));
+                                if (context.mounted)
+                                  showCustomSnackBar(
+                                    context,
+                                    translation(
+                                      context: context,
+                                      'Error updating place: $e',
+                                    ),
+                                  );
                               }
                             },
                             icon: const Icon(Icons.swap_horiz, size: 18),
-                            label: Text(translation(context: context, 'Set as my place')),
+                            label: Text(
+                              translation(context: context, 'Set as my place'),
+                            ),
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                           ),
                         ),
                       ),
-                      
+
                       const SizedBox(height: 8),
-                      
+
                       RoleGate(
                         minRole: UserRole.superuser,
                         child: SizedBox(
                           width: double.infinity,
                           child: OutlinedButton.icon(
                             onPressed: () async {
-                              final controller = TextEditingController(text: place.mapsUrl ?? '');
+                              final controller = TextEditingController(
+                                text: place.mapsUrl ?? '',
+                              );
                               final result = await showDialog<String?>(
                                 context: context,
                                 builder: (ctx) => AlertDialog(
-                                  title: Text(translation(context: context, 'Connect Google Maps')),
+                                  title: Text(
+                                    translation(
+                                      context: context,
+                                      'Connect Google Maps',
+                                    ),
+                                  ),
                                   content: TextField(
                                     controller: controller,
-                                    decoration: InputDecoration(hintText: translation(context: context, 'Paste maps link here (https://...)')),
+                                    decoration: InputDecoration(
+                                      hintText: translation(
+                                        context: context,
+                                        'Paste maps link here (https://...)',
+                                      ),
+                                    ),
                                   ),
                                   actions: [
-                                    TextButton(onPressed: () => Navigator.of(ctx).pop(), child: Text(translation(context: context, 'Cancel'))),
-                                    ElevatedButton(onPressed: () => Navigator.of(ctx).pop(controller.text.trim()), child: Text(translation(context: context, 'Save'))),
+                                    TextButton(
+                                      onPressed: () => Navigator.of(ctx).pop(),
+                                      child: Text(
+                                        translation(context: context, 'Cancel'),
+                                      ),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: () => Navigator.of(
+                                        ctx,
+                                      ).pop(controller.text.trim()),
+                                      child: Text(
+                                        translation(context: context, 'Save'),
+                                      ),
+                                    ),
                                   ],
                                 ),
                               );
                               if (result == null) return;
                               final trimmed = result.trim();
                               try {
-                                await PlaceFirestoreService.updatePlace(place.id, {'mapsUrl': trimmed});
-                                if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Maps link updated'));
+                                await PlaceFirestoreService.updatePlace(
+                                  place.id,
+                                  {'mapsUrl': trimmed},
+                                );
+                                if (context.mounted)
+                                  showCustomSnackBar(
+                                    context,
+                                    translation(
+                                      context: context,
+                                      'Maps link updated',
+                                    ),
+                                  );
                               } catch (e) {
-                                if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Error saving Maps link: $e'));
+                                if (context.mounted)
+                                  showCustomSnackBar(
+                                    context,
+                                    translation(
+                                      context: context,
+                                      'Error saving Maps link: $e',
+                                    ),
+                                  );
                               }
                             },
                             icon: const Icon(Icons.link, size: 18),
-                            label: Text(translation(context: context, 'Connect place')),
+                            label: Text(
+                              translation(context: context, 'Connect place'),
+                            ),
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                           ),
                         ),

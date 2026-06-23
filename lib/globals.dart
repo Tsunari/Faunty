@@ -3,8 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:faunty/features/notifications/data/fcm/notification_service.dart';
-import 'package:faunty/features/notifications/data/fcm/token_management.dart';
 
 Future<PackageInfo> getAppInfo() async {
   return await PackageInfo.fromPlatform();
@@ -58,6 +56,7 @@ final ThemeData monochromeThemeDataDark = ThemeData(
   // Subtle divider that's visible on black
   dividerColor: Colors.white12,
   cardTheme: CardThemeData(
+    clipBehavior: Clip.antiAlias,
     color: Colors.black,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(16),
@@ -139,8 +138,8 @@ final ThemeData monochromeThemeDataDark = ThemeData(
     backgroundColor: Colors.transparent, // transparent drawer container to allow backdrop blur
   ),
   // eliminate colored highlights; keep interactions subtle on black
-  highlightColor: Colors.transparent,
-  splashColor: Colors.transparent,
+  highlightColor: Colors.white.withOpacity(0.03),
+  splashColor: Colors.white.withOpacity(0.06),
   checkboxTheme: CheckboxThemeData(
     fillColor: WidgetStateProperty.all(Colors.white),
     checkColor: WidgetStateProperty.all(Colors.black),
@@ -171,6 +170,25 @@ final ThemeData monochromeThemeDataDark = ThemeData(
   ),
   progressIndicatorTheme: const ProgressIndicatorThemeData(
     color: Colors.white,
+  ),
+  elevatedButtonTheme: ElevatedButtonThemeData(
+    style: ElevatedButton.styleFrom(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      splashFactory: InkRipple.splashFactory,
+    ),
+  ),
+  outlinedButtonTheme: OutlinedButtonThemeData(
+    style: OutlinedButton.styleFrom(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      splashFactory: InkRipple.splashFactory,
+    ),
+  ),
+  textButtonTheme: TextButtonThemeData(
+    style: TextButton.styleFrom(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      splashFactory: InkRipple.splashFactory,
+    ),
   ),
   // Bottom navigation: fully black background, stronger contrast for selected icons
   bottomNavigationBarTheme: const BottomNavigationBarThemeData(
@@ -209,6 +227,7 @@ final ThemeData monochromeThemeDataLight = ThemeData(
   // subtle divider using translucent black to remain monochrome
   dividerColor: Colors.black12,
   cardTheme: CardThemeData(
+    clipBehavior: Clip.antiAlias,
     color: Colors.white,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(16),
@@ -289,8 +308,8 @@ final ThemeData monochromeThemeDataLight = ThemeData(
     backgroundColor: Colors.transparent, // transparent drawer container to allow backdrop blur
   ),
   // subtle monochrome interaction ripple/highlight
-  highlightColor: Colors.black12,
-  splashColor: Colors.black12,
+  highlightColor: Colors.black.withOpacity(0.02),
+  splashColor: Colors.black.withOpacity(0.04),
   checkboxTheme: CheckboxThemeData(
     fillColor: WidgetStateProperty.all(Colors.black),
     checkColor: WidgetStateProperty.all(Colors.white),
@@ -312,6 +331,25 @@ final ThemeData monochromeThemeDataLight = ThemeData(
   ),
   progressIndicatorTheme: const ProgressIndicatorThemeData(
     color: Colors.black,
+  ),
+  elevatedButtonTheme: ElevatedButtonThemeData(
+    style: ElevatedButton.styleFrom(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      splashFactory: InkRipple.splashFactory,
+    ),
+  ),
+  outlinedButtonTheme: OutlinedButtonThemeData(
+    style: OutlinedButton.styleFrom(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      splashFactory: InkRipple.splashFactory,
+    ),
+  ),
+  textButtonTheme: TextButtonThemeData(
+    style: TextButton.styleFrom(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      splashFactory: InkRipple.splashFactory,
+    ),
   ),
   // Floating action buttons for light mode: inverted from dark (black background, white icon)
   floatingActionButtonTheme: const FloatingActionButtonThemeData(

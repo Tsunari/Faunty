@@ -10,6 +10,7 @@ import 'package:faunty/features/auth/presentation/controllers/user_provider.dart
 import 'package:faunty/features/profile/presentation/controllers/user_list_provider.dart';
 import 'package:faunty/features/auth/domain/entities/user_roles.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:faunty/core/widgets/tab_page.dart';
 
 // Dummy-Produkte für die Chips
 final List<Map<String, dynamic>> _dummyProducts = [
@@ -19,7 +20,8 @@ final List<Map<String, dynamic>> _dummyProducts = [
 ];
 
 class KantinPage extends ConsumerStatefulWidget {
-  const KantinPage({super.key});
+  final bool isTab;
+  const KantinPage({super.key, this.isTab = true});
   
     static PreferredSizeWidget appBar(
       BuildContext context,
@@ -197,6 +199,74 @@ class _KantinPageState extends ConsumerState<KantinPage> with WidgetsBindingObse
     // For local UI update before Firestore stream updates
     final displayDebt = _isLoading ? _localDebt : currentDebt;
 
+    if (widget.isTab) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(tabAppBarConfigProvider('Kantin').notifier).state = TabAppBarConfig(
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.info_outline),
+              onPressed: () {
+                showCustomSnackBar(
+                  context,
+                  translation(context: context, 'A positive value means you owe money. A negative value means you have credit.'),
+                );
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              tooltip: translation(context: context, 'Reset debt'),
+              onPressed: userUid.isEmpty || currentDebt == 0
+                  ? null
+                  : () async {
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: Text(translation(context: context, 'Reset debt')),
+                    content: Text(translation(context: context, 'Are you sure you want to reset your debt to 0?')),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: Text(translation(context: context, 'Cancel')),
+                      ),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: Text(translation(context: context, 'Confirm')),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirmed == true) {
+                  await KantinFirestoreService(placeId).updateUserDebt(userUid, 0.0);
+                  showCustomSnackBar(context, translation(context: context, 'Debt reset!'));
+                }
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.account_balance_wallet),
+              onPressed: userUid.isEmpty || currentDebt <= 0
+                  ? null
+                  : () async {
+                      final url = Uri.parse('https://www.paypal.me/FatihKantin/${currentDebt.toStringAsFixed(2)}');
+                      debugPrint('[PayPal] Attempting to open: $url');
+                      setState(() => _pendingPaypal = true);
+                      final uri = Uri.parse(url.toString());
+                      if (await canLaunchUrl(uri)) {
+                        debugPrint('[PayPal] Launching URL...');
+                        await launchUrl(uri);
+                        debugPrint('[PayPal] URL launched successfully.');
+                      } else {
+                        debugPrint('[PayPal] canLaunchUrl returned false for: $url');
+                        showCustomSnackBar(context, 'Could not open PayPal.');
+                        setState(() => _pendingPaypal = false);
+                      }
+                    },
+              tooltip: 'Pay with PayPal',
+            ),
+          ],
+        );
+      });
+    }
+
     Future<void> setDebt(double newDebt, String placeId, String userUid) async {
       if (newDebt > 999) {
         userRole == UserRole.hoca || userRole == UserRole.superuser
@@ -213,31 +283,33 @@ class _KantinPageState extends ConsumerState<KantinPage> with WidgetsBindingObse
     }
 
     return Scaffold(
-      appBar: KantinPage.appBar(
-        context,
-        () async {
-          final ref = ProviderScope.containerOf(context);
-          final user = ref.read(userProvider);
-          final placeId = user.value?.placeId ?? '';
-          final userUid = user.value?.uid ?? '';
-          final kantinAsync = ref.read(kantinProvider(placeId));
-          final debts = kantinAsync.asData?.value ?? {};
-          final currentDebt = debts[userUid] ?? 0.0;
-          final url = Uri.parse('https://www.paypal.me/FatihKantin/${currentDebt.toStringAsFixed(2)}');
-          debugPrint('[PayPal] Attempting to open: $url');
-          setState(() => _pendingPaypal = true);
-          final uri = Uri.parse(url.toString());
-          if (await canLaunchUrl(uri)) {
-            debugPrint('[PayPal] Launching URL...');
-            await launchUrl(uri);
-            debugPrint('[PayPal] URL launched successfully.');
-          } else {
-            debugPrint('[PayPal] canLaunchUrl returned false for: $url');
-            showCustomSnackBar(context, 'Could not open PayPal.');
-            setState(() => _pendingPaypal = false);
-          }
-        },
-      ),
+      appBar: widget.isTab
+          ? null
+          : KantinPage.appBar(
+              context,
+              () async {
+                final ref = ProviderScope.containerOf(context);
+                final user = ref.read(userProvider);
+                final placeId = user.value?.placeId ?? '';
+                final userUid = user.value?.uid ?? '';
+                final kantinAsync = ref.read(kantinProvider(placeId));
+                final debts = kantinAsync.asData?.value ?? {};
+                final currentDebt = debts[userUid] ?? 0.0;
+                final url = Uri.parse('https://www.paypal.me/FatihKantin/${currentDebt.toStringAsFixed(2)}');
+                debugPrint('[PayPal] Attempting to open: $url');
+                setState(() => _pendingPaypal = true);
+                final uri = Uri.parse(url.toString());
+                if (await canLaunchUrl(uri)) {
+                  debugPrint('[PayPal] Launching URL...');
+                  await launchUrl(uri);
+                  debugPrint('[PayPal] URL launched successfully.');
+                } else {
+                  debugPrint('[PayPal] canLaunchUrl returned false for: $url');
+                  showCustomSnackBar(context, 'Could not open PayPal.');
+                  setState(() => _pendingPaypal = false);
+                }
+              },
+            ),
       body: kantinAsync.isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -413,15 +485,10 @@ class _KantinPageState extends ConsumerState<KantinPage> with WidgetsBindingObse
                   onTap: _isLoading || userUid.isEmpty ? null : () => setDebt(displayDebt + (product['price'] as double), placeId, userUid),
                   child: CustomContainerChip(
                     label: '${product['name']} ${product['price'].toString().replaceAll('.', ',')}',
-                    // backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
-                    // textColor: theme.colorScheme.primary,
                     fontSize: 12,
-                    // fontWeight: FontWeight.w600,
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                     outlineColor: theme.colorScheme.primary.withAlpha(200),
-                    // borderColor: theme.colorScheme.primary.withOpacity(0.5),
-                    // borderWidth: 1.5,
-                    // borderRadius: 16,
+                    borderRadius: 16,
                   ),
                 ),
             ],
@@ -694,6 +761,7 @@ class CantineWidget extends ConsumerWidget {
                     fontSize: 11,
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                     outlineColor: theme.colorScheme.primary.withAlpha(180),
+                    borderRadius: 12,
                   ),
                 ),
             ],
