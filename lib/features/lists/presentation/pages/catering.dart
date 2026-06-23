@@ -139,8 +139,8 @@ class _CateringPageState extends ConsumerState<CateringPage> {
                 ],
               ),
               body: Center(
-                child: SizedBox(
-                  width: MediaQuery.of(context).size.width,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 600),
                   child: hasAnyUser
                       ? (_modernView
                           ? CateringModernView(

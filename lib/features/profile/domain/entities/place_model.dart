@@ -1,26 +1,32 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class PlaceModel {
-  /// Firestore document ID, used as canonical placeId everywhere
-  final String id;
-  final String name;
-  final String? displayName;
-  final String? description;
-  final String? imageUrl;
-  final String? mapsUrl;
-  final bool registrationMode;
+part 'place_model.freezed.dart';
+part 'place_model.g.dart';
 
-  PlaceModel({
-    required this.id,
-    required this.name,
-    this.displayName,
-    this.mapsUrl,
-    this.description,
-    this.imageUrl,
-    this.registrationMode = false,
-  });
+@freezed
+class PlaceModel with _$PlaceModel {
+  const PlaceModel._();
 
-  /// Helper: Find a PlaceModel by id from a list
+  const factory PlaceModel({
+    required String id,
+    required String name,
+    String? displayName,
+    String? description,
+    String? imageUrl,
+    String? mapsUrl,
+    @Default(false) bool registrationMode,
+  }) = _PlaceModel;
+
+  factory PlaceModel.fromJson(Map<String, dynamic> json) => _$PlaceModelFromJson(json);
+
+  factory PlaceModel.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return PlaceModel.fromJson(data..['id'] = doc.id);
+  }
+
+  Map<String, dynamic> toMap() => toJson()..remove('id');
+
   static PlaceModel? findById(List<PlaceModel> places, String id) {
     try {
       return places.firstWhere((p) => p.id == id);
@@ -28,28 +34,5 @@ class PlaceModel {
       return null;
     }
   }
-
-  factory PlaceModel.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return PlaceModel(
-      id: doc.id,
-      name: data['name'] ?? '',
-      displayName: data['displayName'],
-      mapsUrl: data['mapsUrl'],
-      description: data['description'],
-      imageUrl: data['imageUrl'],
-      registrationMode: data['registrationMode'] ?? false,
-    );
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'name': name,
-      if (displayName != null) 'displayName': displayName,
-      if (mapsUrl != null) 'mapsUrl': mapsUrl,
-      if (description != null) 'description': description,
-      if (imageUrl != null) 'imageUrl': imageUrl,
-      'registrationMode': registrationMode,
-    };
-  }
 }
+

@@ -1,7 +1,9 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:faunty/features/lists/data/repositories/custom_list_firestore_service.dart';
+import 'package:faunty/features/lists/data/repositories/lists_repository.dart';
 import 'package:faunty/features/lists/domain/entities/custom_list.dart';
+
+part 'custom_list_provider.g.dart';
 
 class ListKey {
   final String placeId;
@@ -13,18 +15,20 @@ class ListKey {
   int get hashCode => Object.hash(placeId, listId);
 }
 
-final customListServiceProvider = Provider<CustomListFirestoreService>((ref) {
-  return CustomListFirestoreService(firestore: FirebaseFirestore.instance);
-});
+@riverpod
+CustomListFirestoreService customListService(CustomListServiceRef ref) {
+  return ref.watch(listsRepositoryProvider).getCustomListService();
+}
 
-final customListsProvider = StreamProvider.family<List<CustomList>, String>((ref, placeId) {
-  final svc = ref.read(customListServiceProvider);
-  return svc.streamListsForPlace(placeId);
-});
+@riverpod
+Stream<List<CustomList>> customLists(CustomListsRef ref, String placeId) {
+  return ref.watch(customListServiceProvider).streamListsForPlace(placeId);
+}
 
-final customListItemsProvider = StreamProvider.family<List<ListItem>, ListKey>((ref, key) {
-  final svc = ref.read(customListServiceProvider);
-  return svc.streamListItems(key.placeId, key.listId);
-});
+@riverpod
+Stream<List<ListItem>> customListItems(CustomListItemsRef ref, ListKey key) {
+  return ref.watch(customListServiceProvider).streamListItems(key.placeId, key.listId);
+}
 
-final customListActionsProvider = Provider<CustomListFirestoreService>((ref) => ref.read(customListServiceProvider));
+// Legacy alias
+final customListActionsProvider = customListServiceProvider;

@@ -26,10 +26,13 @@ class CustomListShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final svc = ref.read(customListServiceProvider);
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        children: [
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 600),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            children: [
           Material(
             elevation: 2,
             borderRadius: BorderRadius.circular(12),
@@ -138,6 +141,8 @@ class CustomListShell extends ConsumerWidget {
           Expanded(child: child),
         ],
       ),
+    ),
+    ),
     );
   }
 }

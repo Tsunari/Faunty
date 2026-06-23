@@ -480,8 +480,53 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
     if (usersCacheMismatch) {
       _updateUsersCache();
     }
-  final itemsMeta = widget.attendanceItems;
+    final itemsMeta = widget.attendanceItems;
     final attendance = _attendanceCache;
+
+    // Precompute cell states and late minutes maps for O(1) lookups in cells
+    final cellStates = <String, String>{};
+    final cellLateMinutes = <String, int>{};
+
+    attendance.forEach((dateKey, dateData) {
+      if (dateData is Map) {
+        dateData.forEach((itemName, itemData) {
+          if (itemData is Map) {
+            final present = itemData['present'];
+            if (present is List) {
+              for (final userId in present) {
+                cellStates['$dateKey|$itemName|$userId'] = 'present';
+              }
+            }
+            final absent = itemData['absent'];
+            if (absent is List) {
+              for (final userId in absent) {
+                cellStates['$dateKey|$itemName|$userId'] = 'absent';
+              }
+            }
+            final onLeave = itemData['onLeave'];
+            if (onLeave is List) {
+              for (final userId in onLeave) {
+                cellStates['$dateKey|$itemName|$userId'] = 'onLeave';
+              }
+            }
+            final def = itemData['default'];
+            if (def is List) {
+              for (final userId in def) {
+                cellStates['$dateKey|$itemName|$userId'] = 'default';
+              }
+            }
+            final lateMap = itemData['lateMinutes'];
+            if (lateMap is Map) {
+              lateMap.forEach((userId, mins) {
+                if (mins is num) {
+                  cellLateMinutes['$dateKey|$itemName|$userId'] = mins.toInt();
+                }
+              });
+            }
+          }
+        });
+      }
+    });
 
     // Prefer roster provided by attendance stream (AttendanceFirestoreService adds it),
     // otherwise derive roster from users but only include roles that should appear in attendance.
@@ -499,33 +544,33 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
             // Only show talebe and baskan in roster by default; adjust roles here as needed.
             return u.role == UserRole.talebe || u.role == UserRole.baskan;
           }).map((u) => u.uid).toList();
-  // helper to get display name for uid using cached map
-  String displayNameFor(String uid) => _displayNameMap[uid] ?? uid;
-  final List<String> allColumns = _buildColumns();
-  // Determine selected item meta
-  // latenessEnabled handled per-cell via item meta flag
-  final List<int> selectedWeekdays = _currentItemWeekdays();
-  // Filter columns by weekdays for the selected item
-  final List<String> columns = _filterColumnsByWeekdays(allColumns, selectedWeekdays);
-  // virtualization window: build only visible columns plus a small buffer
-  final visibleWidth = MediaQuery.of(context).size.width - 170 - 24; // availableWidth used later
-  final visibleColsCount = (visibleWidth / _colWidthConst).ceil() + 4; // buffer
-  // Compute first visible index from the current horizontal scroll offset for robustness
-  final firstVisible = (columns.isEmpty || !_timeScrollCtrl.hasClients)
-      ? 0
-      : (_timeScrollCtrl.offset / _colWidthConst).floor().clamp(0, columns.length - 1);
-  final startCol = firstVisible;
-  final endCol = (firstVisible + visibleColsCount).clamp(0, columns.length);
-  final leftSpacerWidth = startCol * _colWidthConst;
-  final rightSpacerWidth = math.max(0.0, (columns.length - endCol) * _colWidthConst);
+    // helper to get display name for uid using cached map
+    String displayNameFor(String uid) => _displayNameMap[uid] ?? uid;
+    final List<String> allColumns = _buildColumns();
+    // Determine selected item meta
+    // latenessEnabled handled per-cell via item meta flag
+    final List<int> selectedWeekdays = _currentItemWeekdays();
+    // Filter columns by weekdays for the selected item
+    final List<String> columns = _filterColumnsByWeekdays(allColumns, selectedWeekdays);
+    // virtualization window: build only visible columns plus a small buffer
+    final visibleWidth = MediaQuery.of(context).size.width - 170 - 24; // availableWidth used later
+    final visibleColsCount = (visibleWidth / _colWidthConst).ceil() + 4; // buffer
+    // Compute first visible index from the current horizontal scroll offset for robustness
+    final firstVisible = (columns.isEmpty || !_timeScrollCtrl.hasClients)
+        ? 0
+        : (_timeScrollCtrl.offset / _colWidthConst).floor().clamp(0, columns.length - 1);
+    final startCol = firstVisible;
+    final endCol = (firstVisible + visibleColsCount).clamp(0, columns.length);
+    final leftSpacerWidth = startCol * _colWidthConst;
+    final rightSpacerWidth = math.max(0.0, (columns.length - endCol) * _colWidthConst);
 
     final double nameColWidth = 170;
     final double rowHeight = 28;
     final double baseDayColWidth = _colWidthConst;
     final double headingHeight = 72;
     final double availableWidth = MediaQuery.of(context).size.width - nameColWidth - 24;
-  final double dayColWidth = baseDayColWidth;
-  final double totalWidth = (columns.length * dayColWidth) > availableWidth ? columns.length * dayColWidth : availableWidth;
+    final double dayColWidth = baseDayColWidth;
+    final double totalWidth = (columns.length * dayColWidth) > availableWidth ? columns.length * dayColWidth : availableWidth;
 
     return Column(
       children: [
@@ -744,11 +789,12 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
                             color: theme.colorScheme.surfaceVariant.withOpacity(0.25),
                             child: Row(
                               children: [
-                                for (final d in columns)
+                                SizedBox(width: leftSpacerWidth),
+                                for (int ci = startCol; ci < endCol; ci++)
                                   Container(
                                     width: dayColWidth,
                                     decoration: BoxDecoration(
-                                      color: d == _todayKey ? theme.colorScheme.primary.withOpacity(0.08) : null,
+                                      color: columns[ci] == _todayKey ? theme.colorScheme.primary.withOpacity(0.08) : null,
                                       border: Border(
                                         right: BorderSide(color: theme.dividerColor.withOpacity(0.2)),
                                       ),
@@ -756,10 +802,11 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
                                     child: Center(
                                       child: RotatedBox(
                                         quarterTurns: 3,
-                                        child: Text(_verticalLabel(d), style: theme.textTheme.labelSmall),
+                                        child: Text(_verticalLabel(columns[ci]), style: theme.textTheme.labelSmall),
                                       ),
                                     ),
                                   ),
+                                SizedBox(width: rightSpacerWidth),
                               ],
                             ),
                           ),
@@ -835,7 +882,8 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
                                                                 placeId: widget.placeId,
                                                                 dateKey: columns[ci],
                                                                 userId: userId,
-                                                                attendance: attendance,
+                                                                cellStates: cellStates,
+                                                                cellLateMinutes: cellLateMinutes,
                                                                 itemName: it['id'] as String,
                                                                 currentUser: widget.currentUser,
                                                                 latenessEnabled: ((it['latenessEnabled'] as bool?) ?? false),
@@ -992,14 +1040,15 @@ class _InlineCell extends StatefulWidget {
   final String placeId;
   final String dateKey;
   final String userId;
-  final Map<String, dynamic> attendance;
+  final Map<String, String> cellStates;
+  final Map<String, int> cellLateMinutes;
   final String itemName;
   final UserEntity currentUser;
   final String? Function(String key)? pendingLookup; // returns 'present' | 'absent' | 'onLeave'
   final void Function(String key, String state)? onToggle; // state: 'present' | 'absent' | 'onLeave'
   final bool latenessEnabled;
 
-  const _InlineCell({required this.placeId, required this.dateKey, required this.userId, required this.attendance, required this.itemName, required this.currentUser, this.pendingLookup, this.onToggle, this.latenessEnabled = false});
+  const _InlineCell({required this.placeId, required this.dateKey, required this.userId, required this.cellStates, required this.cellLateMinutes, required this.itemName, required this.currentUser, this.pendingLookup, this.onToggle, this.latenessEnabled = false});
 
   @override
   State<_InlineCell> createState() => _InlineCellState();
@@ -1029,17 +1078,7 @@ class _InlineCellState extends State<_InlineCell> {
     final key = '${widget.dateKey}|${widget.itemName}|${widget.userId}';
     final pending = widget.pendingLookup?.call(key);
     if (pending != null) return pending;
-    final dateRec = widget.attendance[widget.dateKey] as Map<String, dynamic>?;
-    final rec = dateRec == null ? null : (dateRec[widget.itemName] as Map<String, dynamic>?);
-    final present = rec == null ? const <String>[] : (rec['present'] as List?)?.cast<String>() ?? const <String>[];
-    final onLeave = rec == null ? const <String>[] : (rec['onLeave'] as List?)?.cast<String>() ?? const <String>[];
-    final absent = rec == null ? const <String>[] : (rec['absent'] as List?)?.cast<String>() ?? const <String>[];
-    final def = rec == null ? const <String>[] : (rec['default'] as List?)?.cast<String>() ?? const <String>[];
-    if (present.contains(widget.userId)) return 'present';
-    if (onLeave.contains(widget.userId)) return 'onLeave';
-    if (absent.contains(widget.userId)) return 'absent';
-    if (def.contains(widget.userId)) return 'default';
-    return 'default';
+    return widget.cellStates[key] ?? 'default';
   }
 
   @override
@@ -1152,13 +1191,8 @@ class _InlineCellState extends State<_InlineCell> {
   }
 
   int? _lookupLateMinutes() {
-    final dateRec = widget.attendance[widget.dateKey] as Map<String, dynamic>?;
-    final rec = dateRec == null ? null : (dateRec[widget.itemName] as Map<String, dynamic>?);
-    final lateMap = rec == null ? null : (rec['lateMinutes'] as Map<String, dynamic>?);
-    final val = lateMap == null ? null : lateMap[widget.userId];
-    if (val is int) return val;
-    if (val is num) return val.toInt();
-    return null;
+    final key = '${widget.dateKey}|${widget.itemName}|${widget.userId}';
+    return widget.cellLateMinutes[key];
   }
 
   Future<void> _editLateMinutes(BuildContext context) async {

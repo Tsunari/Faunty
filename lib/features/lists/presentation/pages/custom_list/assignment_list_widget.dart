@@ -171,8 +171,8 @@ class _AssignmentListWidgetState extends ConsumerState<AssignmentListWidget> {
             id: entry.key,
             order: data['order'] as int,
             payload: data['payload'] as Map<String, dynamic>,
-            createdAt: Timestamp.now(),
-            updatedAt: Timestamp.now(),
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
           ),
         );
       }

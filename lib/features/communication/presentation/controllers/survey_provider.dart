@@ -1,12 +1,15 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:faunty/features/communication/data/repositories/communication_repository.dart';
 import 'package:faunty/features/communication/data/repositories/survey_firestore_service.dart';
 
-// Provider to watch the survey stream for a given placeId
-final surveyProvider = StreamProvider.family<List<Map<String, dynamic>>, String>((ref, placeId) {
-  final service = SurveyFirestoreService(placeId);
-  return service.surveyStream();
-});
+part 'survey_provider.g.dart';
 
-final surveyFirestoreServiceProvider = Provider.family<SurveyFirestoreService, String>((ref, placeId) {
+@riverpod
+Stream<List<Map<String, dynamic>>> survey(SurveyRef ref, String placeId) {
+  return ref.watch(communicationRepositoryProvider).surveyStream(placeId);
+}
+
+@riverpod
+SurveyFirestoreService surveyFirestoreService(SurveyFirestoreServiceRef ref, String placeId) {
   return SurveyFirestoreService(placeId);
-});
+}

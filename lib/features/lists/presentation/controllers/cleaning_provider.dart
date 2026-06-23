@@ -1,33 +1,35 @@
-
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:faunty/features/lists/data/repositories/cleaning_firestore_service.dart';
+import 'package:faunty/features/lists/data/repositories/lists_repository.dart';
 import 'package:faunty/features/auth/presentation/controllers/user_provider.dart';
 
-final cleaningFirestoreServiceProvider = Provider<CleaningFirestoreService>((ref) {
+part 'cleaning_provider.g.dart';
+
+@riverpod
+CleaningFirestoreService cleaningFirestoreService(CleaningFirestoreServiceRef ref) {
   final userAsync = ref.watch(userProvider);
   final user = userAsync.asData?.value;
   if (user == null) {
     throw Exception('User must be loaded before using CleaningFirestoreService');
   }
-  return CleaningFirestoreService(user);
-});
+  return ref.watch(listsRepositoryProvider).getCleaningService(user);
+}
 
-/// Provides the full cleaning data map (places and assignments)
-final cleaningDataProvider = StreamProvider<Map<String, dynamic>>((ref) {
-  final service = ref.watch(cleaningFirestoreServiceProvider);
-  return service.watchCleaning();
-});
+@riverpod
+Stream<Map<String, dynamic>> cleaningData(CleaningDataRef ref) {
+  return ref.watch(cleaningFirestoreServiceProvider).watchCleaning();
+}
 
-// Checks if all places are empty (no users assigned)
-final placesEmptyProvider = Provider<bool>((ref) {
+@riverpod
+bool placesEmpty(PlacesEmptyRef ref) {
   final cleaningDoc = ref.watch(cleaningDataProvider).maybeWhen(
     data: (data) => data,
     orElse: () => {},
   );
 
-  // cleaningDoc can be the full document ({'places': {...}, 'groups': {...}, ...})
-  // or legacy: a plain places map. Prefer explicit 'places' key.
-  final placesMap = (cleaningDoc['places'] is Map) ? Map<String, dynamic>.from(cleaningDoc['places'] as Map) : Map<String, dynamic>.from(cleaningDoc);
+  final placesMap = (cleaningDoc['places'] is Map)
+      ? Map<String, dynamic>.from(cleaningDoc['places'] as Map)
+      : Map<String, dynamic>.from(cleaningDoc);
   if (placesMap.isEmpty) return true;
   final places = placesMap.entries.toList();
   return places.every((e) {
@@ -35,4 +37,4 @@ final placesEmptyProvider = Provider<bool>((ref) {
     final assigned = (placeData['assignees'] as List?)?.cast<String>() ?? [];
     return assigned.isEmpty;
   });
-});
+}

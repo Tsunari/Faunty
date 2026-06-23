@@ -1,6 +1,18 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:faunty/core/utils/timestamp_converter.dart';
 
-enum FeedbackType { bug, feature, enhancement, ui, performance, other }
+part 'feedback_report.freezed.dart';
+part 'feedback_report.g.dart';
+
+enum FeedbackType {
+  @JsonValue('bug') bug,
+  @JsonValue('feature') feature,
+  @JsonValue('enhancement') enhancement,
+  @JsonValue('ui') ui,
+  @JsonValue('performance') performance,
+  @JsonValue('other') other
+}
 
 extension FeedbackTypeX on FeedbackType {
   String get label {
@@ -21,7 +33,12 @@ extension FeedbackTypeX on FeedbackType {
   }
 }
 
-enum FeedbackStatus { open, inProgress, resolved, closed }
+enum FeedbackStatus {
+  @JsonValue('open') open,
+  @JsonValue('inProgress') inProgress,
+  @JsonValue('resolved') resolved,
+  @JsonValue('closed') closed
+}
 
 extension FeedbackStatusX on FeedbackStatus {
   String get label {
@@ -39,120 +56,35 @@ extension FeedbackStatusX on FeedbackStatus {
   bool get isArchived => this == FeedbackStatus.closed || this == FeedbackStatus.resolved;
 }
 
-class FeedbackReport {
-  final String id;
-  final String title;
-  final String description;
-  final FeedbackType type;
-  final FeedbackStatus status;
-  final String authorId;
-  final String authorName;
-  final DateTime createdAt;
-  final DateTime updatedAt;
-  final int upvoteCount;
-  final List<String> upvoterIds;
-  final int? severity; // optional: 1-5 for bugs
-  final bool pinned;
-  final DateTime? pinnedAt;
-  final String? pinnedBy;
+@freezed
+class FeedbackReport with _$FeedbackReport {
+  const FeedbackReport._();
 
-  FeedbackReport({
-    required this.id,
-    required this.title,
-    required this.description,
-    required this.type,
-    required this.status,
-    required this.authorId,
-    required this.authorName,
-    required this.createdAt,
-    required this.updatedAt,
-    required this.upvoteCount,
-    required this.upvoterIds,
-    this.severity,
-    this.pinned = false,
-    this.pinnedAt,
-    this.pinnedBy,
-  });
-
-  FeedbackReport copyWith({
-    String? id,
-    String? title,
-    String? description,
-    FeedbackType? type,
-    FeedbackStatus? status,
-    String? authorId,
-    String? authorName,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-    int? upvoteCount,
-    List<String>? upvoterIds,
+  const factory FeedbackReport({
+    required String id,
+    required String title,
+    required String description,
+    required FeedbackType type,
+    required FeedbackStatus status,
+    required String authorId,
+    required String authorName,
+    @TimestampConverter() required DateTime createdAt,
+    @TimestampConverter() required DateTime updatedAt,
+    required int upvoteCount,
+    required List<String> upvoterIds,
     int? severity,
-    bool? pinned,
-    DateTime? pinnedAt,
+    @Default(false) bool pinned,
+    @NullableTimestampConverter() DateTime? pinnedAt,
     String? pinnedBy,
-  }) {
-    return FeedbackReport(
-      id: id ?? this.id,
-      title: title ?? this.title,
-      description: description ?? this.description,
-      type: type ?? this.type,
-      status: status ?? this.status,
-      authorId: authorId ?? this.authorId,
-      authorName: authorName ?? this.authorName,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-      upvoteCount: upvoteCount ?? this.upvoteCount,
-      upvoterIds: upvoterIds ?? this.upvoterIds,
-      severity: severity ?? this.severity,
-      pinned: pinned ?? this.pinned,
-      pinnedAt: pinnedAt ?? this.pinnedAt,
-      pinnedBy: pinnedBy ?? this.pinnedBy,
-    );
-  }
+  }) = _FeedbackReport;
 
-  Map<String, dynamic> toJson() {
-    return {
-      'title': title,
-      'description': description,
-      'type': type.name,
-      'status': status.name,
-      'authorId': authorId,
-      'authorName': authorName,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': Timestamp.fromDate(updatedAt),
-      'upvoteCount': upvoteCount,
-      'upvoterIds': upvoterIds,
-      'severity': severity,
-      'pinned': pinned,
-      'pinnedAt': pinnedAt != null ? Timestamp.fromDate(pinnedAt!) : null,
-      'pinnedBy': pinnedBy,
-    };
-  }
+  factory FeedbackReport.fromJson(Map<String, dynamic> json) => _$FeedbackReportFromJson(json);
 
   factory FeedbackReport.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;
-    return FeedbackReport(
-      id: doc.id,
-      title: data['title'] ?? '',
-      description: data['description'] ?? '',
-      type: FeedbackType.values.firstWhere(
-        (e) => e.name == data['type'],
-        orElse: () => FeedbackType.other,
-      ),
-      status: FeedbackStatus.values.firstWhere(
-        (e) => e.name == data['status'],
-        orElse: () => FeedbackStatus.open,
-      ),
-      authorId: data['authorId'] ?? '',
-      authorName: data['authorName'] ?? '',
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      updatedAt: (data['updatedAt'] as Timestamp).toDate(),
-      upvoteCount: data['upvoteCount'] ?? 0,
-      upvoterIds: List<String>.from(data['upvoterIds'] ?? []),
-      severity: data['severity'],
-      pinned: data['pinned'] ?? false,
-      pinnedAt: data['pinnedAt'] != null ? (data['pinnedAt'] as Timestamp).toDate() : null,
-      pinnedBy: data['pinnedBy'],
-    );
+    return FeedbackReport.fromJson(Map<String, dynamic>.from(data)..['id'] = doc.id);
   }
+
+  Map<String, dynamic> toMap() => toJson()..remove('id');
 }
+

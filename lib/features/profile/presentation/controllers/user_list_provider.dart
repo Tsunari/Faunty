@@ -1,99 +1,79 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:faunty/features/auth/domain/entities/user_entity.dart';
 import 'package:faunty/features/auth/presentation/controllers/user_provider.dart';
+import 'package:faunty/features/profile/data/repositories/profile_repository.dart';
 import 'package:faunty/core/utils/sort_utils.dart';
 
-final allUsersProvider = StreamProvider<List<UserEntity>>((ref) {
-  return FirebaseFirestore.instance
-      .collection('user_list')
-      .snapshots()
-      .map((snapshot) {
-        return snapshot.docs.map((doc) => UserEntity.fromMap(doc.data())).toList();
-      });
-});
+part 'user_list_provider.g.dart';
 
-// Backwards-compatible provider (no sort) kept for existing call sites
-final usersByCurrentPlaceProvider = StreamProvider<List<UserEntity>>((ref) {
+@riverpod
+Stream<List<UserEntity>> allUsers(AllUsersRef ref) {
+  return ref.watch(profileRepositoryProvider).watchAllUsers();
+}
+
+@riverpod
+Stream<List<UserEntity>> usersByCurrentPlace(UsersByCurrentPlaceRef ref) {
   final userAsync = ref.watch(userProvider);
   final user = userAsync.asData?.value;
   if (user == null) {
     return const Stream<List<UserEntity>>.empty();
   }
-  return FirebaseFirestore.instance
-      .collection('user_list')
-      .where('placeId', isEqualTo: user.placeId)
-      .snapshots()
-      .map((snapshot) {
-        return snapshot.docs.map((doc) => UserEntity.fromMap(doc.data())).toList();
-      });
-});
+  return ref.watch(profileRepositoryProvider).watchUsersByPlace(user.placeId);
+}
 
-// New family provider supporting optional sorting
-final usersByCurrentPlaceProviderWithOptions = StreamProvider.family<List<UserEntity>, UserSortOption?>((ref, sort) {
+@riverpod
+Stream<List<UserEntity>> usersByCurrentPlaceWithOptions(
+    UsersByCurrentPlaceWithOptionsRef ref, UserSortOption? sort) {
   final userAsync = ref.watch(userProvider);
   final user = userAsync.asData?.value;
   if (user == null) {
     return const Stream<List<UserEntity>>.empty();
   }
-  return FirebaseFirestore.instance
-      .collection('user_list')
-      .where('placeId', isEqualTo: user.placeId)
-      .snapshots()
-      .map((snapshot) {
-        final users = snapshot.docs.map((doc) => UserEntity.fromMap(doc.data())).toList();
-        if (sort != null) users.sort((a, b) => compareUsersByOption(a, b, sort));
-        return users;
-      });
-});
+  return ref.watch(profileRepositoryProvider).watchUsersByPlace(user.placeId).map((users) {
+    if (sort != null) {
+      final mutableUsers = List<UserEntity>.from(users);
+      mutableUsers.sort((a, b) => compareUsersByOption(a, b, sort));
+      return mutableUsers;
+    }
+    return users;
+  });
+}
 
-// Backwards-compatible family: accepts rolesKey (String) as before
-final usersByRolesProvider = StreamProvider.family<List<UserEntity>, String>((ref, rolesKey) {
+@riverpod
+Stream<List<UserEntity>> usersByRoles(UsersByRolesRef ref, String rolesKey) {
   final roleNames = rolesKey.split(',');
-  return FirebaseFirestore.instance
-      .collection('user_list')
-      .where('role', whereIn: roleNames)
-      .snapshots()
-      .map((snapshot) {
-        return snapshot.docs.map((doc) => UserEntity.fromMap(doc.data())).toList();
-      });
-});
+  return ref.watch(profileRepositoryProvider).watchUsersByRoles(roleNames);
+}
 
-// New family provider supporting rolesKey + optional sort via params map
-final usersByRolesProviderWithOptions = StreamProvider.family<List<UserEntity>, Map<String, dynamic>>((ref, params) {
+@riverpod
+Stream<List<UserEntity>> usersByRolesWithOptions(
+    UsersByRolesWithOptionsRef ref, Map<String, dynamic> params) {
   final roleNames = (params['rolesKey'] as String).split(',');
   final UserSortOption? sort = params['sort'] as UserSortOption?;
-  return FirebaseFirestore.instance
-      .collection('user_list')
-      .where('role', whereIn: roleNames)
-      .snapshots()
-      .map((snapshot) {
-        final users = snapshot.docs.map((doc) => UserEntity.fromMap(doc.data())).toList();
-        if (sort != null) users.sort((a, b) => compareUsersByOption(a, b, sort));
-        return users;
-      });
-});
+  return ref.watch(profileRepositoryProvider).watchUsersByRoles(roleNames).map((users) {
+    if (sort != null) {
+      final mutableUsers = List<UserEntity>.from(users);
+      mutableUsers.sort((a, b) => compareUsersByOption(a, b, sort));
+      return mutableUsers;
+    }
+    return users;
+  });
+}
 
-// Backwards-compatible family: accepts rolesKey (String) and filters by current user's place
-final usersByRolesAndPlaceProvider = StreamProvider.family<List<UserEntity>, String>((ref, rolesKey) {
+@riverpod
+Stream<List<UserEntity>> usersByRolesAndPlace(UsersByRolesAndPlaceRef ref, String rolesKey) {
   final userAsync = ref.watch(userProvider);
   final user = userAsync.asData?.value;
   if (user == null) {
     return const Stream<List<UserEntity>>.empty();
   }
   final roleNames = rolesKey.split(',');
-  return FirebaseFirestore.instance
-      .collection('user_list')
-      .where('placeId', isEqualTo: user.placeId)
-      .where('role', whereIn: roleNames)
-      .snapshots()
-      .map((snapshot) {
-        return snapshot.docs.map((doc) => UserEntity.fromMap(doc.data())).toList();
-      });
-});
+  return ref.watch(profileRepositoryProvider).watchUsersByPlaceAndRoles(user.placeId, roleNames);
+}
 
-// New family provider supporting rolesKey + optional sort via params map and current user's place
-final usersByRolesAndPlaceProviderWithOptions = StreamProvider.family<List<UserEntity>, Map<String, dynamic>>((ref, params) {
+@riverpod
+Stream<List<UserEntity>> usersByRolesAndPlaceWithOptions(
+    UsersByRolesAndPlaceWithOptionsRef ref, Map<String, dynamic> params) {
   final userAsync = ref.watch(userProvider);
   final user = userAsync.asData?.value;
   if (user == null) {
@@ -101,14 +81,17 @@ final usersByRolesAndPlaceProviderWithOptions = StreamProvider.family<List<UserE
   }
   final roleNames = (params['rolesKey'] as String).split(',');
   final UserSortOption? sort = params['sort'] as UserSortOption?;
-  return FirebaseFirestore.instance
-      .collection('user_list')
-      .where('placeId', isEqualTo: user.placeId)
-      .where('role', whereIn: roleNames)
-      .snapshots()
-      .map((snapshot) {
-        final users = snapshot.docs.map((doc) => UserEntity.fromMap(doc.data())).toList();
-        if (sort != null) users.sort((a, b) => compareUsersByOption(a, b, sort));
-        return users;
-      });
-});
+  return ref.watch(profileRepositoryProvider).watchUsersByPlaceAndRoles(user.placeId, roleNames).map((users) {
+    if (sort != null) {
+      final mutableUsers = List<UserEntity>.from(users);
+      mutableUsers.sort((a, b) => compareUsersByOption(a, b, sort));
+      return mutableUsers;
+    }
+    return users;
+  });
+}
+
+// Legacy aliases for backward compatibility
+final usersByCurrentPlaceProviderWithOptions = usersByCurrentPlaceWithOptionsProvider;
+final usersByRolesProviderWithOptions = usersByRolesWithOptionsProvider;
+final usersByRolesAndPlaceProviderWithOptions = usersByRolesAndPlaceWithOptionsProvider;

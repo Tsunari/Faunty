@@ -14,6 +14,7 @@ import 'package:faunty/core/widgets/custom_snackbar.dart';
 import 'package:faunty/core/utils/pwa_install.dart';
 import 'package:faunty/features/auth/presentation/controllers/user_provider.dart';
 import 'package:faunty/features/notifications/data/notification_manager.dart';
+import 'package:faunty/core/widgets/glass_container.dart';
 
 Future<(User?, String?)> registerWithEmail(BuildContext context, String email, String password) async {
   try {
@@ -373,68 +374,90 @@ class _LoginPageState extends ConsumerState<LoginPage> with SingleTickerProvider
         }
       });
     }
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24.0, 0.0, 24.0, 0.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 400),
-                  switchInCurve: Curves.easeInOut,
-                  switchOutCurve: Curves.easeInOut,
-                  child: !_isRegisterMode
-                        ? GestureDetector(
-                          onDoubleTap: () {
-                          if (kDebugMode) {
-                            _emailController.text = 'admin@faunty.com';
-                            _passwordController.text = 'fatih1453';
-                            _login();
-                          }
-                          },
-                          child: Hero(
-                          tag: 'logo',
-                          child: Image.asset(
-                            Theme.of(context).brightness == Brightness.light
-                            ? 'assets/Logo.png'
-                            : 'assets/LogoInverse.png',
-                            height: 145,
-                            fit: BoxFit.contain,
-                          ),
-                          ),
-                        )
-                      : const SizedBox.shrink(),
-                ),
-                const SizedBox(height: 24),
-                Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: _formMaxWidth),
-                    child: Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 16,
-                            offset: Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Text(
-                            _isRegisterMode ? translation(context: context, 'Register') : translation(context: context, 'Login'),
-                            style: const TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
+      body: Stack(
+        children: [
+          // Background blobs for glassmorphic depth
+          Positioned(
+            top: -100,
+            right: -100,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isDark
+                    ? Colors.white.withOpacity(0.04)
+                    : Colors.black.withOpacity(0.03),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -50,
+            left: -50,
+            child: Container(
+              width: 250,
+              height: 250,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isDark
+                    ? Colors.white.withOpacity(0.03)
+                    : Colors.black.withOpacity(0.02),
+              ),
+            ),
+          ),
+          Center(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 400),
+                      switchInCurve: Curves.easeInOut,
+                      switchOutCurve: Curves.easeInOut,
+                      child: !_isRegisterMode
+                            ? GestureDetector(
+                              onDoubleTap: () {
+                              if (kDebugMode) {
+                                _emailController.text = 'admin@faunty.com';
+                                _passwordController.text = 'fatih1453';
+                                _login();
+                              }
+                              },
+                              child: Hero(
+                              tag: 'logo',
+                              child: Image.asset(
+                                Theme.of(context).brightness == Brightness.light
+                                ? 'assets/Logo.png'
+                                : 'assets/LogoInverse.png',
+                                height: 145,
+                                fit: BoxFit.contain,
+                              ),
+                              ),
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                    const SizedBox(height: 24),
+                    Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: _formMaxWidth),
+                        child: GlassContainer(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                _isRegisterMode ? translation(context: context, 'Register') : translation(context: context, 'Login'),
+                                style: const TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
                           const SizedBox(height: 24),
                           Form(
                             key: _formKey,
@@ -573,7 +596,9 @@ class _LoginPageState extends ConsumerState<LoginPage> with SingleTickerProvider
           ),
         ),
       ),
-    );
+    ],
+  ),
+);
   }
 
 }

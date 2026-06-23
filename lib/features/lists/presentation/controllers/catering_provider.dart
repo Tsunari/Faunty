@@ -1,28 +1,31 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:faunty/features/lists/data/repositories/catering_firestore_service.dart';
+import 'package:faunty/features/lists/data/repositories/lists_repository.dart';
 import 'package:faunty/features/auth/presentation/controllers/user_provider.dart';
 
-final cateringFirestoreServiceProvider = Provider<CateringFirestoreService>((ref) {
+part 'catering_provider.g.dart';
+
+@riverpod
+CateringFirestoreService cateringFirestoreService(CateringFirestoreServiceRef ref) {
   final userAsync = ref.watch(userProvider);
   final user = userAsync.asData?.value;
   if (user == null) {
     throw Exception('User must be loaded before using CateringFirestoreService');
   }
-  return CateringFirestoreService(user);
-});
+  return ref.watch(listsRepositoryProvider).getCateringService(user);
+}
 
-final cateringWeekPlanProvider = StreamProvider<List<List<List<String>>>>((ref) {
-  final service = ref.watch(cateringFirestoreServiceProvider);
-  return service.watchWeekPlan();
-});
+@riverpod
+Stream<List<List<List<String>>>> cateringWeekPlan(CateringWeekPlanRef ref) {
+  return ref.watch(cateringFirestoreServiceProvider).watchWeekPlan();
+}
 
-final cateringUniformDaysProvider = StreamProvider<List<bool>>((ref) {
-  final service = ref.watch(cateringFirestoreServiceProvider);
-  return service.watchUniformDays();
-});
+@riverpod
+Stream<List<bool>> cateringUniformDays(CateringUniformDaysRef ref) {
+  return ref.watch(cateringFirestoreServiceProvider).watchUniformDays();
+}
 
-/// Provide a stream of slot names (map of 'day_meal' -> display name)
-final cateringSlotNamesProvider = StreamProvider<Map<String, String>>((ref) {
-  final service = ref.watch(cateringFirestoreServiceProvider);
-  return service.watchSlotNames();
-});
+@riverpod
+Stream<Map<String, String>> cateringSlotNames(CateringSlotNamesRef ref) {
+  return ref.watch(cateringFirestoreServiceProvider).watchSlotNames();
+}

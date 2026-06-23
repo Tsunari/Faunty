@@ -193,12 +193,15 @@ class _HomePageState extends ConsumerState<HomePage> {
           ),
           body: Scrollbar(
             controller: _scrollController,
-            child: SingleChildScrollView(
-              controller: _scrollController,
-              child: Column(
-                children: [
-                  SizedBox(
-                    width: width,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 800),
+                child: SingleChildScrollView(
+                  controller: _scrollController,
+                  child: Column(
+                    children: [
+                      SizedBox(
+                        width: double.infinity,
                     child: Card(
                       margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                       child: Padding(
@@ -421,8 +424,10 @@ class _HomePageState extends ConsumerState<HomePage> {
               ),
             ),
           ),
-        );
-      },
+        ),
+      ),
+    );
+  },
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       ),

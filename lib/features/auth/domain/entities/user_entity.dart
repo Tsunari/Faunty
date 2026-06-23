@@ -1,65 +1,26 @@
-// import '../models/place_model.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:faunty/features/auth/domain/entities/user_roles.dart';
 
-class UserEntity {
-  final String uid;
-  final String email;
-  final String firstName;
-  final String lastName;
-  final UserRole role;
-  final String placeId;
-  final bool isPlaceholder;
+part 'user_entity.freezed.dart';
+part 'user_entity.g.dart';
 
-  UserEntity({
-    required this.uid,
-    required this.email,
-    required this.firstName,
-    required this.lastName,
-    required this.role,
-    required this.placeId,
-    this.isPlaceholder = false,
-  });
+@freezed
+class UserEntity with _$UserEntity {
+  const UserEntity._();
 
-  Map<String, dynamic> toMap() {
-    return {
-      'uid': uid,
-      'email': email,
-      'firstName': firstName,
-      'lastName': lastName,
-      'role': role.name,
-      'placeId': placeId,
-      'isPlaceholder': isPlaceholder,
-    };
-  }
+  const factory UserEntity({
+    required String uid,
+    required String email,
+    @Default('') String firstName,
+    @Default('') String lastName,
+    required UserRole role,
+    @Default('') String placeId,
+    @Default(false) bool isPlaceholder,
+  }) = _UserEntity;
 
-  factory UserEntity.fromMap(Map<String, dynamic> map) {
-    return UserEntity(
-      uid: map['uid'] as String,
-      email: map['email'] as String,
-      firstName: map['firstName'] as String? ?? '',
-      lastName: map['lastName'] as String? ?? '',
-      role: UserRoleExtension.fromString(map['role'] as String),
-      placeId: map['placeId'] ?? '',
-      isPlaceholder: map['isPlaceholder'] as bool? ?? false,
-    );
-  }
+  factory UserEntity.fromJson(Map<String, dynamic> json) => _$UserEntityFromJson(json);
+
+  factory UserEntity.fromMap(Map<String, dynamic> map) => UserEntity.fromJson(map);
+  
+  Map<String, dynamic> toMap() => toJson();
 }
-
-extension UserRoleExtension on UserRole {
-  static UserRole fromString(String role) {
-    return UserRole.values.firstWhere(
-      (e) => e.name == role,
-      orElse: () => UserRole.user,
-    );
-  }
-}
-
-//example usage
-UserEntity testUser = UserEntity(
-  uid: '123',
-  email: 'test@example.com',
-  firstName: 'Test',
-  lastName: 'User',
-  role: UserRole.superuser,
-  placeId: 'munihFatih',
-);

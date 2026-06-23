@@ -103,7 +103,10 @@ class _UsersPageState extends ConsumerState<UsersPage> {
             ],
           ),
           backgroundColor: colorScheme.surface,
-          body: _showAllPlaces
+          body: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: _showAllPlaces
               ? placesAsync.when(
                   loading: () => const Center(child: CircularProgressIndicator()),
                   error: (e, st) => Center(child: Text(translation(context: context, 'Error loading places: $e'))),
@@ -152,6 +155,8 @@ class _UsersPageState extends ConsumerState<UsersPage> {
                   error: (e, st) => Center(child: Text('Error loading users: $e')),
                   data: (users) => _buildUsersForPlace(users, colorScheme, user),
                 ),
+            ),
+          ),
         );
       },
     );

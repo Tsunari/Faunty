@@ -27,6 +27,7 @@ import 'package:faunty/features/profile/presentation/widgets/theme_cards_selecto
 import 'package:flutter/foundation.dart';
 import 'package:faunty/core/utils/update_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:faunty/core/utils/pwa_install.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -180,7 +181,12 @@ class _MainPageState extends ConsumerState<MainPage> {
       // Fallback is just an empty box now, because navigation is handled by ref.listen
       fallback: const SizedBox.shrink(),
       child: Scaffold(
-        body: _pages[_selectedIndex],
+        body: Stack(
+          children: [
+            _pages[_selectedIndex],
+            const PwaInstallBanner(),
+          ],
+        ),
         bottomNavigationBar: NavBar(
           selectedIndex: _selectedIndex,
           onDestinationSelected: _onDestinationSelected,

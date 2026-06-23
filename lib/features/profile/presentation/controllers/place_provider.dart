@@ -1,11 +1,15 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:faunty/features/profile/domain/entities/place_model.dart';
-import 'package:faunty/features/profile/data/repositories/place_firestore_service.dart';
+import 'package:faunty/features/profile/data/repositories/profile_repository.dart';
 
-final placeListProvider = FutureProvider<List<PlaceModel>>((ref) async {
-  return await PlaceFirestoreService.fetchPlaces();
-});
+part 'place_provider.g.dart';
 
-final placeStreamProvider = StreamProvider<List<PlaceModel>>((ref) {
-  return PlaceFirestoreService.placesStream();
-});
+@riverpod
+Future<List<PlaceModel>> placeList(PlaceListRef ref) async {
+  return await ref.watch(profileRepositoryProvider).fetchPlaces();
+}
+
+@riverpod
+Stream<List<PlaceModel>> placeStream(PlaceStreamRef ref) {
+  return ref.watch(profileRepositoryProvider).placesStream();
+}

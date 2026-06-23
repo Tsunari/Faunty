@@ -71,7 +71,7 @@ class _UiTestPageState extends ConsumerState<UiTestPage> {
                               title: 'UiTest Sample',
                               type: CustomListType.assignment,
                               createdBy: user.uid,
-                              createdAt: Timestamp.now(),
+                              createdAt: DateTime.now(),
                               order: 0,
                               visible: true,
                             );

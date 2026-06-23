@@ -1,11 +1,9 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:faunty/features/tracking/data/repositories/kantin_firestore_service.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:faunty/features/tracking/data/repositories/tracking_repository.dart';
 
-/// Provider to watch the kantin stream for a given placeId
-final kantinProvider = StreamProvider.family<Map<String, double>, String>((ref, placeId) {
-  final service = KantinFirestoreService(placeId);
-  return service.kantinStream();
-});
+part 'kantin_provider.g.dart';
 
-/// Example usage:
-/// ref.watch(kantinProvider(placeId))
+@riverpod
+Stream<Map<String, double>> kantin(KantinRef ref, String placeId) {
+  return ref.watch(trackingRepositoryProvider).getKantinService(placeId).kantinStream();
+}

@@ -1,41 +1,30 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:faunty/core/utils/timestamp_converter.dart';
 
-class FeedbackComment {
-  final String id;
-  final String reportId;
-  final String authorId;
-  final String authorName;
-  final String text;
-  final DateTime createdAt;
+part 'feedback_comment.freezed.dart';
+part 'feedback_comment.g.dart';
 
-  FeedbackComment({
-    required this.id,
-    required this.reportId,
-    required this.authorId,
-    required this.authorName,
-    required this.text,
-    required this.createdAt,
-  });
+@freezed
+class FeedbackComment with _$FeedbackComment {
+  const FeedbackComment._();
 
-  Map<String, dynamic> toJson() {
-    return {
-      'reportId': reportId,
-      'authorId': authorId,
-      'authorName': authorName,
-      'text': text,
-      'createdAt': Timestamp.fromDate(createdAt),
-    };
-  }
+  const factory FeedbackComment({
+    required String id,
+    required String reportId,
+    required String authorId,
+    required String authorName,
+    required String text,
+    @TimestampConverter() required DateTime createdAt,
+  }) = _FeedbackComment;
+
+  factory FeedbackComment.fromJson(Map<String, dynamic> json) => _$FeedbackCommentFromJson(json);
 
   factory FeedbackComment.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;
-    return FeedbackComment(
-      id: doc.id,
-      reportId: data['reportId'] ?? '',
-      authorId: data['authorId'] ?? '',
-      authorName: data['authorName'] ?? '',
-      text: data['text'] ?? '',
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-    );
+    return FeedbackComment.fromJson(Map<String, dynamic>.from(data)..['id'] = doc.id);
   }
+
+  Map<String, dynamic> toMap() => toJson()..remove('id');
 }
+

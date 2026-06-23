@@ -61,4 +61,24 @@ class LocalStorageHelper {
       return null;
     }
   }
+
+  static const String pwaPromptDismissedKey = 'pwa_prompt_dismissed';
+
+  static Future<void> setPwaPromptDismissed(bool dismissed) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(pwaPromptDismissedKey, dismissed);
+    } catch (e) {
+      // Ignore errors
+    }
+  }
+
+  static Future<bool> getPwaPromptDismissed() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool(pwaPromptDismissedKey) ?? false;
+    } catch (e) {
+      return false;
+    }
+  }
 }

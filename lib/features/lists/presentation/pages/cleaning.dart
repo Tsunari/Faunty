@@ -132,8 +132,11 @@ class _CleaningPageState extends ConsumerState<CleaningPage> {
         },
         // actions: [],
       ),
-      body: cleaningDataAsync.when(
-        data: (data) {
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: cleaningDataAsync.when(
+            data: (data) {
           final placesMap = (data['places'] as Map<String, dynamic>?) ?? <String, dynamic>{};
           final groups = (data['groups'] as Map<String, dynamic>?) ?? {};
           final groupOrder = (data['groupOrder'] as List?)?.cast<String>() ?? groups.keys.toList();
@@ -436,6 +439,8 @@ class _CleaningPageState extends ConsumerState<CleaningPage> {
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, st) => Center(child: Text('Error loading cleaning data: $e')),
+      ),
+      ),
       ),
       floatingActionButton: RoleGate(
         minRole: UserRole.baskan,

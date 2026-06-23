@@ -160,7 +160,7 @@ class _AddPageState extends ConsumerState<AddPage> {
                               final userAsync = ref.read(userProvider);
                               final user = userAsync.asData?.value;
                               final createdBy = user?.uid ?? 'unknown';
-                              final now = Timestamp.now();
+                              final now = DateTime.now();
                               final list = CustomList(
                                 id: '',
                                 title: _titleCtrl.text.trim(),

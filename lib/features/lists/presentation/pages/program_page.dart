@@ -104,8 +104,8 @@ class _ProgramPageState extends ConsumerState<ProgramPage> {
             },
           ),
           body: Center(
-            child: SizedBox(
-              width: MediaQuery.of(context).size.width,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600),
               child: daysWithPrograms.isEmpty
                   ? Padding(
                       padding: const EdgeInsets.symmetric(vertical: 64.0, horizontal: 24.0),
