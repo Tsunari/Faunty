@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:faunty/core/widgets/glass_container.dart';
 
 class TabMeta {
   final String title;
@@ -78,7 +79,6 @@ class _TabPageState extends ConsumerState<TabPage> with TickerProviderStateMixin
     }
     if (initialIndex >= widget.tabs.length) initialIndex = widget.tabs.length - 1;
 
-    // Persist the (possibly clamped) index back into the provider and prefs.
     // Defer the provider mutation to avoid modifying providers during widget lifecycle.
     Future(() {
       try {
@@ -119,34 +119,68 @@ class _TabPageState extends ConsumerState<TabPage> with TickerProviderStateMixin
     }
     if (_tabController == null) {
       // No tabs available — render a simple empty state instead of trying to build TabBar/TabBarView.
-      return Scaffold(
+      return const Scaffold(
         body: Center(child: Text('No tabs')),
       );
     }
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
       body: Column(
         children: [
-          TabBar(
-            controller: _tabController,
-            tabs: [
-              for (int i = 0; i < widget.tabs.length; i++)
-                Tab(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(widget.tabs[i].icon, size: 18),
-                    ],
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: GlassContainer(
+              borderRadius: 24,
+              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+              boxShadow: [
+                BoxShadow(
+                  color: isDark ? Colors.black45 : Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+              child: TabBar(
+                controller: _tabController,
+                tabs: [
+                  for (int i = 0; i < widget.tabs.length; i++)
+                    Tab(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(widget.tabs[i].icon, size: 16),
+                          const SizedBox(width: 6),
+                          Text(
+                            widget.tabs[i].title,
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    )
+                ],
+                isScrollable: true,
+                dividerColor: Colors.transparent, // remove standard Material 3 tab divider
+                indicator: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  color: isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.06),
+                  border: Border.all(
+                    color: isDark ? Colors.white.withOpacity(0.2) : Colors.black.withOpacity(0.1),
+                    width: 1,
                   ),
-                )
-            ],
-            isScrollable: true,
-            labelPadding: const EdgeInsets.symmetric(horizontal: 16.0),
-            indicatorSize: TabBarIndicatorSize.label,
-            tabAlignment: TabAlignment.center,
+                ),
+                indicatorSize: TabBarIndicatorSize.tab,
+                labelColor: isDark ? Colors.white : Colors.black,
+                unselectedLabelColor: isDark ? Colors.white38 : Colors.black38,
+                labelPadding: const EdgeInsets.symmetric(horizontal: 14.0),
+                tabAlignment: TabAlignment.center,
+              ),
+            ),
           ),
           Expanded(
             child: TabBarView(
               controller: _tabController,
+              physics: const BouncingScrollPhysics(),
               children: [for (final tab in widget.tabs) tab.page],
             ),
           ),

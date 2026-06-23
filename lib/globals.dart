@@ -44,9 +44,9 @@ final ThemeData monochromeThemeDataDark = ThemeData(
   colorScheme: ColorScheme.dark().copyWith(
     primary: Colors.white,
     onPrimary: Colors.black,
-  // Prefer white/black only; use white for accent on dark background and black for text on that accent
-  secondary: Colors.white,
-  onSecondary: Colors.black,
+    // Prefer white/black only; use white for accent on dark background and black for text on that accent
+    secondary: Colors.white,
+    onSecondary: Colors.black,
     surface: Colors.black,
     onSurface: Colors.white,
     error: Colors.red,
@@ -57,6 +57,17 @@ final ThemeData monochromeThemeDataDark = ThemeData(
   cardColor: Colors.black,
   // Subtle divider that's visible on black
   dividerColor: Colors.white12,
+  cardTheme: CardThemeData(
+    color: Colors.black,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(16),
+      side: BorderSide(
+        color: Colors.white.withOpacity(0.12),
+        width: 1,
+      ),
+    ),
+    elevation: 0,
+  ),
   appBarTheme: const AppBarTheme(
     backgroundColor: Colors.black, // AMOLED pure black
     foregroundColor: Colors.white,
@@ -66,39 +77,66 @@ final ThemeData monochromeThemeDataDark = ThemeData(
   ),
   iconTheme: const IconThemeData(color: Colors.white),
   textTheme: const TextTheme(
-  bodyLarge: TextStyle(color: Colors.white),
-  bodyMedium: TextStyle(color: Colors.white),
-  bodySmall: TextStyle(color: Colors.white),
-  titleLarge: TextStyle(color: Colors.white),
-  titleMedium: TextStyle(color: Colors.white),
-  titleSmall: TextStyle(color: Colors.white),
-  labelLarge: TextStyle(color: Colors.white),
-  labelMedium: TextStyle(color: Colors.white),
-  labelSmall: TextStyle(color: Colors.white),
+    bodyLarge: TextStyle(color: Colors.white),
+    bodyMedium: TextStyle(color: Colors.white),
+    bodySmall: TextStyle(color: Colors.white),
+    titleLarge: TextStyle(color: Colors.white),
+    titleMedium: TextStyle(color: Colors.white),
+    titleSmall: TextStyle(color: Colors.white),
+    labelLarge: TextStyle(color: Colors.white),
+    labelMedium: TextStyle(color: Colors.white),
+    labelSmall: TextStyle(color: Colors.white),
   ),
-  inputDecorationTheme: const InputDecorationTheme(
+  inputDecorationTheme: InputDecorationTheme(
     filled: true,
-  // prefer pure black fill for input containers in dark mode
-  fillColor: Colors.black,
-    border: OutlineInputBorder(),
-    hintStyle: TextStyle(color: Colors.white54),
-    labelStyle: TextStyle(color: Colors.white),
+    fillColor: Colors.black,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: const BorderSide(color: Colors.white, width: 1.5),
+    ),
+    hintStyle: const TextStyle(color: Colors.white54),
+    labelStyle: const TextStyle(color: Colors.white),
   ),
   snackBarTheme: const SnackBarThemeData(
-  // use black background for snackbars in dark mode to remain pitch-black
-  backgroundColor: Colors.black,
-  contentTextStyle: TextStyle(color: Colors.white),
+    // use black background for snackbars in dark mode to remain pitch-black
+    backgroundColor: Colors.black,
+    contentTextStyle: TextStyle(color: Colors.white),
   ),
   popupMenuTheme: PopupMenuThemeData(
     color: Colors.black,
     textStyle: const TextStyle(color: Colors.white),
   ),
-  dialogTheme: const DialogThemeData(backgroundColor: Colors.black),
-  bottomSheetTheme: const BottomSheetThemeData(
+  dialogTheme: DialogThemeData(
     backgroundColor: Colors.black,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(24),
+      side: BorderSide(
+        color: Colors.white.withOpacity(0.12),
+        width: 1,
+      ),
+    ),
+  ),
+  bottomSheetTheme: BottomSheetThemeData(
+    backgroundColor: Colors.black,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      side: BorderSide(
+        color: Colors.white.withOpacity(0.12),
+        width: 1,
+      ),
+    ),
   ),
   drawerTheme: const DrawerThemeData(
-    backgroundColor: Colors.black,
+    backgroundColor: Colors.transparent, // transparent drawer container to allow backdrop blur
   ),
   // eliminate colored highlights; keep interactions subtle on black
   highlightColor: Colors.transparent,
@@ -138,17 +176,17 @@ final ThemeData monochromeThemeDataDark = ThemeData(
   bottomNavigationBarTheme: const BottomNavigationBarThemeData(
     backgroundColor: Colors.black,
     selectedItemColor: Colors.black,
-  unselectedItemColor: Colors.white38,
+    unselectedItemColor: Colors.white38,
     elevation: 0,
     showUnselectedLabels: false,
   ),
   // Navigation bar (Material 3) explicit theme to avoid default blue selection
   navigationBarTheme: NavigationBarThemeData(
     backgroundColor: Colors.black,
-  // Keep labels and icons white at all times for strict monochrome; use a subtle indicator so white text stays visible
-  indicatorColor: Colors.white12,
-  labelTextStyle: MaterialStatePropertyAll(const TextStyle(color: Colors.white)),
-  iconTheme: MaterialStatePropertyAll(const IconThemeData(color: Colors.white)),
+    // Keep labels and icons white at all times for strict monochrome; use a subtle indicator so white text stays visible
+    indicatorColor: Colors.white12,
+    labelTextStyle: MaterialStatePropertyAll(const TextStyle(color: Colors.white)),
+    iconTheme: MaterialStatePropertyAll(const IconThemeData(color: Colors.white)),
   ),
 );
 
@@ -161,7 +199,6 @@ final ThemeData monochromeThemeDataLight = ThemeData(
     // Use black as the secondary accent in light mode and white for text on that accent
     secondary: Colors.black,
     onSecondary: Colors.white,
-    // 'background'/'onBackground' deprecated — use surface/onSurface instead
     surface: Colors.white,
     onSurface: Colors.black,
     error: Colors.red,
@@ -171,6 +208,17 @@ final ThemeData monochromeThemeDataLight = ThemeData(
   cardColor: Colors.white,
   // subtle divider using translucent black to remain monochrome
   dividerColor: Colors.black12,
+  cardTheme: CardThemeData(
+    color: Colors.white,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(16),
+      side: BorderSide(
+        color: Colors.black.withOpacity(0.08),
+        width: 1,
+      ),
+    ),
+    elevation: 0,
+  ),
   appBarTheme: const AppBarTheme(
     backgroundColor: Colors.white,
     foregroundColor: Colors.black,
@@ -179,38 +227,66 @@ final ThemeData monochromeThemeDataLight = ThemeData(
   ),
   iconTheme: const IconThemeData(color: Colors.black),
   textTheme: const TextTheme(
-  bodyLarge: TextStyle(color: Colors.black),
-  bodyMedium: TextStyle(color: Colors.black),
-  bodySmall: TextStyle(color: Colors.black),
-  titleLarge: TextStyle(color: Colors.black),
-  titleMedium: TextStyle(color: Colors.black),
-  titleSmall: TextStyle(color: Colors.black),
-  labelLarge: TextStyle(color: Colors.black),
-  labelMedium: TextStyle(color: Colors.black),
-  labelSmall: TextStyle(color: Colors.black),
+    bodyLarge: TextStyle(color: Colors.black),
+    bodyMedium: TextStyle(color: Colors.black),
+    bodySmall: TextStyle(color: Colors.black),
+    titleLarge: TextStyle(color: Colors.black),
+    titleMedium: TextStyle(color: Colors.black),
+    titleSmall: TextStyle(color: Colors.black),
+    labelLarge: TextStyle(color: Colors.black),
+    labelMedium: TextStyle(color: Colors.black),
+    labelSmall: TextStyle(color: Colors.black),
   ),
   inputDecorationTheme: InputDecorationTheme(
     filled: true,
-  fillColor: Colors.white,
-    border: OutlineInputBorder(),
-    hintStyle: TextStyle(color: Colors.black54),
-    labelStyle: TextStyle(color: Colors.black),
+    fillColor: Colors.white,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: Colors.black.withOpacity(0.08)),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: Colors.black.withOpacity(0.08)),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: const BorderSide(color: Colors.black, width: 1.5),
+    ),
+    hintStyle: const TextStyle(color: Colors.black54),
+    labelStyle: const TextStyle(color: Colors.black),
   ),
   snackBarTheme: const SnackBarThemeData(
-  // light-mode snackbars use white background with black text (inverse of dark)
-  backgroundColor: Colors.white,
-  contentTextStyle: TextStyle(color: Colors.black),
+    // light-mode snackbars use white background with black text (inverse of dark)
+    backgroundColor: Colors.white,
+    contentTextStyle: TextStyle(color: Colors.black),
   ),
   popupMenuTheme: const PopupMenuThemeData(
     color: Colors.white,
     textStyle: TextStyle(color: Colors.black),
   ),
-  dialogTheme: const DialogThemeData(backgroundColor: Colors.white),
-  bottomSheetTheme: const BottomSheetThemeData(
+  dialogTheme: DialogThemeData(
     backgroundColor: Colors.white,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(24),
+      side: BorderSide(
+        color: Colors.black.withOpacity(0.08),
+        width: 1,
+      ),
+    ),
+  ),
+  bottomSheetTheme: BottomSheetThemeData(
+    backgroundColor: Colors.white,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      side: BorderSide(
+        color: Colors.black.withOpacity(0.08),
+        width: 1,
+      ),
+    ),
   ),
   drawerTheme: const DrawerThemeData(
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.transparent, // transparent drawer container to allow backdrop blur
   ),
   // subtle monochrome interaction ripple/highlight
   highlightColor: Colors.black12,

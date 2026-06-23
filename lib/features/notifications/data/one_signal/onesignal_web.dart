@@ -12,7 +12,7 @@ class OneSignalHelper {
   /// Logs the user in with an external ID (e.g. Firebase UID).
   static void login(String externalId) {
     _push((OneSignalJS oneSignal) {
-      if (!kDebugMode) oneSignal.login(externalId.toJS);
+      oneSignal.login(externalId.toJS);
     });
   }
 
