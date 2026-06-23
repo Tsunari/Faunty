@@ -52,7 +52,7 @@ class CustomList with _$CustomList {
     @TimestampConverter() required DateTime createdAt,
     required int order,
     required bool visible,
-    IconSpec? icon,
+    @IconSpecConverter() IconSpec? icon,
     @Default(<String, dynamic>{}) Map<String, dynamic> meta,
   }) = _CustomList;
 
@@ -84,5 +84,18 @@ class ListItem with _$ListItem {
   }
 
   Map<String, dynamic> toMap() => toJson()..remove('id');
+}
+
+class IconSpecConverter implements JsonConverter<IconSpec?, Map<String, dynamic>?> {
+  const IconSpecConverter();
+
+  @override
+  IconSpec? fromJson(Map<String, dynamic>? json) {
+    if (json == null) return null;
+    return IconSpec.fromJson(json);
+  }
+
+  @override
+  Map<String, dynamic>? toJson(IconSpec? icon) => icon?.toJson();
 }
 

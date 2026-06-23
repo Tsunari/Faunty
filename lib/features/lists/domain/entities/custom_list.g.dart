@@ -31,9 +31,9 @@ _$CustomListImpl _$$CustomListImplFromJson(Map<String, dynamic> json) =>
       createdAt: const TimestampConverter().fromJson(json['createdAt']),
       order: (json['order'] as num).toInt(),
       visible: json['visible'] as bool,
-      icon: json['icon'] == null
-          ? null
-          : IconSpec.fromJson(json['icon'] as Map<String, dynamic>),
+      icon: const IconSpecConverter().fromJson(
+        json['icon'] as Map<String, dynamic>?,
+      ),
       meta: json['meta'] as Map<String, dynamic>? ?? const <String, dynamic>{},
     );
 
@@ -46,7 +46,7 @@ Map<String, dynamic> _$$CustomListImplToJson(_$CustomListImpl instance) =>
       'createdAt': const TimestampConverter().toJson(instance.createdAt),
       'order': instance.order,
       'visible': instance.visible,
-      'icon': instance.icon,
+      'icon': const IconSpecConverter().toJson(instance.icon),
       'meta': instance.meta,
     };
 

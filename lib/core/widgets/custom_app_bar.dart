@@ -100,6 +100,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
               backgroundColor: Colors.transparent,
               elevation: 0,
               scrolledUnderElevation: 0,
+              toolbarHeight: kToolbarHeight + 4,
               title: titleWidget ?? Text(
                 title,
                 style: theme.textTheme.titleLarge?.copyWith(
@@ -109,7 +110,31 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                   color: theme.colorScheme.onSurface,
                 ),
               ),
-              actions: allActions.isNotEmpty ? allActions : null,
+              actions: [
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeInOut,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 150),
+                    transitionBuilder: (Widget child, Animation<double> animation) {
+                      return FadeTransition(
+                        opacity: animation,
+                        child: child,
+                      );
+                    },
+                    child: allActions.isEmpty
+                        ? const SizedBox.shrink(key: ValueKey('empty_actions'))
+                        : Row(
+                            key: const ValueKey('has_actions'),
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ...allActions,
+                              const SizedBox(width: 12),
+                            ],
+                          ),
+                  ),
+                ),
+              ],
               centerTitle: true,
               automaticallyImplyLeading: true,
             ),

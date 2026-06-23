@@ -257,6 +257,7 @@ mixin _$CustomList {
   DateTime get createdAt => throw _privateConstructorUsedError;
   int get order => throw _privateConstructorUsedError;
   bool get visible => throw _privateConstructorUsedError;
+  @IconSpecConverter()
   IconSpec? get icon => throw _privateConstructorUsedError;
   Map<String, dynamic> get meta => throw _privateConstructorUsedError;
 
@@ -285,7 +286,7 @@ abstract class $CustomListCopyWith<$Res> {
     @TimestampConverter() DateTime createdAt,
     int order,
     bool visible,
-    IconSpec? icon,
+    @IconSpecConverter() IconSpec? icon,
     Map<String, dynamic> meta,
   });
 
@@ -392,7 +393,7 @@ abstract class _$$CustomListImplCopyWith<$Res>
     @TimestampConverter() DateTime createdAt,
     int order,
     bool visible,
-    IconSpec? icon,
+    @IconSpecConverter() IconSpec? icon,
     Map<String, dynamic> meta,
   });
 
@@ -478,7 +479,7 @@ class _$CustomListImpl extends _CustomList {
     @TimestampConverter() required this.createdAt,
     required this.order,
     required this.visible,
-    this.icon,
+    @IconSpecConverter() this.icon,
     final Map<String, dynamic> meta = const <String, dynamic>{},
   }) : _meta = meta,
        super._();
@@ -502,6 +503,7 @@ class _$CustomListImpl extends _CustomList {
   @override
   final bool visible;
   @override
+  @IconSpecConverter()
   final IconSpec? icon;
   final Map<String, dynamic> _meta;
   @override
@@ -573,7 +575,7 @@ abstract class _CustomList extends CustomList {
     @TimestampConverter() required final DateTime createdAt,
     required final int order,
     required final bool visible,
-    final IconSpec? icon,
+    @IconSpecConverter() final IconSpec? icon,
     final Map<String, dynamic> meta,
   }) = _$CustomListImpl;
   const _CustomList._() : super._();
@@ -597,6 +599,7 @@ abstract class _CustomList extends CustomList {
   @override
   bool get visible;
   @override
+  @IconSpecConverter()
   IconSpec? get icon;
   @override
   Map<String, dynamic> get meta;
