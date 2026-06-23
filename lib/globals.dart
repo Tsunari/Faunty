@@ -1,10 +1,10 @@
-import 'package:faunty/state_management/user_provider.dart';
+import 'package:faunty/features/auth/presentation/controllers/user_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'notifications/fcm/notification_service.dart';
-import 'notifications/fcm/token_management.dart';
+import 'package:faunty/features/notifications/data/fcm/notification_service.dart';
+import 'package:faunty/features/notifications/data/fcm/token_management.dart';
 
 Future<PackageInfo> getAppInfo() async {
   return await PackageInfo.fromPlatform();

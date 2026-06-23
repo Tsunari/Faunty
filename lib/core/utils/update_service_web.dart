@@ -1,0 +1,240 @@
+import 'dart:async';
+import 'dart:convert';
+// Web-specific implementation using package:web for DOM access.
+// Avoids direct low-level js_interop in favor of typed APIs.
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:web/web.dart' as web;
+import 'dart:js_interop';
+import 'package:faunty/core/widgets/custom_snackbar.dart';
+import 'package:faunty/core/utils/translation_helper.dart';
+
+class UpdateService {
+  static const _repo = 'Tsunari/Faunty';
+  static const _releasesUrl = 'https://api.github.com/repos/$_repo/releases/latest';
+  static const Duration periodicInterval = Duration(hours: 3);
+  static const Duration visibilityMinGap = Duration(minutes: 15);
+  static bool _dialogShownForCurrentVersion = false;
+  static bool _isChecking = false;
+  static bool _isDialogOpen = false;
+  static DateTime? _lastSuccessfulCheck;
+  static Timer? _periodicTimer;
+  static Timer? _visibilityPollTimer;
+  static bool _initialized = false;
+  static String? _cachedCurrentVersion;
+  static BuildContext? Function()? _contextProvider;
+
+  static String? get storedVersion => web.window.localStorage.getItem('app_version');
+
+  static Future<String?> _getCurrentVersion() async {
+    try { final info = await PackageInfo.fromPlatform(); return info.version; } catch (_) { return null; }
+  }
+
+  static Future<String?> _getLatestReleaseTag() async {
+    try {
+      final res = await http.get(Uri.parse(_releasesUrl), headers: {'Accept': 'application/vnd.github+json'});
+      if (res.statusCode != 200) return null;
+      final Map<String, dynamic> json = jsonDecode(res.body);
+      return (json['tag_name'] as String?)?.trim();
+    } catch (_) { return null; }
+  }
+
+  static int _compareVersions(String a, String b) {
+    String norm(String s) => s.startsWith('v') ? s.substring(1) : s;
+    final pa = norm(a).split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    final pb = norm(b).split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    for (var i = 0; i < 3; i++) {
+      final va = (i < pa.length ? pa[i] : 0);
+      final vb = (i < pb.length ? pb[i] : 0);
+      if (va != vb) return va.compareTo(vb);
+    }
+    return 0;
+  }
+
+  static Future<void> init({BuildContext? initialContext, BuildContext? Function()? contextProvider}) async {
+    if (!kIsWeb) return;
+    if (_initialized) return;
+    _initialized = true;
+    _contextProvider = contextProvider ?? () => initialContext;
+    unawaited(_performCheck(showDialogIfNewer: true));
+    _periodicTimer = Timer.periodic(periodicInterval, (_) { _performCheck(showDialogIfNewer: true); });
+    _startVisibilityPolling();
+  }
+
+  static void dispose() {
+    _periodicTimer?.cancel();
+    _periodicTimer = null;
+    _visibilityPollTimer?.cancel();
+    _visibilityPollTimer = null;
+  }
+
+  static Future<void> manualCheck({ bool forceDialog = false, bool showUpToDateSnack = false, bool promptRefreshIfUpToDate = false, }) async { 
+    final bool foundNewer = await _performCheck(showDialogIfNewer: true, forceDialog: forceDialog); 
+    if (!foundNewer) { final ctx = _obtainContext(); 
+    if (ctx != null && ctx.mounted) { 
+      if (showUpToDateSnack) { showCustomSnackBar(ctx, translation(context: ctx, 'You are up to date.')); } 
+      if (promptRefreshIfUpToDate) { 
+        unawaited(
+          showDialog<bool>( 
+            context: ctx, 
+            builder: (dCtx) => AlertDialog( 
+              title: Text(translation(context: dCtx, 'Reload page?')), 
+              content: Text(translation(context: dCtx, 'No new version found. Do you still want to refresh?')), 
+              actions: [ 
+                TextButton(
+                  onPressed: () => Navigator.of(dCtx).pop(false), 
+                  child: Text(translation(context: dCtx, 'Cancel'))
+                ), 
+                ElevatedButton(
+                  onPressed: () => Navigator.of(dCtx).pop(true), 
+                  child: Text(translation(context: dCtx, 'Refresh'))
+                ), 
+              ], 
+            ), 
+          ).then((accepted) { 
+            if (accepted == true && ctx.mounted) { showCustomSnackBar(ctx, translation(context: ctx, 'Refreshing...'));
+            _reloadPage(); } })
+        ); 
+      } 
+    } } 
+  }
+
+  static Future<bool> _performCheck({required bool showDialogIfNewer, bool forceDialog = false}) async { 
+    if (kDebugMode) return false;
+    if (_isChecking) return false;
+    _isChecking = true;
+    try { 
+      final now = DateTime.now(); 
+      
+      // 1. Get Package Version (from version.json / manifest)
+      final pkgVersion = _cachedCurrentVersion ??= await _getCurrentVersion(); 
+      if (pkgVersion == null) return false; 
+
+      // 2. Get Stored Version (from LocalStorage)
+      String? storedVersion = web.window.localStorage.getItem('app_version');
+      if (storedVersion == null) {
+        // First run or cleared storage. Assume we are on pkgVersion.
+        storedVersion = pkgVersion;
+        web.window.localStorage.setItem('app_version', pkgVersion);
+      }
+
+      // 3. Get Remote Version (from GitHub)
+      final latestTag = await _getLatestReleaseTag(); 
+      if (latestTag == null) return false; 
+      
+      _lastSuccessfulCheck = now; 
+
+      // 4. Compare
+      // Check if pkgVersion is newer than storedVersion (Local Metadata Update)
+      // This happens if version.json updated but we are running old code/state
+      final bool localUpdate = _compareVersions(pkgVersion, storedVersion) > 0;
+
+      // Check if latestTag is newer than storedVersion (Remote Update)
+      final bool remoteUpdate = _compareVersions(latestTag, storedVersion) > 0;
+
+      if (!localUpdate && !remoteUpdate) {
+        // If we are effectively on the latest version (or newer), ensure storage is synced
+        // e.g. if pkgVersion > storedVersion was handled previously or we just updated
+        if (_compareVersions(pkgVersion, storedVersion) > 0) {
+           web.window.localStorage.setItem('app_version', pkgVersion);
+        }
+        return false;
+      }
+
+      // Determine target version for display
+      final targetVersion = remoteUpdate ? latestTag : pkgVersion;
+
+      if (!_shouldShowDialogFor(targetVersion) && !forceDialog) return false;
+      if (_isDialogOpen) return false;
+      
+      final ctx = _obtainContext();
+      if (ctx == null || !ctx.mounted) return false;
+      
+      _isDialogOpen = true;
+      bool? accepted;
+      try {
+        accepted = await showDialog<bool>(
+          context: ctx,
+          builder: (dialogCtx) => AlertDialog(
+            title: Text(translation(context: dialogCtx, 'Update available')),
+            content: Text(translation(context: dialogCtx, 'A new version (%s) is available. Refresh to update?').replaceFirst('%s', targetVersion)),
+            actions: [
+              TextButton(onPressed: () => Navigator.of(dialogCtx).pop(false), child: Text(translation(context: dialogCtx, 'Later'))),
+              ElevatedButton(onPressed: () => Navigator.of(dialogCtx).pop(true), child: Text(translation(context: dialogCtx, 'Refresh now'))),
+            ],
+          ),
+        );
+      } finally {
+        _isDialogOpen = false;
+      }
+      
+      if (accepted == true && ctx.mounted) {
+        showCustomSnackBar(ctx, translation(context: ctx, 'Refreshing to update...'));
+        _dialogShownForCurrentVersion = true;
+        // Optimistically update stored version so we don't loop if cache is sticky,
+        // but relying on _reloadPage's aggressive clearing to actually fetch new code.
+        web.window.localStorage.setItem('app_version', targetVersion);
+        _reloadPage();
+      }
+      return true;
+    } catch (_) {
+      return false;
+    } finally {
+      _isChecking = false;
+    }
+  }
+
+  static bool _shouldShowDialogFor(String latestTag) { if (_cachedCurrentVersion == null) return false; if (_dialogShownForCurrentVersion) return false; return true; }
+  static BuildContext? _obtainContext() { try { if (_contextProvider != null) return _contextProvider!(); } catch (_) {} return null; }
+  static void _startVisibilityPolling() {
+    // Poll every 2 minutes; lightweight and avoids event listener typing issues.
+    _visibilityPollTimer = Timer.periodic(const Duration(minutes: 2), (_) {
+      if (!kIsWeb) return;
+      final hidden = web.document.hidden;
+      if (!hidden) {
+        final last = _lastSuccessfulCheck;
+        if (last == null || DateTime.now().difference(last) > visibilityMinGap) {
+          _performCheck(showDialogIfNewer: true);
+        }
+      }
+    });
+  }
+}
+void _reloadPage() {
+  if (!kIsWeb) return;
+  () async {
+    try {
+      // 1) Unregister all service workers (avoid old SW caching)
+      final sw = web.window.navigator.serviceWorker;
+      try {
+        final regs = await sw.getRegistrations().toDart; // JSArray<ServiceWorkerRegistration>
+        for (final reg in regs.toDart) {
+          try { await reg.unregister().toDart; } catch (_) {}
+        }
+      } catch (_) {}
+
+      // 2) Clear CacheStorage (remove previously cached assets)
+      try {
+        final cacheStorage = web.window.caches;
+        final keysArr = await cacheStorage.keys().toDart; // JSArray<JSString>
+        for (final jsStr in keysArr.toDart) {
+          final key = jsStr.toDart;
+          try { await cacheStorage.delete(key).toDart; } catch (_) {}
+        }
+      } catch (_) {}
+
+      // 3) Force a navigation with a cache-busting query param
+      final href = web.window.location.href;
+      final uri = Uri.parse(href);
+      final ts = DateTime.now().millisecondsSinceEpoch.toString();
+      final qp = Map<String, String>.from(uri.queryParameters)..['cache-bust'] = ts;
+      final busted = uri.replace(queryParameters: qp).toString();
+      web.window.location.replace(busted);
+    } catch (_) {
+      // Fallback to normal reload
+      try { web.window.location.reload(); } catch (_) {}
+    }
+  }();
+}
