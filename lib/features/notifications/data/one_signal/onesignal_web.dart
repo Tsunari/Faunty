@@ -11,52 +11,100 @@ class OneSignalHelper {
 
   /// Logs the user in with an external ID (e.g. Firebase UID).
   static void login(String externalId) {
-    _push((OneSignalJS oneSignal) {
-      oneSignal.login(externalId.toJS);
+    _push((OneSignalJS? oneSignal) {
+      if (oneSignal == null || oneSignal.isUndefinedOrNull) {
+        print('OneSignal is not initialized or null.');
+        return;
+      }
+      try {
+        oneSignal.login(externalId.toJS);
+      } catch (e) {
+        print('Error calling OneSignal.login: $e');
+      }
     });
   }
 
   /// Logs the user out.
   static void logout() {
-    _push((OneSignalJS oneSignal) {
-      oneSignal.logout();
+    _push((OneSignalJS? oneSignal) {
+      if (oneSignal == null || oneSignal.isUndefinedOrNull) {
+        print('OneSignal is not initialized or null.');
+        return;
+      }
+      try {
+        oneSignal.logout();
+      } catch (e) {
+        print('Error calling OneSignal.logout: $e');
+      }
     });
   }
 
   /// Prompts the user for push notifications permission.
   static void requestPermission() {
-    _push((OneSignalJS oneSignal) {
-      oneSignal.Notifications?.requestPermission();
+    _push((OneSignalJS? oneSignal) {
+      if (oneSignal == null || oneSignal.isUndefinedOrNull) {
+        print('OneSignal is not initialized or null.');
+        return;
+      }
+      try {
+        oneSignal.Notifications?.requestPermission();
+      } catch (e) {
+        print('Error calling OneSignal.requestPermission: $e');
+      }
     });
   }
 
   /// Adds a tag to the user.
   static void addTag(String key, String value) {
-    _push((OneSignalJS oneSignal) {
-      oneSignal.User?.addTag(key.toJS, value.toJS);
+    _push((OneSignalJS? oneSignal) {
+      if (oneSignal == null || oneSignal.isUndefinedOrNull) {
+        print('OneSignal is not initialized or null.');
+        return;
+      }
+      try {
+        oneSignal.User?.addTag(key.toJS, value.toJS);
+      } catch (e) {
+        print('Error calling OneSignal.addTag: $e');
+      }
     });
   }
 
   /// Removes a tag from the user.
   static void removeTag(String key) {
-    _push((OneSignalJS oneSignal) {
-      oneSignal.User?.removeTag(key.toJS);
+    _push((OneSignalJS? oneSignal) {
+      if (oneSignal == null || oneSignal.isUndefinedOrNull) {
+        print('OneSignal is not initialized or null.');
+        return;
+      }
+      try {
+        oneSignal.User?.removeTag(key.toJS);
+      } catch (e) {
+        print('Error calling OneSignal.removeTag: $e');
+      }
     });
   }
 
   /// Sets the subscription status (opt-in/opt-out).
   static void setSubscription(bool enable) {
-    _push((OneSignalJS oneSignal) {
-      final user = oneSignal.User;
-      if (user != null) {
-        final subscription = user.PushSubscription;
-        if (subscription != null) {
-          if (enable) {
-            subscription.optIn();
-          } else {
-            subscription.optOut();
+    _push((OneSignalJS? oneSignal) {
+      if (oneSignal == null || oneSignal.isUndefinedOrNull) {
+        print('OneSignal is not initialized or null.');
+        return;
+      }
+      try {
+        final user = oneSignal.User;
+        if (user != null && !user.isUndefinedOrNull) {
+          final subscription = user.PushSubscription;
+          if (subscription != null && !subscription.isUndefinedOrNull) {
+            if (enable) {
+              subscription.optIn();
+            } else {
+              subscription.optOut();
+            }
           }
         }
+      } catch (e) {
+        print('Error calling OneSignal.setSubscription: $e');
       }
     });
   }
@@ -64,12 +112,17 @@ class OneSignalHelper {
   /// Checks if the user is subscribed (opted-in).
   static Future<bool> isSubscribed() {
     final completer = Completer<bool>();
-    _push((OneSignalJS oneSignal) {
+    _push((OneSignalJS? oneSignal) {
+      if (oneSignal == null || oneSignal.isUndefinedOrNull) {
+        print('OneSignal is not initialized or null.');
+        completer.complete(false);
+        return;
+      }
       try {
         final user = oneSignal.User;
-        if (user != null) {
+        if (user != null && !user.isUndefinedOrNull) {
           final subscription = user.PushSubscription;
-          if (subscription != null) {
+          if (subscription != null && !subscription.isUndefinedOrNull) {
             print('OneSignal Subscription: optedIn=${subscription.optedIn}, id=${subscription.id}, token=${subscription.token}');
             completer.complete(subscription.optedIn);
           } else {
@@ -89,7 +142,7 @@ class OneSignalHelper {
   }
 
   /// Helper to push commands to OneSignalDeferred.
-  static void _push(void Function(OneSignalJS) callback) {
+  static void _push(void Function(OneSignalJS?) callback) {
     final deferred = globalContext['OneSignalDeferred'];
     if (deferred != null) {
       (deferred as JSObject).callMethod('push'.toJS, callback.toJS);

@@ -464,31 +464,40 @@ class _LoginPageState extends ConsumerState<LoginPage> with SingleTickerProvider
                             child: AutofillGroup(
                               child: Column(
                                 children: [
-                                  _LoginFormFields(
+                                  SizeTransition(
+                                    sizeFactor: _registerFieldsAnim,
+                                    axisAlignment: -1.0,
+                                    child: FadeTransition(
+                                      opacity: _registerFieldsAnim,
+                                      child: _RegisterNameFields(
+                                        firstNameController: _firstNameController,
+                                        lastNameController: _lastNameController,
+                                      ),
+                                    ),
+                                  ),
+                                  _LoginCommonFields(
                                     isRegisterMode: _isRegisterMode,
-                                    firstNameController: _firstNameController,
-                                    lastNameController: _lastNameController,
                                     emailController: _emailController,
                                     passwordController: _passwordController,
-                                    confirmPasswordController: _confirmPasswordController,
                                     showPassword: _showPassword,
-                                    showConfirmPassword: _showConfirmPassword,
                                     onTogglePassword: () => setState(() => _showPassword = !_showPassword),
-                                    onToggleConfirmPassword: () => setState(() => _showConfirmPassword = !_showConfirmPassword),
                                     onLogin: _login,
                                     onForgotPassword: () => _sendPasswordReset(_emailController.text.trim()),
                                   ),
                                   SizeTransition(
                                     sizeFactor: _registerFieldsAnim,
                                     axisAlignment: -1.0,
-                                    child: _RegisterExtraFields(
-                                      confirmPasswordController: _confirmPasswordController,
-                                      showConfirmPassword: _showConfirmPassword,
-                                      onToggleConfirmPassword: () => setState(() => _showConfirmPassword = !_showConfirmPassword),
-                                      selectedPlace: _selectedPlace,
-                                      places: _places,
-                                      onPlaceChanged: (val) => setState(() => _selectedPlace = val),
-                                      onClearPlace: () => setState(() => _selectedPlace = null),
+                                    child: FadeTransition(
+                                      opacity: _registerFieldsAnim,
+                                      child: _RegisterExtraFields(
+                                        confirmPasswordController: _confirmPasswordController,
+                                        showConfirmPassword: _showConfirmPassword,
+                                        onToggleConfirmPassword: () => setState(() => _showConfirmPassword = !_showConfirmPassword),
+                                        selectedPlace: _selectedPlace,
+                                        places: _places,
+                                        onPlaceChanged: (val) => setState(() => _selectedPlace = val),
+                                        onClearPlace: () => setState(() => _selectedPlace = null),
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -604,31 +613,73 @@ class _LoginPageState extends ConsumerState<LoginPage> with SingleTickerProvider
 }
 
 // Modularized form fields widget
-class _LoginFormFields extends StatelessWidget {
-  final bool isRegisterMode;
+class _RegisterNameFields extends StatelessWidget {
   final TextEditingController firstNameController;
   final TextEditingController lastNameController;
+
+  const _RegisterNameFields({
+    required this.firstNameController,
+    required this.lastNameController,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: _LoginPageState._formMaxWidth),
+          child: TextFormField(
+            controller: firstNameController,
+            decoration: InputDecoration(
+              labelText: translation(context: context, 'First Name'),
+              prefixIcon: const Icon(Icons.person_outline),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            textInputAction: TextInputAction.next,
+            autofillHints: const [AutofillHints.givenName],
+            onEditingComplete: () => FocusScope.of(context).nextFocus(),
+          ),
+        ),
+        const SizedBox(height: 16),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: _LoginPageState._formMaxWidth),
+          child: TextFormField(
+            controller: lastNameController,
+            decoration: InputDecoration(
+              labelText: translation(context: context, 'Last Name'),
+              prefixIcon: const Icon(Icons.person_outline),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            textInputAction: TextInputAction.next,
+            autofillHints: const [AutofillHints.familyName],
+            onEditingComplete: () => FocusScope.of(context).nextFocus(),
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+}
+
+class _LoginCommonFields extends StatelessWidget {
+  final bool isRegisterMode;
   final TextEditingController emailController;
   final TextEditingController passwordController;
-  final TextEditingController confirmPasswordController;
   final bool showPassword;
-  final bool showConfirmPassword;
   final VoidCallback onTogglePassword;
-  final VoidCallback onToggleConfirmPassword;
   final VoidCallback onLogin;
   final VoidCallback? onForgotPassword;
 
-  const _LoginFormFields({
+  const _LoginCommonFields({
     required this.isRegisterMode,
-    required this.firstNameController,
-    required this.lastNameController,
     required this.emailController,
     required this.passwordController,
-    required this.confirmPasswordController,
     required this.showPassword,
-    required this.showConfirmPassword,
     required this.onTogglePassword,
-    required this.onToggleConfirmPassword,
     required this.onLogin,
     this.onForgotPassword,
   });
@@ -637,57 +688,19 @@ class _LoginFormFields extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        if (isRegisterMode) ...[
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: _LoginPageState._formMaxWidth),
-            child: TextField(
-              controller: firstNameController,
-              decoration: InputDecoration(
-                labelText: translation(context: context, 'First Name'),
-                prefixIcon: Icon(Icons.person_outline),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              textInputAction: TextInputAction.next,
-              autofillHints: const [AutofillHints.givenName],
-              onEditingComplete: () => FocusScope.of(context).nextFocus(),
-            ),
-          ),
-          const SizedBox(height: 16),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: _LoginPageState._formMaxWidth),
-            child: TextField(
-              controller: lastNameController,
-              decoration: InputDecoration(
-                labelText: translation(context: context, 'Last Name'),
-                prefixIcon: Icon(Icons.person_outline),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              textInputAction: TextInputAction.next,
-              autofillHints: const [AutofillHints.familyName],
-              onEditingComplete: () => FocusScope.of(context).nextFocus(),
-            ),
-          ),
-          const SizedBox(height: 16),
-        ],
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: _LoginPageState._formMaxWidth),
-          child: TextField(
+          child: TextFormField(
             controller: emailController,
             decoration: InputDecoration(
               labelText: translation(context: context, 'Email'),
-              prefixIcon: Icon(Icons.email_outlined),
+              prefixIcon: const Icon(Icons.email_outlined),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
             keyboardType: TextInputType.emailAddress,
-            autofillHints: !isRegisterMode
-                ? const [AutofillHints.username, AutofillHints.email]
-                : null,
+            autofillHints: const [AutofillHints.username, AutofillHints.email],
             autofocus: false,
             textInputAction: TextInputAction.next,
             onEditingComplete: () {
@@ -704,7 +717,7 @@ class _LoginFormFields extends StatelessWidget {
                 FocusScope.of(context).nextFocus();
               }
             },
-            onSubmitted: (_) {
+            onFieldSubmitted: (_) {
               if (!isRegisterMode) {
                 final email = emailController.text.trim();
                 final password = passwordController.text.trim();
@@ -723,11 +736,11 @@ class _LoginFormFields extends StatelessWidget {
         const SizedBox(height: 16),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: _LoginPageState._formMaxWidth),
-          child: TextField(
+          child: TextFormField(
             controller: passwordController,
             decoration: InputDecoration(
               labelText: translation(context: context, 'Password'),
-              prefixIcon: Icon(Icons.lock_outline),
+              prefixIcon: const Icon(Icons.lock_outline),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -745,9 +758,9 @@ class _LoginFormFields extends StatelessWidget {
               ),
             ),
             obscureText: !showPassword,
-            autofillHints: !isRegisterMode
-                ? const [AutofillHints.password]
-                : null,
+            autofillHints: isRegisterMode
+                ? const [AutofillHints.newPassword]
+                : const [AutofillHints.password],
             textInputAction: isRegisterMode ? TextInputAction.next : TextInputAction.done,
             onEditingComplete: () {
               if (isRegisterMode) {
@@ -761,7 +774,7 @@ class _LoginFormFields extends StatelessWidget {
                 }
               }
             },
-            onSubmitted: (_) {
+            onFieldSubmitted: (_) {
               if (isRegisterMode) {
                 FocusScope.of(context).nextFocus();
               } else {
@@ -772,7 +785,8 @@ class _LoginFormFields extends StatelessWidget {
               }
             },
           ),
-        ),     // Forgot password button (only in login mode)
+        ),
+        // Forgot password button (only in login mode)
         if (!isRegisterMode) ...[
           const SizedBox(height: 8),
           ConstrainedBox(
@@ -780,12 +794,10 @@ class _LoginFormFields extends StatelessWidget {
             child: Stack(
               alignment: Alignment.centerRight,
               children: [
-                // Left-aligned inline PWA install button (web only, shows when available)
                 const Align(
                   alignment: Alignment.centerLeft,
                   child: PwaInstallInlineButton(),
                 ),
-                // Keep Forgot password exactly right-aligned as before
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
@@ -802,7 +814,6 @@ class _LoginFormFields extends StatelessWidget {
   }
 }
 
-// Modularized register extra fields (confirm password and place dropdown)
 class _RegisterExtraFields extends StatelessWidget {
   final TextEditingController confirmPasswordController;
   final bool showConfirmPassword;
@@ -826,13 +837,14 @@ class _RegisterExtraFields extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
+        const SizedBox(height: 16),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: _LoginPageState._formMaxWidth),
-          child: TextField(
+          child: TextFormField(
             controller: confirmPasswordController,
             decoration: InputDecoration(
               labelText: translation(context: context, 'Confirm Password'),
-              prefixIcon: Icon(Icons.lock_reset),
+              prefixIcon: const Icon(Icons.lock_reset),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -850,8 +862,9 @@ class _RegisterExtraFields extends StatelessWidget {
               ),
             ),
             obscureText: !showConfirmPassword,
+            autofillHints: const [AutofillHints.newPassword],
             textInputAction: TextInputAction.next,
-            onSubmitted: (_) => FocusScope.of(context).nextFocus(),
+            onFieldSubmitted: (_) => FocusScope.of(context).nextFocus(),
           ),
         ),
         const SizedBox(height: 16),
@@ -874,7 +887,7 @@ class _RegisterExtraFields extends StatelessWidget {
             onChanged: onPlaceChanged,
             decoration: InputDecoration(
               labelText: translation(context: context, 'Select Place'),
-              prefixIcon: Icon(Icons.domain_outlined),
+              prefixIcon: const Icon(Icons.domain_outlined),
               suffixIcon: selectedPlace != null
                   ? IconButton(
                       icon: const Icon(Icons.clear),
