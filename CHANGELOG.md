@@ -1,5 +1,9 @@
 # Changelog
 
+## [2.0.0] - 24-06-2026
+
+
+
 ## [1.25.0] - 21-02-2026
 ### Added
 - Add quran and prayer progression trackers
