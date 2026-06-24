@@ -11,6 +11,19 @@ class GlobalsState {
   bool get registrationMode => data['registrationMode'] as bool? ?? false;
   bool get cateringReminderEnabled =>
       data['cateringReminderEnabled'] as bool? ?? true;
+  String get paypalLink => data['paypalLink'] as String? ?? 'FatihKantin';
+
+  List<Map<String, dynamic>> get kantinProducts {
+    final raw = data['kantinProducts'] as List<dynamic>?;
+    if (raw == null) {
+      return [
+        {'name': 'Eis groß', 'price': 1.0},
+        {'name': 'Eis klein', 'price': 0.5},
+        {'name': 'Spezi', 'price': 1.0},
+      ];
+    }
+    return raw.map((item) => Map<String, dynamic>.from(item as Map)).toList();
+  }
 
   GlobalsState copyWith(Map<String, dynamic> newData) =>
       GlobalsState({...data, ...newData});

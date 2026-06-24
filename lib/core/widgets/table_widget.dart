@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:faunty/core/utils/translation_helper.dart';
 
 // Generic models exported for consumers
 class Assignment {
@@ -30,6 +31,8 @@ class TableWidget extends ConsumerStatefulWidget {
   final VoidCallback? onAddSubsection;
   final Future<void> Function(int oldIndex, int newIndex)?
   onReorder; // For future drag-and-drop
+  final bool Function(int index, bool left)? isCellDirty;
+  final bool Function(int subsectionIndex)? isSubsectionDirty;
 
   const TableWidget({
     super.key,
@@ -45,6 +48,8 @@ class TableWidget extends ConsumerStatefulWidget {
     this.onAddAssignment,
     this.onAddSubsection,
     this.onReorder,
+    this.isCellDirty,
+    this.isSubsectionDirty,
   });
 
   @override
@@ -257,12 +262,21 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
       } else if (item is Subsection) {
         // flush assignments before subsection
         flushPending();
+        final isSubDirty = widget.isSubsectionDirty?.call(itemIndex) ?? false;
         // subsection header: support inline editing when requested
         if (editingSubsectionItemIndex == itemIndex) {
           blocks.add(
             Container(
               height: headerHeight,
-              color: primary.withOpacity(0.12),
+              decoration: BoxDecoration(
+                color: primary.withValues(alpha: 0.12),
+                border: Border(
+                  left: BorderSide(
+                    color: isSubDirty ? Colors.amber.shade700 : Colors.transparent,
+                    width: 4,
+                  ),
+                ),
+              ),
               alignment: Alignment.center,
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: SizedBox(
@@ -278,7 +292,7 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
                             textAlign: TextAlign.center,
                             decoration: InputDecoration(
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(6),
+                                borderRadius: BorderRadius.circular(8),
                               ),
                               isDense: true,
                               contentPadding: const EdgeInsets.symmetric(
@@ -309,7 +323,15 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
                   : null,
               child: Container(
                 height: headerHeight,
-                color: primary.withOpacity(0.12),
+                decoration: BoxDecoration(
+                  color: primary.withValues(alpha: 0.12),
+                  border: Border(
+                    left: BorderSide(
+                      color: isSubDirty ? Colors.amber.shade700 : Colors.transparent,
+                      width: 4,
+                    ),
+                  ),
+                ),
                 alignment: Alignment.center,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -320,9 +342,9 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
                         icon: Icon(
-                          Icons.arrow_upward,
+                          Icons.arrow_upward_rounded,
                           size: 18,
-                          color: itemIndex > 0 ? primary : Colors.grey.shade300,
+                          color: itemIndex > 0 ? primary : Colors.grey.shade400,
                         ),
                         onPressed: itemIndex > 0
                             ? () => widget.onReorder!(itemIndex, itemIndex - 1)
@@ -332,11 +354,11 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
                         icon: Icon(
-                          Icons.arrow_downward,
+                          Icons.arrow_downward_rounded,
                           size: 18,
                           color: itemIndex < widget.items.length - 1
                               ? primary
-                              : Colors.grey.shade300,
+                              : Colors.grey.shade400,
                         ),
                         onPressed: itemIndex < widget.items.length - 1
                             ? () => widget.onReorder!(itemIndex, itemIndex + 1)
@@ -346,7 +368,7 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
                     ],
                     Text(
                       item.title,
-                      style: headerStyle?.copyWith(color: primary),
+                      style: headerStyle?.copyWith(color: primary, fontWeight: FontWeight.bold),
                     ),
                     if (widget.editMode &&
                         widget.onDeleteSubsection != null) ...[
@@ -355,7 +377,7 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
                         icon: const Icon(
-                          Icons.delete,
+                          Icons.delete_outline_rounded,
                           size: 20,
                           color: Colors.red,
                         ),
@@ -374,8 +396,8 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
           defaultVerticalAlignment: TableCellVerticalAlignment.middle,
           columnWidths: const {0: FlexColumnWidth(1), 1: FlexColumnWidth(1)},
           border: TableBorder(
-            horizontalInside: BorderSide(color: Colors.grey.shade300),
-            verticalInside: BorderSide(color: Colors.grey.shade200),
+            horizontalInside: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3)),
+            verticalInside: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.2)),
           ),
           children: item.rows
               .map(
@@ -417,12 +439,12 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
           : null,
       child: Container(
         alignment: Alignment.topCenter,
-        constraints: const BoxConstraints(minWidth: 400), // Minimum width
+        constraints: const BoxConstraints(minWidth: 400),
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           color: containerColor,
-          border: Border.all(color: Colors.grey.shade300),
-          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4)),
+          borderRadius: BorderRadius.circular(16),
         ),
         clipBehavior: Clip.hardEdge,
         child: SingleChildScrollView(
@@ -555,205 +577,268 @@ class _TableWidgetState extends ConsumerState<TableWidget> {
     final canReorder =
         widget.editMode && widget.onReorder != null && itemIndex >= 0;
     final theme = Theme.of(context);
-    final primary = theme.colorScheme.primary;
+    final colorScheme = theme.colorScheme;
+    final primary = colorScheme.primary;
     Widget leftCell;
     Widget rightCell;
 
     // Keep rows visually stable: fixed minimum height for both display and edit states
-    const minRowHeight = 52.0; // Increased for better mobile experience
+    const minRowHeight = 52.0;
+
+    final isLeftDirty = widget.isCellDirty?.call(index, true) ?? false;
+    final isRightDirty = widget.isCellDirty?.call(index, false) ?? false;
 
     if (isEditing && editingLeft) {
-      leftCell = ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: minRowHeight),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: GestureDetector(
-            onTap: () {}, // Consume tap to prevent exit editing
-            child: TextField(
-              controller: _controller,
-              focusNode: _focusNode,
-              autofocus: true,
-              decoration: InputDecoration(
-                isDense: false,
-                contentPadding: const EdgeInsets.symmetric(
-                  vertical: 14,
-                  horizontal: 12,
+      leftCell = Container(
+        decoration: BoxDecoration(
+          color: primary.withValues(alpha: 0.04),
+          border: Border(
+            left: BorderSide(color: primary, width: 3),
+          ),
+        ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: minRowHeight),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: GestureDetector(
+              onTap: () {},
+              child: TextField(
+                controller: _controller,
+                focusNode: _focusNode,
+                autofocus: true,
+                decoration: InputDecoration(
+                  isDense: false,
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 12,
+                    horizontal: 12,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(6),
-                ),
+                onSubmitted: (val) async => await _saveEdit(index, true, val),
+                onEditingComplete: () async =>
+                    await _saveEdit(index, true, _controller.text),
               ),
-              onSubmitted: (val) async => await _saveEdit(index, true, val),
-              onEditingComplete: () async =>
-                  await _saveEdit(index, true, _controller.text),
             ),
           ),
         ),
       );
     } else {
-      leftCell = ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: minRowHeight),
-        child: Row(
-          children: [
-            // Reorder buttons for assignments
-            if (canReorder) ...[
-              Column(
-                mainAxisSize: MainAxisSize.min,
+      leftCell = Container(
+        decoration: BoxDecoration(
+          color: isLeftDirty ? Colors.amber.withValues(alpha: 0.08) : null,
+          border: isLeftDirty
+              ? Border(left: BorderSide(color: Colors.amber.shade700, width: 3))
+              : null,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: widget.editMode
+                ? () async => await _onCellTap(index, true, r.left)
+                : null,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: minRowHeight),
+              child: Row(
                 children: [
-                  IconButton(
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 24,
-                      minHeight: 24,
+                  if (canReorder) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(left: 6.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 24,
+                              minHeight: 24,
+                            ),
+                            icon: Icon(
+                              Icons.arrow_upward_rounded,
+                              size: 16,
+                              color: itemIndex > 0 ? primary : Colors.grey.shade400,
+                            ),
+                            onPressed: itemIndex > 0
+                                ? () => widget.onReorder!(itemIndex, itemIndex - 1)
+                                : null,
+                          ),
+                          IconButton(
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 24,
+                              minHeight: 24,
+                            ),
+                            icon: Icon(
+                              Icons.arrow_downward_rounded,
+                              size: 16,
+                              color: itemIndex < widget.items.length - 1
+                                  ? primary
+                                  : Colors.grey.shade400,
+                            ),
+                            onPressed: itemIndex < widget.items.length - 1
+                                ? () => widget.onReorder!(itemIndex, itemIndex + 1)
+                                : null,
+                          ),
+                        ],
+                      ),
                     ),
-                    icon: Icon(
-                      Icons.arrow_upward,
-                      size: 16,
-                      color: itemIndex > 0 ? primary : Colors.grey.shade300,
+                  ],
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 10,
+                        horizontal: 12,
+                      ),
+                      child: () {
+                        final parts = r.left
+                            .split(',')
+                            .map((s) => s.trim())
+                            .where((s) => s.isNotEmpty)
+                            .toList();
+                        if (parts.isNotEmpty) {
+                          return Wrap(
+                            spacing: 6,
+                            runSpacing: 4,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: parts
+                                .map(
+                                  (t) => Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: colorScheme.surfaceContainerHigh,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      t,
+                                      style: textStyle?.copyWith(fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                          );
+                        }
+                        return Text(r.left, style: textStyle, softWrap: true);
+                      }(),
                     ),
-                    onPressed: itemIndex > 0
-                        ? () => widget.onReorder!(itemIndex, itemIndex - 1)
-                        : null,
-                  ),
-                  IconButton(
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 24,
-                      minHeight: 24,
-                    ),
-                    icon: Icon(
-                      Icons.arrow_downward,
-                      size: 16,
-                      color: itemIndex < widget.items.length - 1
-                          ? primary
-                          : Colors.grey.shade300,
-                    ),
-                    onPressed: itemIndex < widget.items.length - 1
-                        ? () => widget.onReorder!(itemIndex, itemIndex + 1)
-                        : null,
                   ),
                 ],
               ),
-            ],
-            Expanded(
-              child: GestureDetector(
-                onTap: widget.editMode
-                    ? () async => await _onCellTap(index, true, r.left)
-                    : null,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 10,
-                    horizontal: 12,
-                  ),
-                  child: () {
-                    final parts = r.left
-                        .split(',')
-                        .map((s) => s.trim())
-                        .where((s) => s.isNotEmpty)
-                        .toList();
-                    if (parts.isNotEmpty) {
-                      return Wrap(
-                        spacing: 6,
-                        runSpacing: 4,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: parts
-                            .map(
-                              (t) => Padding(
-                                padding: const EdgeInsets.only(right: 6),
-                                child: Text(t, style: textStyle),
-                              ),
-                            )
-                            .toList(),
-                      );
-                    }
-                    return Text(r.left, style: textStyle, softWrap: true);
-                  }(),
-                ),
-              ),
             ),
-          ],
+          ),
         ),
       );
     }
 
     if (isEditing && !editingLeft) {
-      rightCell = ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: minRowHeight),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: GestureDetector(
-            onTap: () {}, // Consume tap to prevent exit editing
-            child: TextField(
-              controller: _controller,
-              autofocus: true,
-              decoration: InputDecoration(
-                isDense: false,
-                contentPadding: const EdgeInsets.symmetric(
-                  vertical: 14,
-                  horizontal: 12,
+      rightCell = Container(
+        decoration: BoxDecoration(
+          color: primary.withValues(alpha: 0.04),
+          border: Border(
+            left: BorderSide(color: primary, width: 3),
+          ),
+        ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: minRowHeight),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: GestureDetector(
+              onTap: () {},
+              child: TextField(
+                controller: _controller,
+                autofocus: true,
+                decoration: InputDecoration(
+                  isDense: false,
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 12,
+                    horizontal: 12,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(6),
-                ),
+                onSubmitted: (val) async => await _saveEdit(index, false, val),
+                onEditingComplete: () async =>
+                    await _saveEdit(index, false, _controller.text),
               ),
-              onSubmitted: (val) async => await _saveEdit(index, false, val),
-              onEditingComplete: () async =>
-                  await _saveEdit(index, false, _controller.text),
             ),
           ),
         ),
       );
     } else {
-      rightCell = ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: minRowHeight),
-        child: Row(
-          children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: widget.editMode
-                    ? () async => await _onCellTap(index, false, r.right)
-                    : null,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 10,
-                    horizontal: 12,
+      rightCell = Container(
+        decoration: BoxDecoration(
+          color: isRightDirty ? Colors.amber.withValues(alpha: 0.08) : null,
+          border: isRightDirty
+              ? Border(left: BorderSide(color: Colors.amber.shade700, width: 3))
+              : null,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: widget.editMode
+                ? () async => await _onCellTap(index, false, r.right)
+                : null,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: minRowHeight),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 10,
+                        horizontal: 12,
+                      ),
+                      child: () {
+                        final parts = r.right
+                            .split(',')
+                            .map((s) => s.trim())
+                            .where((s) => s.isNotEmpty)
+                            .toList();
+                        if (parts.isNotEmpty) {
+                          return Wrap(
+                            spacing: 6,
+                            runSpacing: 4,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: parts
+                                .map(
+                                  (t) => Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: colorScheme.surfaceContainerHigh,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      t,
+                                      style: textStyle?.copyWith(fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                          );
+                        }
+                        return Text(r.right, style: textStyle, softWrap: true);
+                      }(),
+                    ),
                   ),
-                  child: () {
-                    final parts = r.right
-                        .split(',')
-                        .map((s) => s.trim())
-                        .where((s) => s.isNotEmpty)
-                        .toList();
-                    if (parts.isNotEmpty) {
-                      return Wrap(
-                        spacing: 6,
-                        runSpacing: 4,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: parts
-                            .map(
-                              (t) => Padding(
-                                padding: const EdgeInsets.only(right: 6),
-                                child: Text(t, style: textStyle),
-                              ),
-                            )
-                            .toList(),
-                      );
-                    }
-                    return Text(r.right, style: textStyle, softWrap: true);
-                  }(),
-                ),
+                  if (widget.editMode && widget.onDeleteAssignment != null) ...[
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline_rounded, size: 20, color: Colors.red),
+                      tooltip: translation('Delete', context: context),
+                      onPressed: () => widget.onDeleteAssignment!(index),
+                    ),
+                    const SizedBox(width: 6),
+                  ],
+                ],
               ),
             ),
-            if (widget.editMode && widget.onDeleteAssignment != null) ...[
-              const SizedBox(width: 8),
-              IconButton(
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                icon: const Icon(Icons.delete, size: 20, color: Colors.red),
-                onPressed: () => widget.onDeleteAssignment!(index),
-              ),
-            ],
-          ],
+          ),
         ),
       );
     }

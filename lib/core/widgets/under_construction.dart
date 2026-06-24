@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:faunty/core/widgets/custom_snackbar.dart';
+import 'package:faunty/core/utils/translation_helper.dart';
 import 'package:flutter/material.dart';
 
 /// Reusable under-construction page with a small, stylish animation.
@@ -19,6 +20,7 @@ class _UnderConstructionPageState extends State<UnderConstructionPage>
   late final Animation<double> _fadeAnim;
   late final Animation<double> _rotateAnim;
   late final Animation<double> _scaleAnim;
+  late final Animation<double> _floatAnim;
   late final AnimationController _lineCtrl;
 
   @override
@@ -55,19 +57,19 @@ class _UnderConstructionPageState extends State<UnderConstructionPage>
 
   @override
   void dispose() {
-  _lineCtrl.dispose();
+    _lineCtrl.dispose();
     _ctrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-  final colorScheme = Theme.of(context).colorScheme;
-  final primary = colorScheme.primary;
-  final secondary = colorScheme.secondary;
-  final onPrimary = colorScheme.onPrimary;
-  final onSurface = colorScheme.onSurface;
-  final surface = colorScheme.surface;
+    final colorScheme = Theme.of(context).colorScheme;
+    final primary = colorScheme.primary;
+    final secondary = colorScheme.secondary;
+    final onSurface = colorScheme.onSurface;
+    final surface = colorScheme.surface;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Center(
       child: Column(
@@ -91,11 +93,15 @@ class _UnderConstructionPageState extends State<UnderConstructionPage>
                       child: Container(
                         margin: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: surface.withOpacity(0.85),
+                          color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.02),
                           borderRadius: BorderRadius.circular(22),
+                          border: Border.all(
+                            color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05),
+                            width: 1,
+                          ),
                           boxShadow: [
                             BoxShadow(
-                              color: primary.withOpacity(0.12),
+                              color: primary.withOpacity(0.05),
                               blurRadius: 18,
                               offset: const Offset(0, 8),
                             ),
@@ -122,7 +128,7 @@ class _UnderConstructionPageState extends State<UnderConstructionPage>
                               colors: [primary.withOpacity(0.18), secondary.withOpacity(0.12)],
                             ),
                           ),
-                          child: Center(child: Icon(Icons.build_rounded, size: 20, color: onPrimary.withOpacity(0.95))),
+                          child: Center(child: Icon(Icons.build_rounded, size: 20, color: primary)),
                         ),
                       ),
                     ),
@@ -145,7 +151,7 @@ class _UnderConstructionPageState extends State<UnderConstructionPage>
                               colors: [secondary.withOpacity(0.16), primary.withOpacity(0.12)],
                             ),
                           ),
-                          child: Center(child: Icon(Icons.settings_suggest_rounded, size: 20, color: onPrimary.withOpacity(0.95))),
+                          child: Center(child: Icon(Icons.settings_suggest_rounded, size: 20, color: secondary)),
                         ),
                       ),
                     ),
@@ -161,9 +167,9 @@ class _UnderConstructionPageState extends State<UnderConstructionPage>
                               begin: Alignment(-1.0 + _slideAnim.value, -1),
                               end: Alignment(1.0 + _slideAnim.value, 1),
                               colors: [
-                                primary.withOpacity(0.95),
-                                onPrimary.withOpacity(0.98),
-                                secondary.withOpacity(0.95),
+                                primary,
+                                primary.withOpacity(0.4),
+                                secondary,
                               ],
                               stops: const [0.0, 0.5, 1.0],
                             ).createShader(rect);
@@ -173,7 +179,7 @@ class _UnderConstructionPageState extends State<UnderConstructionPage>
                             child: Icon(
                               Icons.construction_rounded,
                               size: 132,
-                              color: onSurface.withOpacity(0.98),
+                              color: Colors.white,
                             ),
                           ),
                         ),
@@ -206,14 +212,16 @@ class _UnderConstructionPageState extends State<UnderConstructionPage>
 
           const SizedBox(height: 18),
           Text(
-            widget.label,
+            translation(context: context, widget.label),
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 6),
           Text(
-            'This page is under construction',
+            translation(context: context, 'This page is under construction'),
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+            ),
           ),
           const SizedBox(height: 14),
 
@@ -241,10 +249,10 @@ class _UnderConstructionPageState extends State<UnderConstructionPage>
           // CTA
           ElevatedButton.icon(
             onPressed: () {
-              showCustomSnackBar(context, 'No I will not');
+              showCustomSnackBar(context, translation(context: context, 'Great! We will let you know as soon as this feature is live.'));
             },
             icon: const Icon(Icons.notifications_none_outlined),
-            label: const Text('Notify me when ready'),
+            label: Text(translation(context: context, 'Notify me when ready')),
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
             ),

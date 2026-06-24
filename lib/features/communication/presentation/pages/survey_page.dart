@@ -7,6 +7,8 @@ import 'package:faunty/features/communication/presentation/controllers/survey_pr
 import 'package:faunty/features/profile/presentation/controllers/user_list_provider.dart';
 import 'package:faunty/features/auth/domain/entities/user_roles.dart';
 import 'package:faunty/core/widgets/tab_page.dart';
+import 'package:faunty/features/profile/presentation/widgets/navigation_bar.dart';
+import 'package:faunty/core/widgets/custom_app_bar.dart';
 
 class SurveyPage extends ConsumerStatefulWidget {
   const SurveyPage({super.key});
@@ -35,6 +37,25 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
         final surveyAsync = ref.watch(surveyProvider(placeId));
         final surveyService = ref.read(surveyFirestoreServiceProvider(placeId));
         final isDark = Theme.of(context).brightness == Brightness.dark;
+        final inputDeco = (String label) => InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color: Theme.of(context).dividerColor.withOpacity(0.12),
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color: Theme.of(context).colorScheme.primary,
+              width: 2,
+            ),
+          ),
+        );
 
         return usersByPlaceAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -49,6 +70,7 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
               );
             });
             return Scaffold(
+              floatingActionButtonLocation: const OffsettedFABLocation(FloatingActionButtonLocation.endFloat, 80.0),
               appBar: null,
               body: surveyAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
@@ -58,7 +80,7 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                     return Center(child: Text(translation('No surveys available', context: context)));
                   }
                   return ListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                    padding: const EdgeInsets.fromLTRB(8, 96, 8, 96),
                     itemCount: surveys.length,
                     itemBuilder: (context, index) {
                       final survey = surveys[index];
@@ -66,42 +88,54 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                           .map((e) => Map<String, dynamic>.from(e as Map))
                           .toList();
                       final surveyId = survey['id'];
-                      return Card(
-                        color: isDark ? Colors.grey[850] : null,
-                        margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          translation(survey['title'], context: context),
-                                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 17),
-                                        ),
-                                        if ((survey['description'] ?? '').toString().trim().isNotEmpty)
-                                          Padding(
-                                            padding: const EdgeInsets.only(top: 4.0),
-                                            child: Text(
-                                              translation(survey['description'], context: context),
-                                              style: const TextStyle(fontSize: 13, color: Colors.grey),
-                                            ),
+                      return Container(
+                        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.02),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05),
+                            width: 1,
+                          ),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(24),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            translation(survey['title'], context: context),
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                                           ),
-                                      ],
+                                          if ((survey['description'] ?? '').toString().trim().isNotEmpty)
+                                            Padding(
+                                              padding: const EdgeInsets.only(top: 4.0),
+                                              child: Text(
+                                                translation(survey['description'], context: context),
+                                                style: TextStyle(
+                                                  fontSize: 13, 
+                                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  // Only show edit button if user is Hoca or higher, or the creator
-                                  if (user.role.index <= UserRole.hoca.index || (survey['createdBy'] as String?) == user.uid)
-                                    IconButton(
-                                      icon: const Icon(Icons.edit),
-                                      tooltip: translation('Edit', context: context),
+                                    // Only show edit button if user is Hoca or higher, or the creator
+                                    if (user.role.index <= UserRole.hoca.index || (survey['createdBy'] as String?) == user.uid)
+                                      IconButton(
+                                        icon: const Icon(Icons.edit_rounded),
+                                        tooltip: translation('Edit', context: context),
                                       onPressed: () async {
                                       String editTitle = survey['title'];
                                       String editDescription = (survey['description'] ?? '').toString();
@@ -171,9 +205,9 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                                           // form key to validate fields inline
                                           final formKey = GlobalKey<FormState>();
                                           return Dialog(
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                                             child: Padding(
-                                              padding: const EdgeInsets.all(20),
+                                              padding: const EdgeInsets.all(24),
                                               child: SingleChildScrollView(
                                                 child: Form(
                                                   key: formKey,
@@ -186,12 +220,12 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                                                         children: [
                                                           Text(
                                                             translation('Edit Survey', context: context),
-                                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
                                                           ),
                                                           // Delete button in header (only if current user can edit)
                                                           if (user.role.index <= UserRole.hoca.index || (survey['createdBy'] as String?) == user.uid)
                                                             IconButton(
-                                                              icon: const Icon(Icons.delete_forever, color: Colors.red),
+                                                              icon: const Icon(Icons.delete_forever_rounded, color: Colors.red),
                                                               tooltip: translation('Delete survey', context: context),
                                                               onPressed: () async {
                                                                 final confirm = await showDialog<bool>(
@@ -218,17 +252,14 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                                                             ),
                                                         ],
                                                       ),
-                                                      const SizedBox(height: 16),
+                                                      const SizedBox(height: 20),
                                                       TextFormField(
                                                         controller: titleController,
-                                                        decoration: InputDecoration(
-                                                          labelText: translation('Survey Title', context: context),
-                                                          border: const OutlineInputBorder(),
-                                                        ),
+                                                        decoration: inputDeco(translation('Survey Title', context: context)),
                                                         validator: (val) => (val == null || val.trim().isEmpty) ? translation('Please fill in the title', context: context) : null,
                                                         onChanged: (val) => editTitle = val,
                                                       ),
-                                                      const SizedBox(height: 12),
+                                                      const SizedBox(height: 16),
                                                       ValueListenableBuilder<int>(
                                                         valueListenable: descriptionLengthNotifier,
                                                         builder: (context, len, _) {
@@ -236,19 +267,15 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                                                             controller: descriptionController,
                                                             maxLength: 250,
                                                             inputFormatters: [LengthLimitingTextInputFormatter(250)],
-                                                            decoration: InputDecoration(
-                                                              labelText: translation('Description (optional)', context: context) + ' (' + len.toString() + '/250)',
-                                                              border: const OutlineInputBorder(),
-                                                              counterText: '',
-                                                            ),
+                                                            decoration: inputDeco(translation('Description (optional)', context: context) + ' (' + len.toString() + '/250)'),
                                                             onChanged: (val) => editDescription = val,
                                                           );
                                                         },
                                                       ),
-                                                      const SizedBox(height: 16),
+                                                      const SizedBox(height: 20),
                                                       Text(
                                                         translation('Options', context: context),
-                                                        style: const TextStyle(fontWeight: FontWeight.w500),
+                                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                                                       ),
                                                       const SizedBox(height: 8),
                                                       ValueListenableBuilder<int>(
@@ -260,14 +287,11 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                                                                 children: [
                                                                   Expanded(
                                                                     child: Padding(
-                                                                      padding: const EdgeInsets.all(8.0),
+                                                                      padding: const EdgeInsets.symmetric(vertical: 6.0),
                                                                       child: TextFormField(
                                                                         focusNode: optionFocusNodes[i],
                                                                         controller: optionControllers[i],
-                                                                        decoration: InputDecoration(
-                                                                          labelText: translation('Option', context: context) + ' ${i + 1}',
-                                                                          border: const OutlineInputBorder(),
-                                                                        ),
+                                                                        decoration: inputDeco(translation('Option', context: context) + ' ${i + 1}'),
                                                                         validator: (val) {
                                                                           if (optionsEditedNotifier.value && (val == null || val.trim().isEmpty)) {
                                                                             return translation('Please fill in all fields', context: context);
@@ -491,99 +515,132 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                                 final percent = totalVotes > 0 ? count / totalVotes : 0.0;
                                 return Padding(
                                   padding: const EdgeInsets.symmetric(vertical: 4.0),
-                                  child: Stack(
-                                    alignment: Alignment.center,
-                                    children: [
-                                      Positioned.fill(
-                                        child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(16),
-                                          child: LinearProgressIndicator(
-                                            value: percent,
-                                            backgroundColor: Colors.transparent,
-                                            valueColor: AlwaysStoppedAnimation<Color>(
-                                              Theme.of(context).colorScheme.primary.withOpacity(0.35),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: isSelected 
+                                            ? Theme.of(context).colorScheme.primary.withOpacity(0.4) 
+                                            : (isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04)),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(16),
+                                      child: Stack(
+                                        alignment: Alignment.center,
+                                        children: [
+                                          Positioned.fill(
+                                            child: LinearProgressIndicator(
+                                              value: percent,
+                                              backgroundColor: Colors.transparent,
+                                              valueColor: AlwaysStoppedAnimation<Color>(
+                                                Theme.of(context).colorScheme.primary.withOpacity(isDark ? 0.22 : 0.12),
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                      ),
-                                      Material(
-                                        color: Colors.transparent,
-                                        borderRadius: BorderRadius.circular(16),
-                                        elevation: 0.5,
-                                        child: InkWell(
-                                          borderRadius: BorderRadius.circular(16),
-                                          onTap: () async {
-                                            // serialize actions per survey to avoid race when switching selections
-                                            final actionKey = '$surveyId';
-                                            if (_pendingActions.contains(actionKey)) return; // ignore rapid duplicate taps
-                                            _pendingActions.add(actionKey);
-                                            try {
-                                              if (allowMultiple) {
-                                                if (isSelected) {
-                                                  await surveyService.decrementVote(surveyId, option['value'], userId: userId);
-                                                } else {
-                                                  await surveyService.incrementVote(surveyId, option['value'], userId: userId);
+                                          Material(
+                                            color: Colors.transparent,
+                                            borderRadius: BorderRadius.circular(16),
+                                            child: InkWell(
+                                              borderRadius: BorderRadius.circular(16),
+                                              onTap: () async {
+                                                // serialize actions per survey to avoid race when switching selections
+                                                final actionKey = '$surveyId';
+                                                if (_pendingActions.contains(actionKey)) return; // ignore rapid duplicate taps
+                                                _pendingActions.add(actionKey);
+                                                try {
+                                                  if (allowMultiple) {
+                                                    if (isSelected) {
+                                                      await surveyService.decrementVote(surveyId, option['value'], userId: userId);
+                                                    } else {
+                                                      await surveyService.incrementVote(surveyId, option['value'], userId: userId);
+                                                    }
+                                                  } else {
+                                                    // Single choice: deselect if already selected, otherwise select the tapped option.
+                                                    if (isSelected) {
+                                                      await surveyService.decrementVote(surveyId, option['value'], userId: userId);
+                                                    } else {
+                                                      await surveyService.selectOption(surveyId, option['value'], userId: userId);
+                                                    }
+                                                  }
+                                                } finally {
+                                                  _pendingActions.remove(actionKey);
                                                 }
-                                              } else {
-                                                // Single choice: deselect if already selected, otherwise select the tapped option.
-                                                // Calling selectOption always will remove the user from any other option and add to the new one atomically.
-                                                if (isSelected) {
-                                                  await surveyService.decrementVote(surveyId, option['value'], userId: userId);
-                                                } else {
-                                                  await surveyService.selectOption(surveyId, option['value'], userId: userId);
-                                                }
-                                              }
-                                            } finally {
-                                              _pendingActions.remove(actionKey);
-                                            }
-                                          },
-                                          child: Padding(
-                                            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                                            child: Row(
-                                              children: [
-                                                allowMultiple
-                                                    ? Icon(
-                                                        isSelected
-                                                            ? Icons.check_box
-                                                            : Icons.check_box_outline_blank,
-                                                        color: Theme.of(context).colorScheme.primary,
-                                                        size: 22,
-                                                      )
-                                                    : Icon(
-                                                        isSelected
-                                                            ? Icons.radio_button_checked
-                                                            : Icons.radio_button_unchecked,
-                                                        color: Theme.of(context).colorScheme.primary,
-                                                        size: 22,
+                                              },
+                                              child: Padding(
+                                                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                                                child: Row(
+                                                  children: [
+                                                    allowMultiple
+                                                        ? Container(
+                                                            width: 22,
+                                                            height: 22,
+                                                            decoration: BoxDecoration(
+                                                              color: isSelected ? Theme.of(context).colorScheme.primary : Colors.transparent,
+                                                              borderRadius: BorderRadius.circular(6),
+                                                              border: Border.all(
+                                                                color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+                                                                width: 2,
+                                                              ),
+                                                            ),
+                                                            child: isSelected 
+                                                                ? Icon(Icons.check_rounded, size: 16, color: Theme.of(context).colorScheme.onPrimary)
+                                                                : null,
+                                                          )
+                                                        : Container(
+                                                            width: 22,
+                                                            height: 22,
+                                                            decoration: BoxDecoration(
+                                                              shape: BoxShape.circle,
+                                                              border: Border.all(
+                                                                color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+                                                                width: 2,
+                                                              ),
+                                                            ),
+                                                            padding: const EdgeInsets.all(3),
+                                                            child: isSelected 
+                                                                ? Container(
+                                                                    decoration: BoxDecoration(
+                                                                      shape: BoxShape.circle,
+                                                                      color: Theme.of(context).colorScheme.primary,
+                                                                    ),
+                                                                  )
+                                                                : null,
+                                                          ),
+                                                    const SizedBox(width: 16),
+                                                    Expanded(
+                                                      child: Text(
+                                                        translation(option['label'], context: context),
+                                                        style: TextStyle(
+                                                          fontSize: 15,
+                                                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                                        ),
                                                       ),
-                                                const SizedBox(width: 12),
-                                                Expanded(
-                                                  child: Text(
-                                                    translation(option['label'], context: context),
-                                                    style: const TextStyle(fontSize: 15),
-                                                  ),
-                                                ),
-                                                Container(
-                                                  margin: const EdgeInsets.only(left: 8),
-                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                                  decoration: BoxDecoration(
-                                                    color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
-                                                    borderRadius: BorderRadius.circular(12),
-                                                  ),
-                                                  child: Text(
-                                                    count.toString(),
-                                                    style: TextStyle(
-                                                      fontWeight: FontWeight.w500,
-                                                      color: Theme.of(context).colorScheme.primary,
                                                     ),
-                                                  ),
+                                                    Container(
+                                                      margin: const EdgeInsets.only(left: 8),
+                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                                      decoration: BoxDecoration(
+                                                        color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+                                                        borderRadius: BorderRadius.circular(12),
+                                                      ),
+                                                      child: Text(
+                                                        count.toString(),
+                                                        style: TextStyle(
+                                                          fontWeight: FontWeight.w500,
+                                                          color: Theme.of(context).colorScheme.primary,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
-                                              ],
+                                              ),
                                             ),
                                           ),
-                                        ),
+                                        ],
                                       ),
-                                    ],
+                                    ),
                                   ),
                                 );
                               }).toList(),
@@ -677,9 +734,10 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                             ],
                           ),
                         ),
-                      );
-                    },
-                  );
+                      ),
+                    );
+                  },
+                );
                 },
               ),
               floatingActionButton: FloatingActionButton(
@@ -716,9 +774,9 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                     builder: (context) {
                       final formKey = GlobalKey<FormState>();
                       return Dialog(
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                         child: Padding(
-                          padding: const EdgeInsets.all(20),
+                          padding: const EdgeInsets.all(24),
                           child: SingleChildScrollView(
                             child: Form(
                               key: formKey,
@@ -728,19 +786,16 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                                 children: [
                                   Text(
                                     translation('Add Survey', context: context),
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
                                   ),
-                                  const SizedBox(height: 16),
+                                  const SizedBox(height: 20),
                                   TextFormField(
                                     controller: titleController,
                                     autofocus: true,
-                                    decoration: InputDecoration(
-                                      labelText: translation('Survey Title', context: context),
-                                      border: const OutlineInputBorder(),
-                                    ),
+                                    decoration: inputDeco(translation('Survey Title', context: context)),
                                     validator: (val) => (val == null || val.trim().isEmpty) ? translation('Please fill in the title', context: context) : null,
                                   ),
-                                  const SizedBox(height: 12),
+                                  const SizedBox(height: 16),
                                   ValueListenableBuilder<int>(
                                     valueListenable: descriptionLengthNotifier,
                                     builder: (context, len, _) {
@@ -748,18 +803,14 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                                         controller: descriptionController,
                                         maxLength: 250,
                                         inputFormatters: [LengthLimitingTextInputFormatter(250)],
-                                        decoration: InputDecoration(
-                                          labelText: translation('Description (optional)', context: context) + ' (' + len.toString() + '/250)',
-                                          border: const OutlineInputBorder(),
-                                          counterText: '',
-                                        ),
+                                        decoration: inputDeco(translation('Description (optional)', context: context) + ' (' + len.toString() + '/250)'),
                                       );
                                     },
                                   ),
-                                  const SizedBox(height: 16),
+                                  const SizedBox(height: 20),
                                   Text(
                                     translation('Options', context: context),
-                                    style: const TextStyle(fontWeight: FontWeight.w500),
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                                   ),
                                   const SizedBox(height: 8),
                                   ValueListenableBuilder<int>(
@@ -771,14 +822,11 @@ class _SurveyPageState extends ConsumerState<SurveyPage> {
                                             children: [
                                               Expanded(
                                                 child: Padding(
-                                                  padding: const EdgeInsets.all(8.0),
+                                                  padding: const EdgeInsets.symmetric(vertical: 6.0),
                                                   child: TextFormField(
                                                     focusNode: optionFocusNodes[i],
                                                     controller: optionControllers[i],
-                                                    decoration: InputDecoration(
-                                                      labelText: translation('Option', context: context) + ' ${i + 1}',
-                                                      border: const OutlineInputBorder(),
-                                                    ),
+                                                    decoration: inputDeco(translation('Option', context: context) + ' ${i + 1}'),
                                                     validator: (val) {
                                                       if (val == null || val.trim().isEmpty) {
                                                         return translation('Please fill in all fields', context: context);

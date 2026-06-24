@@ -143,6 +143,7 @@ class _HomePageState extends ConsumerState<HomePage> {
         final cateringAsync = ref.watch(cateringWeekPlanProvider);
         final cleaningAsync = ref.watch(cleaningDataProvider);
         return Scaffold(
+          extendBodyBehindAppBar: true,
           drawer: const HomeDrawer(),
           appBar: CustomAppBar(
             title: translation(context: context, 'Home'),
@@ -221,7 +222,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                         physics: const BouncingScrollPhysics(),
                         child: Column(
                           children: [
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 80),
                             SizedBox(
                               width: double.infinity,
                               child: GlassContainer(
@@ -230,22 +231,52 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      translation(context: context, 'Program'),
-                                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(
+                                            Icons.calendar_today_rounded,
+                                            size: 20,
+                                            color: Theme.of(context).colorScheme.primary,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          translation(context: context, 'Program'),
+                                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(height: 12),
+                                    const SizedBox(height: 16),
                                     weekProgramAsync.when(
                                       data: (data) {
                                         final appointments = getNextAppointments(data);
                                         if (appointments.isEmpty) {
-                                          return Text(translation(context: context, 'No program entries found for this week.'));
+                                          return Padding(
+                                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                            child: Text(
+                                              translation(context: context, 'No program entries found for this week.'),
+                                              style: TextStyle(
+                                                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                              ),
+                                            ),
+                                          );
                                         }
                                         final now = DateTime.now();
                                         final todayIdx = now.weekday - 1;
                                         final nowTime = TimeOfDay(hour: now.hour, minute: now.minute);
+                                        final primaryColor = Theme.of(context).colorScheme.primary;
+                                        final onSurfaceColor = Theme.of(context).colorScheme.onSurface;
+                                        final lineColor = onSurfaceColor.withOpacity(0.15);
+
                                         return Column(
                                           children: appointments.asMap().entries.map((entry) {
+                                            final index = entry.key;
                                             final a = entry.value;
                                             bool isCurrent = false;
                                             final eventDayIdx = weekDaysShort.indexOf(a['day']!);
@@ -254,8 +285,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                                               final from = TimeOfDay(hour: int.parse(fromParts[0]), minute: int.parse(fromParts[1]));
                                               // Find next event for today
                                               TimeOfDay? nextFrom;
-                                              if (entry.key < appointments.length - 1) {
-                                                final next = appointments[entry.key + 1];
+                                              if (index < appointments.length - 1) {
+                                                final next = appointments[index + 1];
                                                 final nextDayIdx = weekDaysShort.indexOf(next['day']!);
                                                 if (nextDayIdx == todayIdx) {
                                                   final nextFromParts = next['from']!.split(':');
@@ -266,57 +297,142 @@ class _HomePageState extends ConsumerState<HomePage> {
                                               bool beforeNext = nextFrom == null || (nowTime.hour < nextFrom.hour || (nowTime.hour == nextFrom.hour && nowTime.minute < nextFrom.minute));
                                               isCurrent = afterFrom && beforeNext;
                                             }
-                                            bool isNewDay = false;
-                                            if (entry.key == 0) {
-                                              isNewDay = true;
-                                            } else {
-                                              final prev = appointments[entry.key - 1];
-                                              isNewDay = a['day'] != prev['day'];
-                                            }
-                                            return Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                if (isNewDay && entry.key != 0) const SizedBox(height: 10),
-                                                Padding(
-                                                  padding: const EdgeInsets.symmetric(vertical: 4.0),
-                                                  child: Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                                    decoration: BoxDecoration(
-                                                      color: isCurrent 
-                                                          ? (isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.04))
-                                                          : Colors.transparent,
-                                                      borderRadius: BorderRadius.circular(12),
-                                                      border: Border.all(
-                                                        color: isCurrent 
-                                                            ? (isDark ? Colors.white.withOpacity(0.3) : Colors.black.withOpacity(0.3))
-                                                            : (isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05)),
-                                                        width: 1,
-                                                      ),
-                                                    ),
-                                                    child: Row(
+
+                                            final isFirst = index == 0;
+                                            final isLast = index == appointments.length - 1;
+                                            final cardBgColor = isCurrent
+                                                ? primaryColor.withOpacity(isDark ? 0.12 : 0.08)
+                                                : (isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.015));
+
+                                            return IntrinsicHeight(
+                                              child: Row(
+                                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                                children: [
+                                                  // Left vertical timeline indicator
+                                                  SizedBox(
+                                                    width: 24,
+                                                    child: Column(
                                                       children: [
-                                                        if (isCurrent) ...[
-                                                          Container(
-                                                            width: 8,
-                                                            height: 8,
-                                                            decoration: BoxDecoration(
-                                                              shape: BoxShape.circle,
-                                                              color: isDark ? Colors.white : Colors.black,
-                                                            ),
+                                                        Expanded(
+                                                          flex: 1,
+                                                          child: Container(
+                                                            width: 2,
+                                                            color: isFirst ? Colors.transparent : lineColor,
                                                           ),
-                                                          const SizedBox(width: 8),
-                                                        ],
-                                                        Text(
-                                                          '${a['day']} ',
-                                                          style: const TextStyle(fontWeight: FontWeight.bold),
                                                         ),
-                                                        Text('${a['from']} - ${a['to']}: '),
-                                                        Expanded(child: Text(a['event']!)),
+                                                        const SizedBox(height: 4),
+                                                        Container(
+                                                          width: isCurrent ? 14 : 10,
+                                                          height: isCurrent ? 14 : 10,
+                                                          decoration: BoxDecoration(
+                                                            shape: BoxShape.circle,
+                                                            color: isCurrent ? primaryColor : onSurfaceColor.withOpacity(0.3),
+                                                            boxShadow: isCurrent ? [
+                                                              BoxShadow(
+                                                                color: primaryColor.withOpacity(0.4),
+                                                                blurRadius: 8,
+                                                                spreadRadius: 2,
+                                                              )
+                                                            ] : null,
+                                                          ),
+                                                        ),
+                                                        const SizedBox(height: 4),
+                                                        Expanded(
+                                                          flex: 2,
+                                                          child: Container(
+                                                            width: 2,
+                                                            color: isLast ? Colors.transparent : lineColor,
+                                                          ),
+                                                        ),
                                                       ],
                                                     ),
                                                   ),
-                                                ),
-                                              ],
+                                                  const SizedBox(width: 12),
+                                                  // Right side: The event Card block
+                                                  Expanded(
+                                                    child: Padding(
+                                                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                                                      child: Container(
+                                                        decoration: BoxDecoration(
+                                                          color: cardBgColor,
+                                                          borderRadius: BorderRadius.circular(16),
+                                                          border: Border.all(
+                                                            color: isCurrent 
+                                                                ? primaryColor.withOpacity(0.4)
+                                                                : (isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04)),
+                                                            width: 1,
+                                                          ),
+                                                          boxShadow: isCurrent ? [
+                                                            BoxShadow(
+                                                              color: primaryColor.withOpacity(0.06),
+                                                              blurRadius: 10,
+                                                              offset: const Offset(0, 4),
+                                                            )
+                                                          ] : null,
+                                                        ),
+                                                        child: ClipRRect(
+                                                          borderRadius: BorderRadius.circular(16),
+                                                          child: Container(
+                                                            decoration: BoxDecoration(
+                                                              border: Border(
+                                                                left: BorderSide(
+                                                                  color: isCurrent ? primaryColor : Colors.transparent,
+                                                                  width: 4,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            padding: const EdgeInsets.all(12),
+                                                            child: Column(
+                                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                                              children: [
+                                                                Row(
+                                                                  children: [
+                                                                    Text(
+                                                                      '${a['day']} • ${a['from']} - ${a['to']}',
+                                                                      style: TextStyle(
+                                                                        fontSize: 12,
+                                                                        fontWeight: FontWeight.bold,
+                                                                        color: isCurrent ? primaryColor : onSurfaceColor.withOpacity(0.6),
+                                                                      ),
+                                                                    ),
+                                                                    if (isCurrent) ...[
+                                                                      const Spacer(),
+                                                                      Container(
+                                                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                                                        decoration: BoxDecoration(
+                                                                          color: primaryColor,
+                                                                          borderRadius: BorderRadius.circular(12),
+                                                                        ),
+                                                                        child: Text(
+                                                                          translation(context: context, 'NOW'),
+                                                                          style: TextStyle(
+                                                                            fontSize: 9,
+                                                                            fontWeight: FontWeight.bold,
+                                                                            color: Theme.of(context).colorScheme.onPrimary,
+                                                                          ),
+                                                                        ),
+                                                                      ),
+                                                                    ],
+                                                                  ],
+                                                                ),
+                                                                const SizedBox(height: 6),
+                                                                Text(
+                                                                  a['event']!,
+                                                                  style: TextStyle(
+                                                                    fontSize: 14,
+                                                                    fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                                                                    color: onSurfaceColor,
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
                                             );
                                           }).toList(),
                                         );
@@ -332,63 +448,184 @@ class _HomePageState extends ConsumerState<HomePage> {
                             GlassContainer(
                               margin: const EdgeInsets.symmetric(horizontal: 16),
                               padding: const EdgeInsets.all(16.0),
-                              child: Row(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Icon(Icons.dining, color: Theme.of(context).colorScheme.primary),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: cateringAsync.when(
-                                      data: (data) {
-                                        final now = DateTime.now();
-                                        final todayIdx = now.weekday - 1; // Monday=0
-                                        for (int offset = 0; offset < 7; offset++) {
-                                          final dayIdx = (todayIdx + offset) % 7;
-                                          final List<int> assignedMeals = [];
-                                          final fullName = "${user.firstName} ${user.lastName}";
-                                          for (int meal = 0; meal < data[dayIdx].length; meal++) {
-                                            final names = data[dayIdx][meal];
-                                            if (names.contains(fullName)) {
-                                              assignedMeals.add(meal);
-                                            }
-                                          }
-                                          if (assignedMeals.isNotEmpty) {
-                                            final isToday = offset == 0;
-                                            final weekday = isToday ? translation(context: context, 'Today') : weekDaysFull[dayIdx];
-                                            return Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  translation(context: context, 'Your next catering assignment:'),
-                                                  style: const TextStyle(fontWeight: FontWeight.bold),
-                                                ),
-                                                const SizedBox(height: 4),
-                                                Row(
-                                                  children: [
-                                                    Text(
-                                                      weekday,
-                                                      style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary),
-                                                    ),
-                                                    const Text(': '),
-                                                    ...assignedMeals.asMap().entries.map((entry) => Row(
-                                                      children: [
-                                                        Text(
-                                                          mealNames[entry.value],
-                                                          style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : Colors.black87),
-                                                        ),
-                                                        if (entry.key != assignedMeals.length - 1)
-                                                          const Text(', '),
-                                                      ],
-                                                    )),
-                                                  ],
-                                                ),
-                                              ],
-                                            );
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(
+                                          Icons.restaurant_rounded,
+                                          size: 20,
+                                          color: Theme.of(context).colorScheme.primary,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Text(
+                                        translation(context: context, 'Catering Assignment'),
+                                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  cateringAsync.when(
+                                    data: (data) {
+                                      final now = DateTime.now();
+                                      final todayIdx = now.weekday - 1; // Monday=0
+                                      String? assignedWeekday;
+                                      List<int> assignedMeals = [];
+                                      
+                                      for (int offset = 0; offset < 7; offset++) {
+                                        final dayIdx = (todayIdx + offset) % 7;
+                                        final List<int> meals = [];
+                                        final fullName = "${user.firstName} ${user.lastName}";
+                                        for (int meal = 0; meal < data[dayIdx].length; meal++) {
+                                          final names = data[dayIdx][meal];
+                                          if (names.contains(fullName)) {
+                                            meals.add(meal);
                                           }
                                         }
-                                        return Text(translation(context: context, 'No upcoming catering assignment found.'));
-                                      },
-                                      loading: () => Text(translation(context: context, 'Catering wird geladen...')),
-                                      error: (e, s) => Text(translation(context: context, 'Error loading Catering.')),
+                                        if (meals.isNotEmpty) {
+                                          final isToday = offset == 0;
+                                          assignedWeekday = isToday ? translation(context: context, 'Today') : weekDaysFull[dayIdx];
+                                          assignedMeals = meals;
+                                          break;
+                                        }
+                                      }
+                                      
+                                      if (assignedWeekday != null && assignedMeals.isNotEmpty) {
+                                        return Container(
+                                          width: double.infinity,
+                                          padding: const EdgeInsets.all(16),
+                                          decoration: BoxDecoration(
+                                            color: Theme.of(context).colorScheme.primary.withOpacity(isDark ? 0.08 : 0.04),
+                                            borderRadius: BorderRadius.circular(16),
+                                            border: Border.all(
+                                              color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.event_available_rounded,
+                                                    size: 16,
+                                                    color: Theme.of(context).colorScheme.primary,
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  Text(
+                                                    assignedWeekday,
+                                                    style: TextStyle(
+                                                      fontSize: 16,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: Theme.of(context).colorScheme.primary,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 12),
+                                              Text(
+                                                translation(context: context, 'You are assigned to prepare:'),
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Wrap(
+                                                spacing: 8,
+                                                runSpacing: 8,
+                                                children: assignedMeals.map((mealIdx) {
+                                                  return Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                                    decoration: BoxDecoration(
+                                                      color: Theme.of(context).colorScheme.surface,
+                                                      borderRadius: BorderRadius.circular(20),
+                                                      border: Border.all(
+                                                        color: Theme.of(context).dividerColor.withOpacity(0.12),
+                                                        width: 1,
+                                                      ),
+                                                    ),
+                                                    child: Row(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        Icon(
+                                                          mealIdx == 0 
+                                                              ? Icons.wb_sunny_rounded
+                                                              : mealIdx == 1
+                                                                  ? Icons.lunch_dining_rounded
+                                                                  : Icons.dinner_dining_rounded,
+                                                          size: 14,
+                                                          color: Theme.of(context).colorScheme.primary,
+                                                        ),
+                                                        const SizedBox(width: 6),
+                                                        Text(
+                                                          translation(context: context, mealNames[mealIdx]),
+                                                          style: TextStyle(
+                                                            fontSize: 12,
+                                                            fontWeight: FontWeight.bold,
+                                                            color: Theme.of(context).colorScheme.onSurface,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  );
+                                                }).toList(),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      }
+                                      
+                                      return Container(
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.all(16),
+                                        decoration: BoxDecoration(
+                                          color: isDark ? Colors.white.withOpacity(0.02) : Colors.black.withOpacity(0.01),
+                                          borderRadius: BorderRadius.circular(16),
+                                          border: Border.all(
+                                            color: Theme.of(context).dividerColor.withOpacity(0.05),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.check_circle_outline_rounded,
+                                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.4),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Text(
+                                                translation(context: context, 'No upcoming catering assignment found.'),
+                                                style: TextStyle(
+                                                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                    loading: () => Center(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Text(translation(context: context, 'Catering wird geladen...')),
+                                      ),
+                                    ),
+                                    error: (e, s) => Center(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Text(translation(context: context, 'Error loading Catering.')),
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -398,55 +635,171 @@ class _HomePageState extends ConsumerState<HomePage> {
                             GlassContainer(
                               margin: const EdgeInsets.symmetric(horizontal: 16),
                               padding: const EdgeInsets.all(16.0),
-                              child: Row(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Icon(Icons.cleaning_services, color: Theme.of(context).colorScheme.primary),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: cleaningAsync.when(
-                                      data: (data) {
-                                        final places = data as Map<String, dynamic>? ?? {};
-                                        if (places.isEmpty) {
-                                          return Text(translation(context: context, 'No cleaning assignments found.'));
-                                        }
-                                        final userPlaces = <String>[];
-                                        places.forEach((placeId, placeData) {
-                                          if (placeData is Map) {
-                                            final assignees = placeData['assignees'];
-                                            if (assignees is List && assignees.any((a) {
-                                              if (a is String) {
-                                                final assigneeUid = a.split('_').first;
-                                                return assigneeUid == user.uid;
-                                              }
-                                              return false;
-                                            })) {
-                                              userPlaces.add(placeData['name'] as String? ?? placeId);
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(
+                                          Icons.cleaning_services_rounded,
+                                          size: 20,
+                                          color: Theme.of(context).colorScheme.primary,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Text(
+                                        translation(context: context, 'Cleaning Assignment'),
+                                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  cleaningAsync.when(
+                                    data: (data) {
+                                      final places = data as Map<String, dynamic>? ?? {};
+                                      if (places.isEmpty) {
+                                        return Container(
+                                          width: double.infinity,
+                                          padding: const EdgeInsets.all(16),
+                                          decoration: BoxDecoration(
+                                            color: isDark ? Colors.white.withOpacity(0.02) : Colors.black.withOpacity(0.01),
+                                            borderRadius: BorderRadius.circular(16),
+                                            border: Border.all(
+                                              color: Theme.of(context).dividerColor.withOpacity(0.05),
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            translation(context: context, 'No cleaning assignments found.'),
+                                            style: TextStyle(
+                                              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                      final userPlaces = <String>[];
+                                      places.forEach((placeId, placeData) {
+                                        if (placeData is Map) {
+                                          final assignees = placeData['assignees'];
+                                          if (assignees is List && assignees.any((a) {
+                                            if (a is String) {
+                                              final assigneeUid = a.split('_').first;
+                                              return assigneeUid == user.uid;
                                             }
+                                            return false;
+                                          })) {
+                                            userPlaces.add(placeData['name'] as String? ?? placeId);
                                           }
-                                        });
-                                        if (userPlaces.isEmpty) {
-                                          return Text(translation(context: context, 'You have no cleaning assignment'));
                                         }
-                                        return Column(
+                                      });
+                                      if (userPlaces.isEmpty) {
+                                        return Container(
+                                          width: double.infinity,
+                                          padding: const EdgeInsets.all(16),
+                                          decoration: BoxDecoration(
+                                            color: isDark ? Colors.white.withOpacity(0.02) : Colors.black.withOpacity(0.01),
+                                            borderRadius: BorderRadius.circular(16),
+                                            border: Border.all(
+                                              color: Theme.of(context).dividerColor.withOpacity(0.05),
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.check_circle_outline_rounded,
+                                                color: Theme.of(context).colorScheme.primary,
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Expanded(
+                                                child: Text(
+                                                  translation(context: context, 'You have no cleaning assignment'),
+                                                  style: TextStyle(
+                                                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      }
+                                      return Container(
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.all(16),
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context).colorScheme.primary.withOpacity(isDark ? 0.08 : 0.04),
+                                          borderRadius: BorderRadius.circular(16),
+                                          border: Border.all(
+                                            color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             Text(
                                               translation(context: context, 'Your cleaning assignment:'),
-                                              style: const TextStyle(fontWeight: FontWeight.bold),
+                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                                             ),
-                                            const SizedBox(height: 4),
-                                            ...userPlaces.map((place) => Text(
-                                                  place,
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
+                                            const SizedBox(height: 12),
+                                            ...userPlaces.map((place) => Padding(
+                                              padding: const EdgeInsets.symmetric(vertical: 4.0),
+                                              child: Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.check_box_outline_blank_rounded,
+                                                    size: 20,
                                                     color: Theme.of(context).colorScheme.primary,
                                                   ),
-                                                )),
+                                                  const SizedBox(width: 10),
+                                                  Expanded(
+                                                    child: Text(
+                                                      place,
+                                                      style: const TextStyle(
+                                                        fontWeight: FontWeight.bold,
+                                                        fontSize: 14,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                                    decoration: BoxDecoration(
+                                                      color: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+                                                      borderRadius: BorderRadius.circular(12),
+                                                    ),
+                                                    child: Text(
+                                                      translation(context: context, 'Pending'),
+                                                      style: TextStyle(
+                                                        fontSize: 10,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: Theme.of(context).colorScheme.primary,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            )),
                                           ],
-                                        );
-                                      },
-                                      loading: () => Text(translation(context: context, 'Cleaning assignments are loading...')),
-                                      error: (e, s) => Text(translation(context: context, 'Error loading Cleaning data.')),
+                                        ),
+                                      );
+                                    },
+                                    loading: () => Center(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Text(translation(context: context, 'Cleaning assignments are loading...')),
+                                      ),
+                                    ),
+                                    error: (e, s) => Center(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Text(translation(context: context, 'Error loading Cleaning data.')),
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -462,7 +815,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 userRole: user.role,
                               ),
                             ),
-                            const SizedBox(height: 24),
+                            const SizedBox(height: 90),
                           ],
                         ),
                       ),

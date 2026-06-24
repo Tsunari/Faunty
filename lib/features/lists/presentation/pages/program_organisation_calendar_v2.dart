@@ -269,30 +269,29 @@ class _ProgramOrganisationCalendarV2State extends ConsumerState<ProgramOrganisat
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(translation(context: context, 'Program Organisation')),
+        title: Text(translation('Program Organisation', context: context)),
         actions: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
-            child: ToggleButtons(
-              isSelected: _slotOptions.map((o) => o == _slotMinutes).toList(),
-              onPressed: (idx) {
+            child: SegmentedButton<int>(
+              segments: _slotOptions.map((o) => ButtonSegment<int>(
+                value: o,
+                label: Text('$o m'),
+              )).toList(),
+              selected: {_slotMinutes},
+              onSelectionChanged: (val) {
                 setState(() {
-                  _slotMinutes = _slotOptions[idx];
+                  _slotMinutes = val.first;
                   // clear loaded day so grid reloads with new slot density
                   _loadedDay = null;
                 });
               },
-              borderRadius: BorderRadius.circular(12),
-              selectedBorderColor: theme.colorScheme.primary.withAlpha((0.9 * 255).round()),
-              borderColor: theme.colorScheme.onSurface.withAlpha((0.12 * 255).round()),
-              fillColor: theme.colorScheme.primary.withAlpha((0.14 * 255).round()),
-              color: theme.colorScheme.onSurface.withAlpha((0.85 * 255).round()),
-              selectedColor: theme.colorScheme.onPrimary,
-              constraints: const BoxConstraints(minWidth: 44, minHeight: 36),
-              children: _slotOptions.map((o) => Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: Text('$o', style: theme.textTheme.bodyMedium),
-              )).toList(),
+              showSelectedIcon: false,
+              style: SegmentedButton.styleFrom(
+                selectedBackgroundColor: theme.colorScheme.primaryContainer,
+                selectedForegroundColor: theme.colorScheme.onPrimaryContainer,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
             ),
           ),
         ],
@@ -305,15 +304,14 @@ class _ProgramOrganisationCalendarV2State extends ConsumerState<ProgramOrganisat
           onPressed: () async {
             await _saveDayToFirestore();
           },
-          label: Text(translation(context: context, 'Save')),
-          icon: const Icon(Icons.save),
+          label: Text(translation('Save', context: context)),
+          icon: const Icon(Icons.save_rounded),
         );
       }),
       body: Column(
         children: [
-          // Top day label removed (chip shows selected day)
           SizedBox(
-            height: 52,
+            height: 60,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -321,11 +319,39 @@ class _ProgramOrganisationCalendarV2State extends ConsumerState<ProgramOrganisat
               itemBuilder: (ctx, i) {
                 final day = _startOfWeek(_selectedDay).add(Duration(days: i));
                 final sel = _isSameDay(day, _selectedDay);
+                final weekdayString = DateFormat.EEEE().format(day);
+                final translatedDay = translation(weekdayString, context: context);
+                final localizedShort = translatedDay.substring(0, math.min(3, translatedDay.length));
                 return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   child: ChoiceChip(
                     selected: sel,
-                    label: Text(DateFormat.E().format(day)),
+                    showCheckmark: false,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    label: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            localizedShort,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: sel ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            DateFormat.d().format(day),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: sel ? theme.colorScheme.onPrimaryContainer : theme.colorScheme.onSurface,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                     onSelected: (_) {
                       // Close the inline editor first (apply any pending edits)
                       if (_editing != null) {
@@ -655,28 +681,75 @@ class _InlineEditor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Material(
-      elevation: 8,
-      borderRadius: BorderRadius.circular(12),
+    final colorScheme = theme.colorScheme;
+    return Card(
+      elevation: 10,
+      shadowColor: Colors.black.withValues(alpha: 0.2),
+      color: colorScheme.surfaceContainerHigh,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+        ),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(12.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('${DateFormat('HH:mm').format(start)} - ${DateFormat('HH:mm').format(end)}', style: theme.textTheme.labelSmall),
-            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.access_time_rounded, size: 16, color: colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  '${DateFormat('HH:mm').format(start)} - ${DateFormat('HH:mm').format(end)}',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.primary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
             TextField(
               controller: controller,
               autofocus: true,
-              decoration: InputDecoration(hintText: translation(context: context, 'Title')),
+              decoration: InputDecoration(
+                labelText: translation('Title', context: context),
+                prefixIcon: const Icon(Icons.title_rounded),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                TextButton(onPressed: onApply, child: Text(translation(context: context, 'Close'))),
+                TextButton.icon(
+                  onPressed: onDelete,
+                  icon: Icon(Icons.delete_outline_rounded, color: colorScheme.error, size: 18),
+                  label: Text(
+                    translation('Delete', context: context),
+                    style: TextStyle(color: colorScheme.error),
+                  ),
+                  style: TextButton.styleFrom(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
                 const SizedBox(width: 8),
-                TextButton(onPressed: onDelete, child: Text(translation(context: context, 'Delete'), style: TextStyle(color: theme.colorScheme.error))),
+                ElevatedButton.icon(
+                  onPressed: onApply,
+                  icon: const Icon(Icons.check_rounded, size: 18),
+                  label: Text(translation('Close', context: context)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    elevation: 0,
+                  ),
+                ),
               ],
             ),
           ],

@@ -642,7 +642,7 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
                     Container(
                       height: headingHeight,
                       padding: const EdgeInsets.symmetric(horizontal: 12),
-                      color: theme.colorScheme.surfaceVariant.withOpacity(0.25),
+                      color: theme.colorScheme.surfaceContainer.withOpacity(0.35),
                       child: Row(
                         children: [
                           Expanded(
@@ -700,7 +700,7 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
                                 child: Container(
                                     height: blockHeight,
                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-                                    decoration: BoxDecoration(border: Border(bottom: BorderSide(color: theme.dividerColor.withOpacity(0.2)))),
+                                    decoration: BoxDecoration(border: Border(bottom: BorderSide(color: theme.dividerColor.withOpacity(0.06)))),
                                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                       Flexible(
                                         fit: FlexFit.loose,
@@ -786,7 +786,7 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
                         children: [
                           Container(
                             height: headingHeight,
-                            color: theme.colorScheme.surfaceVariant.withOpacity(0.25),
+                            color: theme.colorScheme.surfaceContainer.withOpacity(0.35),
                             child: Row(
                               children: [
                                 SizedBox(width: leftSpacerWidth),
@@ -796,7 +796,7 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
                                     decoration: BoxDecoration(
                                       color: columns[ci] == _todayKey ? theme.colorScheme.primary.withOpacity(0.08) : null,
                                       border: Border(
-                                        right: BorderSide(color: theme.dividerColor.withOpacity(0.2)),
+                                        right: BorderSide(color: theme.dividerColor.withOpacity(0.06)),
                                       ),
                                     ),
                                     child: Center(
@@ -858,7 +858,7 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
                                                 height: rowHeight,
                                                 decoration: BoxDecoration(
                                                   border: Border(
-                                                    bottom: BorderSide(color: theme.dividerColor.withOpacity(0.2)),
+                                                    bottom: BorderSide(color: theme.dividerColor.withOpacity(0.06)),
                                                   ),
                                                 ),
                                                 child: Row(
@@ -871,7 +871,7 @@ class _AttendanceTableState extends State<AttendanceTable> with TickerProviderSt
                                                         decoration: BoxDecoration(
                                                           color: columns[ci] == _todayKey ? theme.colorScheme.primary.withOpacity(0.06) : null,
                                                           border: Border(
-                                                            right: BorderSide(color: theme.dividerColor.withOpacity(0.2)),
+                                                            right: BorderSide(color: theme.dividerColor.withOpacity(0.06)),
                                                           ),
                                                         ),
                                                         child: Center(
@@ -1100,21 +1100,21 @@ class _InlineCellState extends State<_InlineCell> {
         Color? bg;
         Color? border;
         if (state == 'present') {
-          icon = Icon(Icons.check, size: 16, color: scheme.onPrimary);
+          icon = Icon(Icons.check_rounded, size: 16, color: scheme.onPrimary);
           bg = scheme.primary;
           border = scheme.primary;
         } else if (state == 'absent') {
-          icon = Icon(Icons.remove, size: 16, color: scheme.error);
+          icon = Icon(Icons.close_rounded, size: 16, color: scheme.error);
           bg = scheme.error.withOpacity(0.08);
           border = scheme.error;
         } else if (state == 'onLeave') {
-          icon = Icon(Icons.info_outline, size: 16, color: scheme.primary);
+          icon = Icon(Icons.beach_access_rounded, size: 14, color: scheme.primary);
           bg = scheme.primary.withOpacity(0.08);
           border = scheme.primary;
         } else {
           icon = const SizedBox.shrink();
           bg = null;
-          border = Theme.of(context).dividerColor.withOpacity(0.6);
+          border = Theme.of(context).dividerColor.withOpacity(0.12);
         }
 
         void handleTap() {
@@ -1139,7 +1139,7 @@ class _InlineCellState extends State<_InlineCell> {
           child: InkWell(
             onTap: canEdit ? handleTap : null,
             onLongPress: widget.latenessEnabled && canEdit ? () => _editLateMinutes(context) : null,
-            borderRadius: BorderRadius.circular(3),
+            borderRadius: BorderRadius.circular(6),
             child: Stack(
               clipBehavior: Clip.none,
               children: [
@@ -1148,7 +1148,7 @@ class _InlineCellState extends State<_InlineCell> {
                   height: 22,
                   decoration: BoxDecoration(
                     color: bg,
-                    borderRadius: BorderRadius.circular(3),
+                    borderRadius: BorderRadius.circular(6),
                     border: Border.all(color: border, width: 1.5),
                   ),
                   alignment: Alignment.center,
@@ -1164,10 +1164,10 @@ class _InlineCellState extends State<_InlineCell> {
                         final has = minutes != null && minutes > 0;
                         if (!has) return const SizedBox.shrink();
                         return Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 0),
+                          padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
                           decoration: BoxDecoration(
                             color: Theme.of(context).colorScheme.tertiary,
-                            borderRadius: BorderRadius.circular(3),
+                            borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
                             '${minutes}m',

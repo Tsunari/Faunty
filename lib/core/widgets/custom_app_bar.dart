@@ -1,17 +1,33 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:faunty/core/widgets/custom_snackbar.dart';
 import 'package:faunty/features/lists/presentation/pages/pdf_preview_page.dart';
 import 'package:faunty/core/utils/pdf_generator/base_pdf_layout.dart';
 import 'package:faunty/core/utils/translation_helper.dart';
 
-class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
+class TabAppBarConfig {
+  final List<Widget>? actions;
+  final Future<Map<String, List<Map<String, dynamic>>>> Function()? onGeneratePdf;
+  final BasePdfLayout? pdfLayout;
+
+  const TabAppBarConfig({
+    this.actions,
+    this.onGeneratePdf,
+    this.pdfLayout,
+  });
+}
+
+final tabAppBarConfigProvider = StateProvider.family<TabAppBarConfig?, String>((ref, tabId) => null);
+
+class CustomAppBar extends ConsumerWidget implements PreferredSizeWidget {
   final String title;
   final Widget? titleWidget;
   final List<Widget>? actions;
   final bool useModern;
   final Future<Map<String, List<Map<String, dynamic>>>> Function()? onGeneratePdf;
   final BasePdfLayout? pdfLayout;
+  final String? tabId;
 
   const CustomAppBar({
     super.key,
@@ -21,20 +37,25 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.useModern = true,
     this.onGeneratePdf,
     this.pdfLayout,
+    this.tabId,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
 
-    List<Widget> allActions = actions?.toList() ?? [];
-    if (onGeneratePdf != null) {
+    final activeConfig = tabId != null ? ref.watch(tabAppBarConfigProvider(tabId!)) : null;
+    final List<Widget> allActions = (activeConfig?.actions ?? actions)?.toList() ?? [];
+    final onGenPdf = activeConfig?.onGeneratePdf ?? onGeneratePdf;
+    final pdfLay = activeConfig?.pdfLayout ?? pdfLayout;
+
+    if (onGenPdf != null) {
       allActions.add(
         IconButton(
           icon: const Icon(Icons.picture_as_pdf),
           tooltip: translation(context: context, 'Generate PDF'),
           onPressed: () async {
-            final data = await onGeneratePdf!();
+            final data = await onGenPdf();
 
             if (!context.mounted) {
               return;
@@ -56,7 +77,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                 builder: (_) => PdfPreviewPage(
                   title: title,
                   data: data,
-                  layout: pdfLayout,
+                  layout: pdfLay,
                 ),
               ),
             );
@@ -67,11 +88,11 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
     final isDark = theme.brightness == Brightness.dark;
     final appBarBgColor = isDark
-        ? Colors.white.withOpacity(0.06)
-        : Colors.black.withOpacity(0.04);
+        ? Colors.white.withValues(alpha: 0.05)
+        : Colors.black.withValues(alpha: 0.03);
     final appBarBorderColor = isDark
-        ? Colors.white.withOpacity(0.12)
-        : Colors.black.withOpacity(0.08);
+        ? Colors.white.withValues(alpha: 0.08)
+        : Colors.black.withValues(alpha: 0.05);
 
     // Modern AppBar style
     return Padding(
@@ -79,7 +100,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: Container(
             decoration: BoxDecoration(
               color: appBarBgColor,
@@ -90,7 +111,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: isDark ? Colors.black45 : Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.03),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),

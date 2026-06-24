@@ -9,6 +9,7 @@ import 'package:faunty/core/widgets/custom_chip.dart';
 import 'package:faunty/features/profile/presentation/pages/feedback/new_feedback_report_sheet.dart';
 import 'package:faunty/features/profile/presentation/pages/feedback/feedback_detail_sheet.dart';
 import 'package:faunty/core/widgets/custom_app_bar.dart';
+import 'package:faunty/features/profile/presentation/widgets/navigation_bar.dart';
 
 class FeedbackPage extends ConsumerWidget {
   const FeedbackPage({super.key});
@@ -20,6 +21,7 @@ class FeedbackPage extends ConsumerWidget {
     final user = ref.watch(userProvider).asData?.value;
 
     return Scaffold(
+      floatingActionButtonLocation: const OffsettedFABLocation(FloatingActionButtonLocation.endFloat, 80.0),
       appBar: CustomAppBar(
         title: translation(context: context, 'Feedback'),
         useModern: false,
@@ -83,7 +85,7 @@ class FeedbackPage extends ConsumerWidget {
                   );
                 }
                 return ListView.builder(
-                  padding: const EdgeInsets.only(top: 4),
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 96),
                   itemCount: filteredReports.length,
                   itemBuilder: (context, index) {
                     final report = filteredReports[index];
@@ -335,7 +337,7 @@ class _FeedbackCard extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: _typeColor(context).withOpacity(0.15),
+                      color: _typeColor(context).withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(report.type.label, style: TextStyle(color: _typeColor(context), fontWeight: FontWeight.w600)),

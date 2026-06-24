@@ -4,8 +4,126 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:faunty/features/lists/domain/entities/custom_list.dart';
 import 'package:faunty/features/lists/presentation/controllers/custom_list_provider.dart';
-import 'package:faunty/core/utils/icon_registry.dart';
 import 'package:faunty/features/lists/presentation/pages/custom_list/assignment_list_widget.dart';
+import 'package:faunty/core/utils/icon_registry.dart';
+import 'package:faunty/core/widgets/glass_container.dart';
+import 'package:faunty/core/utils/translation_helper.dart';
+import 'package:faunty/core/widgets/custom_app_bar.dart';
+
+class CustomListAppBarActions extends ConsumerWidget {
+  final String placeId;
+  final CustomList list;
+  final VoidCallback? onEditList;
+  final ValueChanged<bool>? onEditModeChanged;
+
+  const CustomListAppBarActions({
+    super.key,
+    required this.placeId,
+    required this.list,
+    this.onEditList,
+    this.onEditModeChanged,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final svc = ref.read(customListServiceProvider);
+    final isEditMode = ref.watch(editModeProvider(list.id));
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (isEditMode) ...[
+          TextButton.icon(
+            onPressed: () {
+              ref.read(cancelChangesProvider(list.id).notifier).state++;
+            },
+            icon: const Icon(Icons.close_rounded, size: 18),
+            label: Text(translation('Cancel', context: context)),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              visualDensity: VisualDensity.compact,
+            ),
+          ),
+          const SizedBox(width: 4),
+          ElevatedButton.icon(
+            onPressed: () {
+              ref.read(saveChangesProvider(list.id).notifier).state++;
+            },
+            icon: const Icon(Icons.save_rounded, size: 18),
+            label: Text(translation('Save', context: context)),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              visualDensity: VisualDensity.compact,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+              elevation: 0,
+            ),
+          ),
+        ] else ...[
+          IconButton(
+            onPressed: () {
+              ref.read(editModeProvider(list.id).notifier).state = true;
+              onEditModeChanged?.call(true);
+            },
+            icon: const Icon(Icons.edit_rounded),
+            tooltip: translation('Enter edit mode', context: context),
+          ),
+        ],
+        RoleGate(
+          minRole: UserRole.baskan,
+          child: IconButton(
+            onPressed: onEditList ?? () async {
+              final ctrl = TextEditingController(
+                text: list.title,
+              );
+              final theme = Theme.of(context);
+              final res = await showDialog<String?>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                  title: Row(
+                    children: [
+                      Icon(Icons.edit_rounded, color: theme.colorScheme.primary),
+                      const SizedBox(width: 10),
+                      Text(translation('Edit list', context: context), style: const TextStyle(fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  content: TextField(
+                    controller: ctrl,
+                    decoration: InputDecoration(
+                      labelText: translation('List Title', context: context),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      child: Text(translation('Cancel', context: context)),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => Navigator.of(ctx).pop(ctrl.text.trim()),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.colorScheme.primary,
+                        foregroundColor: theme.colorScheme.onPrimary,
+                      ),
+                      child: Text(translation('Save', context: context)),
+                    ),
+                  ],
+                ),
+              );
+              if (res != null && res.isNotEmpty) {
+                await svc.updateList(placeId, list.id, {
+                  'title': res,
+                });
+              }
+            },
+            icon: const Icon(Icons.more_vert_rounded),
+          ),
+        ),
+      ],
+    );
+  }
+}
 
 class CustomListShell extends ConsumerWidget {
   final String placeId;
@@ -25,124 +143,27 @@ class CustomListShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final svc = ref.read(customListServiceProvider);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(tabAppBarConfigProvider(list.title).notifier).state = TabAppBarConfig(
+        actions: [
+          CustomListAppBarActions(
+            placeId: placeId,
+            list: list,
+            onEditList: onEditList,
+            onEditModeChanged: onEditModeChanged,
+          ),
+        ],
+      );
+    });
+
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 600),
         child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            children: [
-          Material(
-            elevation: 2,
-            borderRadius: BorderRadius.circular(12),
-            color: Theme.of(context).colorScheme.surface,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Row(
-                children: [
-                  if (list.icon != null && list.icon!.kind == 'material')
-                    Icon(iconFromSpec(list.icon)),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      list.title,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                  ),
-                  RoleGate(
-                    minRole: UserRole.baskan,
-                    child: Consumer(
-                      builder: (context, ref, child) {
-                        final isEditMode = ref.watch(editModeProvider(list.id));
-
-                        if (isEditMode) {
-                          // Show Save and Cancel buttons in edit mode
-                          return Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              TextButton.icon(
-                                onPressed: () {
-                                  // Trigger cancel via provider
-                                  ref.read(cancelChangesProvider(list.id).notifier).state++;
-                                },
-                                icon: const Icon(Icons.close, size: 18),
-                                label: const Text('Cancel'),
-                                style: TextButton.styleFrom(
-                                  foregroundColor: Colors.grey.shade700,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              ElevatedButton.icon(
-                                onPressed: () {
-                                  // Trigger save via provider
-                                  ref.read(saveChangesProvider(list.id).notifier).state++;
-                                },
-                                icon: const Icon(Icons.save, size: 18),
-                                label: const Text('Save'),
-                              ),
-                            ],
-                          );
-                        } else {
-                          // Show Edit button when not in edit mode
-                          return IconButton(
-                            onPressed: () {
-                              ref.read(editModeProvider(list.id).notifier).state = true;
-                              onEditModeChanged?.call(true);
-                            },
-                            icon: const Icon(Icons.edit),
-                            tooltip: 'Enter edit mode',
-                          );
-                        }
-                      },
-                    ),
-                  ),
-                  RoleGate(
-                    minRole: UserRole.baskan,
-                    child: IconButton(
-                      onPressed:
-                          onEditList ??
-                          () async {
-                            final ctrl = TextEditingController(
-                              text: list.title,
-                            );
-                            final res = await showDialog<String?>(
-                              context: context,
-                              builder: (ctx) => AlertDialog(
-                                title: const Text('Edit list'),
-                                content: TextField(controller: ctrl),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.of(ctx).pop(),
-                                    child: const Text('Cancel'),
-                                  ),
-                                  ElevatedButton(
-                                    onPressed: () =>
-                                        Navigator.of(ctx).pop(ctrl.text.trim()),
-                                    child: const Text('Save'),
-                                  ),
-                                ],
-                              ),
-                            );
-                            if (res != null && res.isNotEmpty) {
-                              await svc.updateList(placeId, list.id, {
-                                'title': res,
-                              });
-                            }
-                          },
-                      icon: const Icon(Icons.more_vert),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Expanded(child: child),
-        ],
+          padding: const EdgeInsets.fromLTRB(12, 96, 12, 96),
+          child: child,
+        ),
       ),
-    ),
-    ),
     );
   }
 }

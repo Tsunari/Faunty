@@ -58,123 +58,128 @@ class _ProgramOrganisationPageState extends ConsumerState<ProgramOrganisationPag
               if (!context.mounted) return;
               final result = await showDialog<String>(
                 context: context,
-                builder: (context) => StatefulBuilder(
-                  builder: (context, setState) => AlertDialog(
-                    title: Text(translation(context: context, 'Save as template')),
-                    content: SizedBox(
-                      width: 300,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                builder: (context) {
+                  final theme = Theme.of(context);
+                  return StatefulBuilder(
+                    builder: (context, setState) => AlertDialog(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                      title: Row(
                         children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () => setState(() => tabIndex = 0),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 10),
-                                    decoration: BoxDecoration(
-                                      color: tabIndex == 0 ? Theme.of(context).colorScheme.primary.withOpacity(0.08) : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        'Override existing',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                          color: tabIndex == 0 ? Theme.of(context).colorScheme.primary : Theme.of(context).textTheme.bodyMedium?.color,
-                                        ),
-                                      ),
-                                    ),
+                          Icon(Icons.bookmark_add_rounded, color: theme.colorScheme.primary),
+                          const SizedBox(width: 10),
+                          Text(
+                            translation('Save as template', context: context),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      content: SizedBox(
+                        width: 320,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Center(
+                              child: SegmentedButton<int>(
+                                segments: [
+                                  ButtonSegment<int>(
+                                    value: 0,
+                                    label: Text(translation('Override existing', context: context)),
+                                    icon: const Icon(Icons.edit_note_rounded),
+                                    enabled: templates.isNotEmpty,
                                   ),
+                                  ButtonSegment<int>(
+                                    value: 1,
+                                    label: Text(translation('Create new', context: context)),
+                                    icon: const Icon(Icons.add_circle_outline_rounded),
+                                  ),
+                                ],
+                                selected: {tabIndex},
+                                onSelectionChanged: (val) {
+                                  setState(() => tabIndex = val.first);
+                                },
+                                showSelectedIcon: false,
+                                style: SegmentedButton.styleFrom(
+                                  selectedBackgroundColor: theme.colorScheme.primaryContainer,
+                                  selectedForegroundColor: theme.colorScheme.onPrimaryContainer,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () => setState(() => tabIndex = 1),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 10),
-                                    decoration: BoxDecoration(
-                                      color: tabIndex == 1 ? Theme.of(context).colorScheme.primary.withOpacity(0.08) : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        'Create new',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                          color: tabIndex == 1 ? Theme.of(context).colorScheme.primary : Theme.of(context).textTheme.bodyMedium?.color,
-                                        ),
-                                      ),
-                                    ),
+                            ),
+                            const SizedBox(height: 20),
+                            if (tabIndex == 0 && templates.isNotEmpty) ...[
+                              DropdownButtonFormField<String>(
+                                isExpanded: true,
+                                value: selectedTemplate,
+                                decoration: InputDecoration(
+                                  labelText: translation('Select template to override', context: context),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                ),
+                                items: templates.keys.map((name) => DropdownMenuItem(
+                                  value: name,
+                                  child: Text(name),
+                                )).toList(),
+                                onChanged: (val) => setState(() => selectedTemplate = val),
+                              ),
+                            ],
+                            if (tabIndex == 1) ...[
+                              TextField(
+                                controller: nameController,
+                                decoration: InputDecoration(
+                                  labelText: translation('Template name', context: context),
+                                  prefixIcon: const Icon(Icons.drive_file_rename_outline_rounded),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
                                 ),
                               ),
                             ],
-                          ),
-                          const SizedBox(height: 12),
-                          if (tabIndex == 0 && templates.isNotEmpty) ...[
-                            DropdownButton<String>(
-                              isExpanded: true,
-                              value: selectedTemplate,
-                              hint: Text(translation(context: context, 'Select template to override')),
-                              items: templates.keys.map((name) => DropdownMenuItem(
-                                value: name,
-                                child: Text(name),
-                              )).toList(),
-                              onChanged: (val) => setState(() => selectedTemplate = val),
-                            ),
                           ],
-                          if (tabIndex == 1) ...[
-                            TextField(
-                              controller: nameController,
-                              decoration: InputDecoration(labelText: translation(context: context, 'Template name')),
-                            ),
-                          ],
-                        ],
+                        ),
                       ),
-                    ),
-                    actions: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('Cancel'),
-                          ),
-                          const SizedBox(width: 8),
-                          if (tabIndex == 1)
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: Text(translation('Cancel', context: context)),
+                        ),
+                        if (tabIndex == 1)
                           ElevatedButton(
                             onPressed: () {
                               if (nameController.text.trim().isNotEmpty) {
                                 Navigator.pop(context, nameController.text.trim());
                               }
                             },
-                            child: const Text('Create'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: theme.colorScheme.primary,
+                              foregroundColor: theme.colorScheme.onPrimary,
+                            ),
+                            child: Text(translation('Create', context: context)),
                           ), 
-                          if (tabIndex == 0)
+                        if (tabIndex == 0)
                           ElevatedButton(
                             onPressed: selectedTemplate == null
-                              ? null
-                              : () async {
-                                  await service.setTemplate(selectedTemplate!, localWeekProgram);
+                                ? null
+                                : () async {
+                                    await service.setTemplate(selectedTemplate!, localWeekProgram);
                                     setState(() {});
                                     if (context.mounted) {
                                       Navigator.pop(context, selectedTemplate);
-                                      showCustomSnackBar(context, 'Template "$selectedTemplate" overridden.'); // TODO: Localize
+                                      showCustomSnackBar(context, 'Template "$selectedTemplate" overridden.');
                                     }
                                   },
-                            child: Text(translation(context: context, 'Override')),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: theme.colorScheme.primary,
+                              foregroundColor: theme.colorScheme.onPrimary,
+                            ),
+                            child: Text(translation('Override', context: context)),
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+                      ],
+                    ),
+                  );
+                },
               );
               if (result != null && result.isNotEmpty) {
                 await service.setTemplate(result, localWeekProgram);
@@ -183,7 +188,7 @@ class _ProgramOrganisationPageState extends ConsumerState<ProgramOrganisationPag
                   loadedTemplateName = result;
                 });
                 if (context.mounted) {
-                  showCustomSnackBar(context, 'Template "$result" saved.'); // TODO: Localize
+                  showCustomSnackBar(context, 'Template "$result" saved.');
                 }
               }
             },
@@ -197,39 +202,35 @@ class _ProgramOrganisationPageState extends ConsumerState<ProgramOrganisationPag
               final templates = snapshot.data ?? {};
               if (templates.isEmpty) return const SizedBox.shrink();
               return IconButton(
-                icon: const Icon(Icons.folder_special), //#icon load template
-                tooltip: translation(context: context, 'Load template'),
+                icon: const Icon(Icons.folder_special_rounded),
+                tooltip: translation('Load template', context: context),
                 onPressed: () async {
                   final service = ref.read(programFirestoreServiceProvider);
                   var templates = await service.getTemplates();
                   if (!mounted) return;
                   final selected = await showDialog<String>(
-                    context: context, // TODO: Solution for this
+                    context: context,
                     builder: (context) => _TemplateSelectionDialog(
                       templates: templates,
-                      // loadedTemplateName: loadedTemplateName, // TODO: Cool? not cool?
                       onDelete: (name) async {
                         await service.deleteTemplate(name);
                         if (context.mounted) {
-                          showCustomSnackBar(context, 'Template "$name" deleted.'); // TODO: Localize
+                          showCustomSnackBar(context, 'Template "$name" deleted.');
                         }
                       },
                       onUpdate: (name) async {
                         await service.setTemplate(name, localWeekProgram);
                         if (context.mounted) {
-                          showCustomSnackBar(context, 'Template "$name" updated.'); // TODO: Localize
+                          showCustomSnackBar(context, 'Template "$name" updated.');
                         }
-                        // Fetch latest templates after update and update dialog state
                         templates = await service.getTemplates();
                         return templates;
                       },
                     ),
                   );
-                  // Always fetch latest templates after dialog closes
                   templates = await service.getTemplates();
                   if (selected != null && templates.containsKey(selected)) {
                     setState(() {
-                      // Deep copy to avoid reference issues
                       localWeekProgram = {
                         for (final day in weekDays)
                           day: (templates[selected]![day] as List?)?.map((e) => Map<String, String>.from(e)).toList() ?? []
@@ -237,7 +238,7 @@ class _ProgramOrganisationPageState extends ConsumerState<ProgramOrganisationPag
                       loadedTemplateName = selected;
                     });
                     if (context.mounted) {
-                      showCustomSnackBar(context, 'Template "$selected" loaded.'); // TODO: Localize
+                      showCustomSnackBar(context, 'Template "$selected" loaded.');
                     }
                   }
                 },
@@ -264,7 +265,6 @@ class _ProgramOrganisationPageState extends ConsumerState<ProgramOrganisationPag
       floatingActionButton: _SaveFab(
         isDark: isDark,
         onSave: () async {
-          // Sort all days before saving
           final sortedWeekProgram = {
             for (final day in weekDays)
               day: _sortEntries(List<Map<String, String>>.from(localWeekProgram[day]!))
@@ -275,12 +275,8 @@ class _ProgramOrganisationPageState extends ConsumerState<ProgramOrganisationPag
         },
       ),
     );
-
   }
-
 }
-
-
 
 class _TemplateSelectionDialog extends StatefulWidget {
   final Map<String, Map<String, List<Map<String, String>>>> templates;
@@ -306,71 +302,85 @@ class _TemplateSelectionDialogState extends State<_TemplateSelectionDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      actionsPadding: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       title: Row(
         children: [
-          Icon(Icons.list_alt, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(width: 8),
-          Text(translation(context: context, 'Select a template')),
+          Icon(Icons.folder_special_rounded, color: theme.colorScheme.primary),
+          const SizedBox(width: 10),
+          Text(
+            translation('Select a template', context: context),
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
         ],
       ),
       content: SizedBox(
-        width: 320,
+        width: 340,
         child: _templates.isEmpty
             ? SizedBox(
-                height: 48,
+                height: 100,
                 child: Center(
-                  child: Text(translation(context: context, 'No templates found'), style: theme.textTheme.bodyLarge?.copyWith(color: theme.disabledColor)),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.folder_open_rounded, size: 40, color: theme.disabledColor),
+                      const SizedBox(height: 12),
+                      Text(
+                        translation('No templates found', context: context),
+                        style: theme.textTheme.bodyMedium?.copyWith(color: theme.disabledColor),
+                      ),
+                    ],
+                  ),
                 ),
               )
             : ListView.separated(
                 shrinkWrap: true,
                 itemCount: _templates.length,
-                separatorBuilder: (_, __) => Divider(height: 1, color: theme.dividerColor),
+                separatorBuilder: (_, __) => const SizedBox(height: 8),
                 itemBuilder: (context, idx) {
                   final name = _templates.keys.elementAt(idx);
                   final isCurrent = widget.loadedTemplateName == name;
-                  return Material(
-                    color: Colors.transparent,
+                  return Card(
+                    elevation: 0,
+                    margin: EdgeInsets.zero,
+                    color: isCurrent
+                        ? theme.colorScheme.primaryContainer.withValues(alpha: 0.25)
+                        : theme.colorScheme.surfaceContainerHigh,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(
+                        color: isCurrent
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                        width: isCurrent ? 2 : 1,
+                      ),
+                    ),
                     child: InkWell(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(16),
                       onTap: () => Navigator.pop(context, name),
-                      child: Container(
-                        decoration: isCurrent
-                            ? BoxDecoration(
-                                border: Border.all(color: Colors.teal, width: 2),
-                                // borderRadius: BorderRadius.circular(10),
-                                color: theme.colorScheme.secondary.withOpacity(0.08),
-                              )
-                            : null,
-                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                         child: Row(
                           children: [
-                            Icon(Icons.description_outlined, color: Theme.of(context).colorScheme.primary, size: 22),
+                            Icon(
+                              Icons.description_outlined,
+                              color: isCurrent ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+                              size: 24,
+                            ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
                                 name,
-                                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: isCurrent ? FontWeight.bold : FontWeight.w600,
+                                  color: isCurrent ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+                                ),
                               ),
                             ),
-                            // IconButton(
-                            //   icon: const Icon(Icons.system_update_alt, color: Colors.blueAccent),
-                            //   tooltip: 'Update template with current configuration',
-                            //   onPressed: () async {
-                            //     final updatedTemplates = await widget.onUpdate(name);
-                            //     setState(() {
-                            //       _templates.clear();
-                            //       _templates.addAll(updatedTemplates);
-                            //     });
-                            //   },
-                            // ),
                             IconButton(
-                              icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                              tooltip: translation(context: context, 'Delete template'),
+                              icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+                              tooltip: translation('Delete template', context: context),
                               onPressed: () async {
-                                final confirm = await showDeleteDialog(context: context);
+                                final confirm = await showDeleteDialog(context: context, thingToDelete: name);
                                 if (confirm == true) {
                                   await widget.onDelete(name);
                                   setState(() {
@@ -388,17 +398,12 @@ class _TemplateSelectionDialogState extends State<_TemplateSelectionDialog> {
               ),
       ),
       actions: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
-          child: TextButton.icon(
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.close),
-            label: Text(translation(context: context, 'Close')),
-            style: TextButton.styleFrom(
-              foregroundColor: theme.colorScheme.primary,
-              textStyle: theme.textTheme.labelLarge,
-              padding: EdgeInsets.symmetric(vertical: 4.0, horizontal: 12.0),
-            ),
+        TextButton.icon(
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.close_rounded),
+          label: Text(translation('Close', context: context)),
+          style: TextButton.styleFrom(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
       ],
@@ -420,7 +425,7 @@ class _ProgramList extends StatelessWidget {
       itemCount: 7,
       itemBuilder: (context, idx) {
         final dayName = weekDays[idx];
-        final dayLabel = translation(context: context, dayName);
+        final dayLabel = translation(dayName, context: context);
         return _ProgramDayCard(
           dayName: dayName,
           dayLabel: dayLabel,
@@ -454,73 +459,92 @@ class _ProgramDayCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final sortedEntries = _sortEntries(List<Map<String, String>>.from(entries));
     return Card(
-      color: Theme.of(context).colorScheme.onInverseSurface,
-      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      color: colorScheme.surfaceContainer,
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+        ),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Row(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              width: 90,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      dayLabel,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text(
+                    dayLabel,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: colorScheme.onPrimaryContainer,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  DropdownButton<String>(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                    hint: const Text('Copy', style: TextStyle(fontSize: 12)),
-                    value: null,
-                    style: const TextStyle(fontSize: 12),
-                    isDense: true,
-                    alignment: Alignment.centerLeft,
-                    underline: const SizedBox.shrink(),
-                    iconSize: 18,
-                    items: [
-                      ...List.generate(7, (i) => DropdownMenuItem<String>(
-                        value: _weekDayName(i, false),
-                        child: Text(_weekDayName(i, true), style: const TextStyle(fontSize: 12)),
-                      ))
-                    ],
-                    onChanged: (copyDay) {
-                      if (copyDay != null && copyDay != dayName) {
-                        // Copy entries from selected day into current day
-                        final copied = weekProgram[copyDay]?.map((e) => Map<String, String>.from(e)).toList() ?? [];
-                        onChanged(_sortEntries(copied));
-                      }
-                    },
-                    dropdownColor: isDark ? Colors.grey[800] : Colors.white,
+                ),
+                PopupMenuButton<String>(
+                  icon: Icon(Icons.copy_all_rounded, color: colorScheme.primary),
+                  tooltip: translation('Copy from another day', context: context),
+                  style: IconButton.styleFrom(
+                    backgroundColor: colorScheme.surfaceContainerHigh,
                   ),
-                ],
-              ),
+                  onSelected: (copyDay) {
+                    if (copyDay != dayName) {
+                      final copied = weekProgram[copyDay]?.map((e) => Map<String, String>.from(e)).toList() ?? [];
+                      onChanged(_sortEntries(copied));
+                    }
+                  },
+                  itemBuilder: (context) {
+                    return List.generate(7, (i) {
+                      final wDayName = _weekDayName(i, false);
+                      final wDayLabel = _weekDayName(i, true);
+                      return PopupMenuItem<String>(
+                        value: wDayName,
+                        enabled: wDayName != dayName,
+                        child: Text(wDayLabel),
+                      );
+                    });
+                  },
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            Flexible(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ...sortedEntries.asMap().entries.map((entryMap) {
-                    final entry = entryMap.value;
-                    final entryIdx = entryMap.key;
-                    return _ProgramEntryTile(
+            const SizedBox(height: 16),
+            if (sortedEntries.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12.0),
+                child: Center(
+                  child: Text(
+                    translation('No events planned', context: context),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.disabledColor,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+              )
+            else
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: sortedEntries.length,
+                itemBuilder: (context, entryIdx) {
+                  final entry = sortedEntries[entryIdx];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8.0),
+                    child: _ProgramEntryTile(
                       entry: entry,
                       isDark: isDark,
                       onChanged: (updated) {
@@ -533,24 +557,30 @@ class _ProgramDayCard extends StatelessWidget {
                         newEntries.removeAt(entryIdx);
                         onChanged(_sortEntries(newEntries));
                       },
-                    );
-                  }),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton.icon(
-                      onPressed: () async {
-                        final newEntry = await _showAddEditDialog(context);
-                        if (newEntry != null) {
-                          final newEntries = List<Map<String, String>>.from(sortedEntries);
-                          newEntries.add(newEntry);
-                          onChanged(_sortEntries(newEntries));
-                        }
-                      },
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add event'),
                     ),
+                  );
+                },
+              ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  final newEntry = await _showAddEditDialog(context);
+                  if (newEntry != null) {
+                    final newEntries = List<Map<String, String>>.from(sortedEntries);
+                    newEntries.add(newEntry);
+                    onChanged(_sortEntries(newEntries));
+                  }
+                },
+                icon: const Icon(Icons.add_rounded),
+                label: Text(translation('Add event', context: context)),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                ],
+                ),
               ),
             ),
           ],
@@ -574,44 +604,64 @@ class _ProgramEntryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12.0, 0, 12.0, 4.0),
-      child: GestureDetector(
-        onTap: () async {
-          final result = await _showAddEditDialog(context, entry: entry);
-          if (result != null) {
-            onChanged(result);
-          }
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              Text(
-                '${entry['from']} - ${entry['to']}',
-                style: TextStyle(
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  entry['event']!,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w500,
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.15),
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () async {
+              final result = await _showAddEditDialog(context, entry: entry);
+              if (result != null) {
+                onChanged(result);
+              }
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '${entry['from']} - ${entry['to']}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        color: colorScheme.primary,
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Text(
+                      entry['event'] ?? '',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.delete_outline_rounded, color: colorScheme.error),
+                    tooltip: translation('Delete event', context: context),
+                    onPressed: onDelete,
+                  ),
+                ],
               ),
-              IconButton(
-                icon: const Icon(Icons.delete),
-                tooltip: 'Delete event',
-                onPressed: onDelete,
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -623,22 +673,45 @@ Future<Map<String, String>?> _showAddEditDialog(BuildContext context, {Map<Strin
   TimeOfDay? fromTime = entry != null ? _parseTime(entry['from']) : null;
   TimeOfDay? toTime = entry != null ? _parseTime(entry['to']) : null;
   final eventController = TextEditingController(text: entry?['event'] ?? '');
+  final theme = Theme.of(context);
   return showDialog<Map<String, String>>(
     context: context,
     builder: (context) {
       return StatefulBuilder(
         builder: (context, setState) {
           return AlertDialog(
-            title: Text(entry == null ? translation(context: context, 'Add new event') : translation(context: context, 'Edit event')),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            title: Row(
+              children: [
+                Icon(
+                  entry == null ? Icons.add_circle_outline_rounded : Icons.edit_calendar_rounded,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  entry == null ? translation('Add new event', context: context) : translation('Edit event', context: context),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
             content: SizedBox(
-              width: 350,
+              width: 360,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Text(
+                    translation('Time Slot', context: context),
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
-                        child: OutlinedButton(
+                        child: FilledButton.tonalIcon(
                           onPressed: () async {
                             final picked = await showTimePicker(
                               context: context,
@@ -654,14 +727,19 @@ Future<Map<String, String>?> _showAddEditDialog(BuildContext context, {Map<Strin
                               setState(() => fromTime = picked);
                             }
                           },
-                          child: Text(fromTime == null
-                              ? translation(context: context, 'Select start time')
+                          icon: const Icon(Icons.access_time_rounded, size: 18),
+                          label: Text(fromTime == null
+                              ? translation('Start', context: context)
                               : ('${fromTime!.hour.toString().padLeft(2, '0')}:${fromTime!.minute.toString().padLeft(2, '0')}')),
+                          style: FilledButton.styleFrom(
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: OutlinedButton(
+                        child: FilledButton.tonalIcon(
                           onPressed: () async {
                             final picked = await showTimePicker(
                               context: context,
@@ -677,17 +755,28 @@ Future<Map<String, String>?> _showAddEditDialog(BuildContext context, {Map<Strin
                               setState(() => toTime = picked);
                             }
                           },
-                          child: Text(toTime == null
-                              ? translation(context: context, 'Select end time')
+                          icon: const Icon(Icons.access_time_filled_rounded, size: 18),
+                          label: Text(toTime == null
+                              ? translation('End', context: context)
                               : ('${toTime!.hour.toString().padLeft(2, '0')}:${toTime!.minute.toString().padLeft(2, '0')}')),
+                          style: FilledButton.styleFrom(
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   TextField(
                     controller: eventController,
-                    decoration: InputDecoration(labelText: translation(context: context, 'Title')),
+                    decoration: InputDecoration(
+                      labelText: translation('Title', context: context),
+                      prefixIcon: const Icon(Icons.title_rounded),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -695,21 +784,25 @@ Future<Map<String, String>?> _showAddEditDialog(BuildContext context, {Map<Strin
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text(translation(context: context, 'Cancel')),
+                child: Text(translation('Cancel', context: context)),
               ),
               ElevatedButton(
-                onPressed: () {
-                  if (fromTime != null && toTime != null && eventController.text.isNotEmpty) {
-                    String fromStr = '${fromTime!.hour.toString().padLeft(2, '0')}:${fromTime!.minute.toString().padLeft(2, '0')}';
-                    String toStr = '${toTime!.hour.toString().padLeft(2, '0')}:${toTime!.minute.toString().padLeft(2, '0')}';
-                    Navigator.pop(context, {
-                      'from': fromStr,
-                      'to': toStr,
-                      'event': eventController.text,
-                    });
-                  }
-                },
-                child: Text(entry == null ? translation(context: context, 'Add') : translation(context: context, 'Save')),
+                onPressed: (fromTime != null && toTime != null && eventController.text.trim().isNotEmpty)
+                    ? () {
+                        String fromStr = '${fromTime!.hour.toString().padLeft(2, '0')}:${fromTime!.minute.toString().padLeft(2, '0')}';
+                        String toStr = '${toTime!.hour.toString().padLeft(2, '0')}:${toTime!.minute.toString().padLeft(2, '0')}';
+                        Navigator.pop(context, {
+                          'from': fromStr,
+                          'to': toStr,
+                          'event': eventController.text.trim(),
+                        });
+                      }
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: theme.colorScheme.primary,
+                  foregroundColor: theme.colorScheme.onPrimary,
+                ),
+                child: Text(entry == null ? translation('Add', context: context) : translation('Save', context: context)),
               ),
             ],
           );
@@ -735,10 +828,10 @@ class _SaveFab extends StatelessWidget {
   Widget build(BuildContext context) {
     return FloatingActionButton(
       onPressed: onSave,
-      tooltip: translation(context: context, 'Save and go back'),
+      tooltip: translation('Save and go back', context: context),
       backgroundColor: Theme.of(context).colorScheme.primary,
-      foregroundColor: isDark ? Colors.black : Colors.white,
-      child: const Icon(Icons.save),
+      foregroundColor: Theme.of(context).colorScheme.onPrimary,
+      child: const Icon(Icons.save_rounded),
     );
   }
 }

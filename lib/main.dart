@@ -90,6 +90,12 @@ class Faunty extends ConsumerWidget {
           : ThemeData(
               colorScheme: ColorScheme.fromSeed(seedColor: preset.seedColor),
               useMaterial3: true,
+              dialogTheme: DialogThemeData(
+                surfaceTintColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
             ),
       darkTheme: isMonochrome
           ? monochromeThemeDataDark
@@ -99,6 +105,12 @@ class Faunty extends ConsumerWidget {
                 brightness: Brightness.dark,
               ),
               useMaterial3: true,
+              dialogTheme: DialogThemeData(
+                surfaceTintColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
             ),
       themeMode: ref.watch(themeProvider).value == AppThemeMode.dark
           ? ThemeMode.dark
@@ -181,6 +193,7 @@ class _MainPageState extends ConsumerState<MainPage> {
       // Fallback is just an empty box now, because navigation is handled by ref.listen
       fallback: const SizedBox.shrink(),
       child: Scaffold(
+        extendBody: true,
         body: Stack(
           children: [
             _pages[_selectedIndex],

@@ -48,14 +48,14 @@ class _PdfPreviewPageState extends State<PdfPreviewPage> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
         previewPageMargin: const EdgeInsets.symmetric(vertical: 12),
         scrollViewDecoration: BoxDecoration(
-          color: theme.colorScheme.surfaceVariant.withOpacity(0.08),
+          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.08),
         ),
         pdfPreviewPageDecoration: BoxDecoration(
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: theme.shadowColor.withOpacity(0.12),
+              color: theme.shadowColor.withValues(alpha: 0.12),
               blurRadius: 18,
               offset: const Offset(0, 10),
             ),

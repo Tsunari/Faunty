@@ -1,6 +1,4 @@
-import 'dart:ui';
 import 'package:faunty/core/widgets/custom_confirm_dialog.dart';
-import 'package:faunty/core/widgets/custom_chip.dart';
 import 'package:faunty/core/widgets/custom_snackbar.dart';
 import 'package:faunty/features/auth/domain/entities/user_roles.dart';
 import 'package:faunty/features/auth/domain/entities/user_entity.dart';
@@ -60,9 +58,15 @@ class _CleaningAssignPageState extends ConsumerState<CleaningAssignPage> {
     
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(translation(context: context, 'Add Place')),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: Center(
+            child: Text(
+              translation(context: ctx, 'Add Place'),
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -71,7 +75,7 @@ class _CleaningAssignPageState extends ConsumerState<CleaningAssignPage> {
                 autofocus: true,
                 decoration: InputDecoration(
                   labelText: translation(context: context, 'Place name'),
-                  border: OutlineInputBorder(),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
                 ),
               ),
               const SizedBox(height: 16),
@@ -79,7 +83,7 @@ class _CleaningAssignPageState extends ConsumerState<CleaningAssignPage> {
                 value: selectedGroup,
                 decoration: InputDecoration(
                   labelText: translation(context: context, 'Group (Optional)'),
-                  border: OutlineInputBorder(),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
                 ),
                 items: [
                   DropdownMenuItem<String?>(
@@ -141,9 +145,15 @@ class _CleaningAssignPageState extends ConsumerState<CleaningAssignPage> {
     
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(translation(context: context, 'Edit Place')),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: Center(
+            child: Text(
+              translation(context: ctx, 'Edit Place'),
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -152,7 +162,7 @@ class _CleaningAssignPageState extends ConsumerState<CleaningAssignPage> {
                 autofocus: true,
                 decoration: InputDecoration(
                   labelText: translation(context: context, 'Place name'),
-                  border: OutlineInputBorder(),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
                 ),
               ),
               const SizedBox(height: 16),
@@ -160,7 +170,7 @@ class _CleaningAssignPageState extends ConsumerState<CleaningAssignPage> {
                 value: selectedGroup,
                 decoration: InputDecoration(
                   labelText: translation(context: context, 'Group'),
-                  border: OutlineInputBorder(),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
                 ),
                 items: [
                   DropdownMenuItem<String?>(
@@ -752,7 +762,7 @@ class _CleaningAssignPageState extends ConsumerState<CleaningAssignPage> {
                 data: theme.copyWith(dividerColor: Colors.transparent),
                 child: ExpansionTile(
                   leading: CircleAvatar(
-                    backgroundColor: theme.colorScheme.primary.withOpacity(0.2),
+                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.2),
                     child: Text(
                       placeIds.length.toString(),
                       style: TextStyle(
@@ -875,7 +885,7 @@ class _CleaningAssignPageState extends ConsumerState<CleaningAssignPage> {
             decoration: BoxDecoration(
               border: Border(
                 bottom: BorderSide(
-                  color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
+                  color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05),
                 ),
               ),
             ),
@@ -885,7 +895,7 @@ class _CleaningAssignPageState extends ConsumerState<CleaningAssignPage> {
                   index: idx,
                   child: Padding(
                     padding: const EdgeInsets.only(right: 12),
-                    child: Icon(Icons.drag_indicator, color: theme.iconTheme.color?.withOpacity(0.5)),
+                    child: Icon(Icons.drag_indicator, color: theme.iconTheme.color?.withValues(alpha: 0.5)),
                   ),
                 ),
                 Expanded(
@@ -903,7 +913,7 @@ class _CleaningAssignPageState extends ConsumerState<CleaningAssignPage> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.secondary.withOpacity(0.15),
+                            color: theme.colorScheme.secondary.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -952,7 +962,7 @@ class _CleaningAssignPageState extends ConsumerState<CleaningAssignPage> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withOpacity(0.15),
+                        color: theme.colorScheme.primary.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
@@ -1043,11 +1053,11 @@ class _CleaningAssignPageState extends ConsumerState<CleaningAssignPage> {
       final isAssigned = assignees.contains(encoded);
       final missing = !users.any((u) => u.uid == user.uid); // treat as missing only if not in Firestore list
       final bg = missing
-          ? Colors.orange.withOpacity(0.25)
-          : (isAssigned ? theme.colorScheme.primary.withOpacity(0.2) : theme.colorScheme.surface.withOpacity(0.5));
+          ? Colors.orange.withValues(alpha: 0.12)
+          : (isAssigned ? theme.colorScheme.primary.withValues(alpha: 0.1) : theme.colorScheme.surfaceContainer);
       final borderColor = missing
-          ? Colors.orangeAccent
-          : (isAssigned ? theme.colorScheme.primary : theme.dividerColor);
+          ? Colors.orange.withValues(alpha: 0.6)
+          : (isAssigned ? theme.colorScheme.primary : theme.colorScheme.primary.withValues(alpha: 0.12));
       return GestureDetector(
         onTap: () => _toggleAssignee(placeId, user),
         child: Tooltip(
@@ -1058,21 +1068,21 @@ class _CleaningAssignPageState extends ConsumerState<CleaningAssignPage> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: bg,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(color: borderColor, width: isAssigned ? 2 : 1),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (missing) ...[
-                  Icon(Icons.warning_amber_rounded, size: 14, color: Colors.orangeAccent),
+                  Icon(Icons.warning_amber_rounded, size: 14, color: Colors.orange),
                   const SizedBox(width: 4),
                 ],
                 Text(
                   _displayName(user),
                   style: TextStyle(
                     color: missing
-                        ? Colors.orangeAccent
+                        ? Colors.orange
                         : (isAssigned ? theme.colorScheme.primary : theme.textTheme.bodyMedium?.color),
                     fontWeight: isAssigned ? FontWeight.w600 : FontWeight.normal,
                   ),
@@ -1200,14 +1210,20 @@ class _EditGroupsDialogState extends State<EditGroupsDialog> {
     final controller = TextEditingController(text: groups[id]?['title'] ?? '');
     final title = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(translation(context: context, 'Edit Group')),
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Center(
+          child: Text(
+            translation(context: ctx, 'Edit Group'),
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
         content: TextField(
           controller: controller,
           autofocus: true,
           decoration: InputDecoration(
-            labelText: translation(context: context, 'Group title'),
-            border: OutlineInputBorder(),
+            labelText: translation(context: ctx, 'Group title'),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
         actions: [
@@ -1233,11 +1249,16 @@ class _EditGroupsDialogState extends State<EditGroupsDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       title: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.folder_outlined),
           const SizedBox(width: 12),
-          Text(translation(context: context, 'Manage Groups')),
+          Text(
+            translation(context: context, 'Manage Groups'),
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
         ],
       ),
       content: SizedBox(
@@ -1271,7 +1292,7 @@ class _EditGroupsDialogState extends State<EditGroupsDialog> {
                         leading: ReorderableDragStartListener(
                           index: index,
                           child: CircleAvatar(
-                            backgroundColor: theme.colorScheme.secondary.withOpacity(0.2),
+                            backgroundColor: theme.colorScheme.secondary.withValues(alpha: 0.2),
                             child: Text(
                               placeCount.toString(),
                               style: TextStyle(
@@ -1328,7 +1349,7 @@ class _EditGroupsDialogState extends State<EditGroupsDialog> {
                     controller: _newController,
                     decoration: InputDecoration(
                       hintText: translation(context: context, 'New group title'),
-                      border: OutlineInputBorder(),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       prefixIcon: Icon(Icons.add),
                     ),
                     onSubmitted: (_) => _addGroup(),

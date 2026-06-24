@@ -9,6 +9,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:faunty/features/lists/presentation/pages/program_organisation_page.dart';
 import 'package:faunty/features/lists/presentation/controllers/program_provider.dart';
 import 'package:faunty/core/widgets/tab_page.dart';
+import 'package:faunty/features/profile/presentation/widgets/navigation_bar.dart';
+import 'package:faunty/core/widgets/custom_app_bar.dart';
 
 
 const List<String> weekDays = [
@@ -105,13 +107,14 @@ class _ProgramPageState extends ConsumerState<ProgramPage> {
         });
 
         return Scaffold(
+          floatingActionButtonLocation: const OffsettedFABLocation(FloatingActionButtonLocation.endFloat, 80.0),
           appBar: null,
           body: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 600),
               child: daysWithPrograms.isEmpty
                   ? Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 64.0, horizontal: 24.0),
+                      padding: const EdgeInsets.fromLTRB(24, 96, 24, 96),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.center,
@@ -143,6 +146,7 @@ class _ProgramPageState extends ConsumerState<ProgramPage> {
                   : ListView.builder(
                       physics: const BouncingScrollPhysics(),
                       itemCount: daysWithPrograms.length,
+                      padding: const EdgeInsets.fromLTRB(12, 96, 12, 96),
                       itemBuilder: (context, idx) {
                         final day = daysWithPrograms[idx];
                         final date = day['date'] as DateTime;
@@ -151,6 +155,7 @@ class _ProgramPageState extends ConsumerState<ProgramPage> {
                         final isToday = date.day == now.day && date.month == now.month && date.year == now.year;
                         TimeOfDay nowTime = TimeOfDay.now();
                         int? currentEventIdx;
+                        
                         if (isToday) {
                           for (int i = 0; i < entries.length; i++) {
                             final fromParts = (entries[i]['from'] as String).split(':');
@@ -165,96 +170,192 @@ class _ProgramPageState extends ConsumerState<ProgramPage> {
                             }
                           }
                         }
-                        return SizedBox(
-                          width: double.infinity,
-                          child: Card(
-                            color: isDark ? Colors.grey[850] : null,
-                            margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                            child: Padding(
-                              padding: const EdgeInsets.all(12.0),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SizedBox(
-                                width: 50,
-                                height: 50,
-                                child: Container(
-                                  // padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-                                  decoration: BoxDecoration(
-                                    color: isToday
-                                        ? Theme.of(context).colorScheme.primaryContainer
-                                        : Theme.of(context).colorScheme.surface,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Center(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          dayShort,
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          '${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+
+                        final theme = Theme.of(context);
+                        final colorScheme = theme.colorScheme;
+
+                        return Card(
+                          elevation: 0,
+                          color: colorScheme.surfaceContainer,
+                          margin: const EdgeInsets.only(bottom: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            side: BorderSide(
+                              color: isToday 
+                                  ? colorScheme.primary.withValues(alpha: 0.3)
+                                  : colorScheme.outlineVariant.withValues(alpha: 0.3),
+                              width: isToday ? 1.5 : 1,
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Day Header
+                                Row(
                                   children: [
-                                    ...entries.asMap().entries.map((entryMap) {
-                                      final entry = entryMap.value;
-                                      final entryIdx = entryMap.key;
-                                      final isCurrent = isToday && currentEventIdx == entryIdx;
-                                      return Padding(
-                                        padding: const EdgeInsets.only(bottom: 4.0),
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: Theme.of(context).colorScheme.surface,
-                                            borderRadius: BorderRadius.circular(12),
-                                            border: isCurrent ? Border.all(color: Theme.of(context).colorScheme.primary.withAlpha(200), width: 2) : null,
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: isToday
+                                            ? colorScheme.primary
+                                            : colorScheme.surfaceContainerHigh,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        dayShort,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: isToday ? colorScheme.onPrimary : colorScheme.onSurface,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Text(
+                                      '${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year}',
+                                      style: theme.textTheme.labelMedium?.copyWith(
+                                        color: colorScheme.onSurfaceVariant,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    if (isToday) ...[
+                                      const Spacer(),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: colorScheme.primary.withValues(alpha: 0.12),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          translation(context: context, 'Today'),
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: colorScheme.primary,
                                           ),
-                                          child: Row(
+                                        ),
+                                      ),
+                                    ]
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                                // Timeline List of Entries
+                                ListView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: entries.length,
+                                  itemBuilder: (context, entryIdx) {
+                                    final entry = entries[entryIdx];
+                                    final isCurrent = isToday && currentEventIdx == entryIdx;
+                                    final isLast = entryIdx == entries.length - 1;
+
+                                    return IntrinsicHeight(
+                                      child: Row(
+                                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                                        children: [
+                                          // Timeline indicator bar on the left
+                                          Column(
                                             children: [
-                                              Text(
-                                                '${entry['from']} - ${entry['to']}',
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
-                                              const SizedBox(width: 12),
-                                              Expanded(
-                                                child: Text(
-                                                  entry['event'] ?? '',
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.w500,
+                                              Container(
+                                                width: 12,
+                                                height: 12,
+                                                decoration: BoxDecoration(
+                                                  color: isCurrent ? colorScheme.primary : colorScheme.outlineVariant,
+                                                  shape: BoxShape.circle,
+                                                  border: Border.all(
+                                                    color: isCurrent 
+                                                        ? colorScheme.primaryContainer 
+                                                        : colorScheme.surfaceContainer,
+                                                    width: 2,
                                                   ),
                                                 ),
                                               ),
+                                              if (!isLast)
+                                                Expanded(
+                                                  child: Container(
+                                                    width: 2,
+                                                    color: isCurrent ? colorScheme.primary.withValues(alpha: 0.5) : colorScheme.outlineVariant.withValues(alpha: 0.4),
+                                                  ),
+                                                ),
                                             ],
                                           ),
-                                        ),
-                                      );
-                                    }),
-                                  ],
+                                          const SizedBox(width: 16),
+                                          // Event details card
+                                          Expanded(
+                                            child: Container(
+                                              margin: const EdgeInsets.only(bottom: 12),
+                                              padding: const EdgeInsets.all(12),
+                                              decoration: BoxDecoration(
+                                                color: isCurrent 
+                                                    ? colorScheme.primary.withValues(alpha: 0.06)
+                                                    : colorScheme.surface,
+                                                borderRadius: BorderRadius.circular(16),
+                                                border: Border.all(
+                                                  color: isCurrent
+                                                      ? colorScheme.primary.withValues(alpha: 0.4)
+                                                      : colorScheme.outlineVariant.withValues(alpha: 0.15),
+                                                  width: isCurrent ? 1.5 : 1,
+                                                ),
+                                              ),
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Row(
+                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                    children: [
+                                                      Text(
+                                                        '${entry['from']} - ${entry['to']}',
+                                                        style: TextStyle(
+                                                          fontWeight: FontWeight.bold,
+                                                          fontSize: 12,
+                                                          color: isCurrent ? colorScheme.primary : colorScheme.onSurfaceVariant,
+                                                        ),
+                                                      ),
+                                                      if (isCurrent)
+                                                        Container(
+                                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                          decoration: BoxDecoration(
+                                                            color: colorScheme.primary,
+                                                            borderRadius: BorderRadius.circular(6),
+                                                          ),
+                                                          child: const Row(
+                                                            children: [
+                                                              Icon(Icons.sensors_rounded, size: 10, color: Colors.white),
+                                                              SizedBox(width: 4),
+                                                              Text(
+                                                                'LIVE',
+                                                                style: TextStyle(
+                                                                  fontSize: 8,
+                                                                  fontWeight: FontWeight.bold,
+                                                                  color: Colors.white,
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                    ],
+                                                  ),
+                                                  const SizedBox(height: 6),
+                                                  Text(
+                                                    entry['event'] ?? '',
+                                                    style: TextStyle(
+                                                      fontWeight: isCurrent ? FontWeight.bold : FontWeight.w500,
+                                                      fontSize: 14,
+                                                      color: colorScheme.onSurface,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
                                 ),
-                              ),
-                            ],
-                          ),
+                              ],
                             ),
                           ),
                         );
@@ -270,7 +371,7 @@ class _ProgramPageState extends ConsumerState<ProgramPage> {
                 FloatingActionButton(
                   heroTag: 'editProgramFab',
                   onPressed: () async {
-                    final result = await Navigator.push(
+                    await Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => ProgramOrganisationPage(
@@ -278,8 +379,6 @@ class _ProgramPageState extends ConsumerState<ProgramPage> {
                         ),
                       ),
                     );
-                    final service = ref.read(programFirestoreServiceProvider);
-                    await service.setWeekProgram(result);
                   },
                   tooltip: translation(context: context, 'Edit program'),
                   child: const Icon(Icons.edit),

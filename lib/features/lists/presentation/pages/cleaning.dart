@@ -10,6 +10,8 @@ import 'package:faunty/features/profile/presentation/controllers/user_list_provi
 import 'package:faunty/features/auth/presentation/controllers/user_provider.dart';
 import 'package:faunty/features/auth/domain/entities/user_entity.dart';
 import 'package:faunty/core/widgets/tab_page.dart';
+import 'package:faunty/features/profile/presentation/widgets/navigation_bar.dart';
+import 'package:faunty/core/widgets/custom_app_bar.dart';
 
 class CleaningPage extends ConsumerStatefulWidget {
   const CleaningPage({super.key});
@@ -55,6 +57,7 @@ class _CleaningPageState extends ConsumerState<CleaningPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final ref = this.ref;
     final cleaningDataAsync = ref.watch(cleaningDataProvider);
     // Resolve users for the current place to map UIDs to names
@@ -132,6 +135,7 @@ class _CleaningPageState extends ConsumerState<CleaningPage> {
     });
 
     return Scaffold(
+      floatingActionButtonLocation: const OffsettedFABLocation(FloatingActionButtonLocation.endFloat, 80.0),
       appBar: null,
       body: Center(
         child: ConstrainedBox(
@@ -144,7 +148,7 @@ class _CleaningPageState extends ConsumerState<CleaningPage> {
           final placesNoUser = ref.watch(placesEmptyProvider);
 
           return Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.fromLTRB(8, 96, 8, 96),
             child: (placesMap.isEmpty || placesNoUser)
                 ? Center(
                     child: Padding(
@@ -304,14 +308,13 @@ class _CleaningPageState extends ConsumerState<CleaningPage> {
                         }).toList();
 
                         return Container(
-                          margin: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 4.0),
+                          margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surface,
-                            border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.4), width: 1.0),
-                            borderRadius: BorderRadius.circular(10),
+                            color: theme.colorScheme.surfaceContainer,
+                            borderRadius: BorderRadius.circular(20),
                           ),
                           child: Theme(
-                            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                            data: theme.copyWith(dividerColor: Colors.transparent),
                             child: ExpansionTile(
                               initiallyExpanded: true,
                               tilePadding: const EdgeInsets.symmetric(horizontal: 12.0),
@@ -338,7 +341,7 @@ class _CleaningPageState extends ConsumerState<CleaningPage> {
                             ),
                           ),
                         );
-                      }).toList(),
+                      }),
 
                       // Ungrouped places (compact list)
                       Builder(builder: (context) {
@@ -356,11 +359,10 @@ class _CleaningPageState extends ConsumerState<CleaningPage> {
                         });
 
                         return Container(
-                          margin: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 4.0),
+                          margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.surface,
-                            border: Border.all(color: Theme.of(context).dividerColor.withOpacity(0.4), width: 1.0),
-                            borderRadius: BorderRadius.circular(10),
+                            color: theme.colorScheme.surfaceContainer,
+                            borderRadius: BorderRadius.circular(20),
                           ),
                           child: Padding(
                             padding: const EdgeInsets.only(bottom: 8.0),
@@ -469,13 +471,7 @@ class _AssigneeChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final bool dark = theme.brightness == Brightness.dark;
-    final borderClr = dark
-        ? Colors.white.withOpacity(0.18)
-        : theme.colorScheme.outlineVariant.withOpacity(0.55);
-    final bg = dark
-        ? theme.colorScheme.surfaceVariant.withOpacity(0.22)
-        : theme.colorScheme.surfaceVariant.withOpacity(0.35);
+    final bg = theme.colorScheme.primary.withValues(alpha: 0.06);
     return Container(
       constraints: const BoxConstraints(maxWidth: 140),
       child: Chip(
@@ -483,7 +479,7 @@ class _AssigneeChip extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 12,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w600,
             color: theme.colorScheme.onSurface,
           ),
           overflow: TextOverflow.ellipsis,
@@ -493,8 +489,8 @@ class _AssigneeChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
         visualDensity: VisualDensity.compact,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-          side: BorderSide(color: borderClr, width: 1.0),
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: theme.colorScheme.primary.withValues(alpha: 0.12), width: 1.0),
         ),
         backgroundColor: bg,
         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -513,9 +509,9 @@ class _CountChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withOpacity(0.15),
+        color: theme.colorScheme.primary.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: theme.colorScheme.primary.withOpacity(0.3)),
+        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
       ),
       child: Text(
         count.toString(),

@@ -116,6 +116,7 @@ final ThemeData monochromeThemeDataDark = ThemeData(
   ),
   dialogTheme: DialogThemeData(
     backgroundColor: Colors.black,
+    surfaceTintColor: Colors.transparent,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(24),
       side: BorderSide(
@@ -286,6 +287,7 @@ final ThemeData monochromeThemeDataLight = ThemeData(
   ),
   dialogTheme: DialogThemeData(
     backgroundColor: Colors.white,
+    surfaceTintColor: Colors.transparent,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(24),
       side: BorderSide(

@@ -8,9 +8,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:faunty/features/lists/presentation/pages/catering_organisation.dart';
 import 'package:faunty/features/lists/presentation/controllers/catering_provider.dart';
 import 'package:faunty/features/profile/presentation/controllers/user_list_provider.dart';
-import 'package:faunty/features/lists/presentation/pages/widgets/catering_classic_view.dart';
 import 'package:faunty/features/lists/presentation/pages/widgets/catering_modern_view.dart';
 import 'package:faunty/core/widgets/tab_page.dart';
+import 'package:faunty/features/profile/presentation/widgets/navigation_bar.dart';
+import 'package:faunty/core/widgets/custom_app_bar.dart';
 
 final List<String> meals = ['Breakfast', 'Lunch', 'Dinner'];
 
@@ -22,7 +23,6 @@ class CateringPage extends ConsumerStatefulWidget {
 }
 
 class _CateringPageState extends ConsumerState<CateringPage> {
-  bool _modernView = true;
 
   @override
   Widget build(BuildContext context) {
@@ -89,9 +89,9 @@ class _CateringPageState extends ConsumerState<CateringPage> {
                     if (!hasAssignments) {
                       continue;
                     }
-
+ 
                     final isUniformDay = day < uniformDays.length ? uniformDays[day] : false;
-
+ 
                     if (isUniformDay) {
                       final uniqueAssignees = entries
                           .expand((meal) => meal)
@@ -124,45 +124,26 @@ class _CateringPageState extends ConsumerState<CateringPage> {
                   }
                   return pdfData;
                 },
-                actions: [
-                  IconButton(
-                    tooltip: _modernView
-                        ? translation(context: context, 'Switch to classic view')
-                        : translation(context: context, 'Switch to modern view'),
-                    icon: Icon(_modernView ? Icons.view_list : Icons.auto_awesome),
-                    onPressed: () => setState(() => _modernView = !_modernView),
-                  ),
-                ],
               );
             });
 
             return Scaffold(
+              floatingActionButtonLocation: const OffsettedFABLocation(FloatingActionButtonLocation.endFloat, 80.0),
               appBar: null,
               body: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 600),
                   child: hasAnyUser
-                      ? (_modernView
-                          ? CateringModernView(
-                              weekPlan: weekPlan,
-                              uniformDays: uniformDays,
-                              visibleDays: visibleDays,
-                              monday: monday,
-                              dayNames: days,
-                              meals: meals,
-                              mealsTranslated: mealsTranslated,
-                              slotNames: slotNamesAsync.asData?.value ?? {},
-                            )
-                          : CateringClassicView(
-                              weekPlan: weekPlan,
-                              uniformDays: uniformDays,
-                              visibleDays: visibleDays,
-                              monday: monday,
-                              dayNames: days,
-                              meals: meals,
-                              mealsTranslated: mealsTranslated,
-                              slotNames: slotNamesAsync.asData?.value ?? {},
-                            ))
+                      ? CateringModernView(
+                          weekPlan: weekPlan,
+                          uniformDays: uniformDays,
+                          visibleDays: visibleDays,
+                          monday: monday,
+                          dayNames: days,
+                          meals: meals,
+                          mealsTranslated: mealsTranslated,
+                          slotNames: slotNamesAsync.asData?.value ?? {},
+                        )
                       : Padding(
                           padding: const EdgeInsets.symmetric(vertical: 64.0, horizontal: 24.0),
                           child: Column(
@@ -199,7 +180,7 @@ class _CateringPageState extends ConsumerState<CateringPage> {
                 minRole: UserRole.baskan,
                 child: FloatingActionButton(
                   onPressed: () async {
-                    final result = await Navigator.push(
+                    await Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => CateringOrganisationPage(
@@ -210,11 +191,6 @@ class _CateringPageState extends ConsumerState<CateringPage> {
                         ),
                       ),
                     );
-                    if (result != null && result is List<List<List<String>>>) {
-                      // Save to Firestore
-                      final service = ref.read(cateringFirestoreServiceProvider);
-                      await service.setWeekPlan(result);
-                    }
                   },
                   tooltip: translation(context: context, 'Edit'),
                   child: const Icon(Icons.edit),

@@ -30,25 +30,26 @@ class UserListWithScrollbarState extends State<UserListWithScrollbar> {
   IconData _getRoleIcon(UserRole role, bool isPlaceholder) {
     switch (role) {
       case UserRole.superuser:
-        return Icons.admin_panel_settings_outlined;
+        return Icons.admin_panel_settings_rounded;
       case UserRole.hoca:
-        return Icons.school_outlined;
+        return Icons.school_rounded;
       case UserRole.baskan:
       case UserRole.talebe:
-        return isPlaceholder ? Icons.person_outline : Icons.how_to_reg_outlined;
+        return isPlaceholder ? Icons.person_outline_rounded : Icons.how_to_reg_rounded;
       case UserRole.user:
-        return Icons.person_add_alt_1_outlined;
+        return Icons.person_add_alt_rounded;
       case UserRole.spectator:
-        return Icons.visibility_outlined;
+        return Icons.visibility_rounded;
       case UserRole.archived:
-        return Icons.archive_outlined;
+        return Icons.archive_rounded;
       case UserRole.unknown:
-        return Icons.help_outline;
+        return Icons.help_outline_rounded;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scrollbar(
       controller: _scrollController,
       thumbVisibility: true,
@@ -57,52 +58,108 @@ class UserListWithScrollbarState extends State<UserListWithScrollbar> {
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: widget.users.length,
-        separatorBuilder: (_, __) => Divider(height: 1, color: widget.colorScheme.outline.withOpacity(0.2)),
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        separatorBuilder: (_, __) => Divider(height: 1, color: widget.colorScheme.outlineVariant.withValues(alpha: 0.3)),
         itemBuilder: (context, idx) {
           final u = widget.users[idx];
           return ListTile(
-            leading: Stack(
-              children: [
-                GestureDetector(
-                  onTap: u.isPlaceholder
-                      ? () {
-                          showCustomSnackBar(context, translation('This is a placeholder user. They can register using this email.'));
-                        }
-                      : null,
-                  child: Icon(_getRoleIcon(u.role, u.isPlaceholder), color: widget.colorScheme.primary),
-                ),
-                if (u.isPlaceholder)
-                  RoleGate(
-                    minRole: UserRole.hoca,
-                    child: Positioned(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            leading: GestureDetector(
+              onTap: u.isPlaceholder
+                  ? () {
+                      showCustomSnackBar(context, translation('This is a placeholder user. They can register using this email.', context: context));
+                    }
+                  : null,
+              child: Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 20,
+                    backgroundColor: u.isPlaceholder 
+                        ? widget.colorScheme.surfaceContainerHighest
+                        : widget.colorScheme.primaryContainer.withValues(alpha: 0.4),
+                    child: Icon(
+                      _getRoleIcon(u.role, u.isPlaceholder),
+                      color: u.isPlaceholder ? widget.colorScheme.onSurfaceVariant : widget.colorScheme.primary,
+                      size: 20,
+                    ),
+                  ),
+                  if (u.isPlaceholder)
+                    Positioned(
                       top: 0,
                       right: 0,
-                      child: GestureDetector(
-                        onTap: () {
-                          showCustomSnackBar(context, translation('This is a placeholder user. They can register using this email.'));
-                        },
-                        child: Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: widget.colorScheme.secondary,
-                            shape: BoxShape.circle,
-                          ),
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: Colors.amber,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: theme.colorScheme.surface, width: 1.5),
                         ),
                       ),
                     ),
+                ],
+              ),
+            ),
+            title: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${u.firstName} ${u.lastName}',
+                    style: TextStyle(
+                      color: widget.colorScheme.onSurface,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
+                ),
+                if (u.isPlaceholder) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: Colors.amber.shade700.withValues(alpha: 0.5), width: 0.5),
+                    ),
+                    child: Text(
+                      translation('Pending', context: context).toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.amber.shade800,
+                      ),
+                    ),
+                  ),
+                ]
               ],
             ),
-            title: Text('${u.firstName} ${u.lastName}', style: TextStyle(color: widget.colorScheme.onSurface)),
             subtitle: (widget.currentUser.role == UserRole.superuser || 
                       (widget.currentUser.role == UserRole.hoca && u.isPlaceholder))
-                ? Text(u.email, style: TextStyle(color: widget.colorScheme.onSurface.withOpacity(0.7)))
+                ? Padding(
+                    padding: const EdgeInsets.only(top: 4.0),
+                    child: Row(
+                      children: [
+                        Icon(Icons.mail_outline_rounded, size: 12, color: widget.colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            u.email,
+                            style: TextStyle(
+                              color: widget.colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                              fontSize: 12,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
                 : null,
             trailing: (u.uid == widget.currentUser.uid)
                 ? null
                 : SizedBox(
-                    width: 140,
+                    width: 170,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
@@ -120,31 +177,29 @@ class UserListWithScrollbarState extends State<UserListWithScrollbar> {
                         RoleGate(
                           minRole: UserRole.hoca,
                           child: PopupMenuButton<String>(
-                            icon: Icon(Icons.more_vert, color: widget.colorScheme.onSurface),
+                            icon: Icon(Icons.more_vert_rounded, color: widget.colorScheme.onSurfaceVariant),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                             onSelected: (val) async {
                               if (val == 'edit') {
-                                // open edit name dialog
                                 await showDialog(
                                   context: context,
                                   builder: (ctx) => EditNameDialog(user: u, colorScheme: widget.colorScheme),
                                 );
                               } else if (val == 'delete') {
-                                final confirmed = await showDeleteDialog(context: context, thingToDelete: translation(context: context, 'placeholder user'));
+                                final confirmed = await showDeleteDialog(context: context, thingToDelete: translation('placeholder user', context: context));
                                 if (confirmed != true) return;
                                 try {
                                   await FirebaseFirestore.instance.collection('user_list').doc(u.uid).delete();
-                                  if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Placeholder user deleted.'));
+                                  if (context.mounted) showCustomSnackBar(context, translation('Placeholder user deleted.', context: context));
                                 } catch (e) {
-                                  if (context.mounted) showCustomSnackBar(context, translation(context: context, 'Failed to delete user: ') + e.toString());
+                                  if (context.mounted) showCustomSnackBar(context, translation('Failed to delete user: ', context: context) + e.toString());
                                 }
                               } else if (val == 'migrate') {
-                                // open migrate dialog (pass operator)
                                 await showDialog(
                                   context: context,
                                   builder: (ctx) => MigrateDialog(user: u, operator: widget.currentUser),
                                 );
                               } else if (val == 'change_place') {
-                                // open change place dialog defined in users_page.dart
                                 await showDialog(
                                   context: context,
                                   builder: (ctx) => ChangePlaceDialog(user: u),
@@ -153,14 +208,56 @@ class UserListWithScrollbarState extends State<UserListWithScrollbar> {
                             },
                             itemBuilder: (ctx) {
                               final items = <PopupMenuEntry<String>>[
-                                PopupMenuItem(value: 'edit', child: Text(translation(context: context, 'Edit Name'))),
-                                PopupMenuItem(value: 'change_place', child: Text(translation(context: context, 'Change Place'))),
+                                PopupMenuItem(
+                                  value: 'edit',
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.edit_rounded, size: 18),
+                                      const SizedBox(width: 8),
+                                      Text(translation('Edit Name', context: context)),
+                                    ],
+                                  ),
+                                ),
+                                PopupMenuItem(
+                                  value: 'change_place',
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.place_rounded, size: 18),
+                                      const SizedBox(width: 8),
+                                      Text(translation('Change Place', context: context)),
+                                    ],
+                                  ),
+                                ),
                               ];
                               if (u.isPlaceholder) {
-                                items.add(PopupMenuItem(value: 'delete', child: Text(translation(context: context, 'Delete Placeholder'))));
+                                items.add(
+                                  PopupMenuItem(
+                                    value: 'delete',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.delete_outline_rounded, size: 18, color: theme.colorScheme.error),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          translation('Delete Placeholder', context: context),
+                                          style: TextStyle(color: theme.colorScheme.error),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
                               } else {
-                                // non-placeholder users can migrate to an existing placeholder
-                                items.add(PopupMenuItem(value: 'migrate', child: Text(translation(context: context, 'Migrate'))));
+                                items.add(
+                                  PopupMenuItem(
+                                    value: 'migrate',
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.merge_type_rounded, size: 18),
+                                        const SizedBox(width: 8),
+                                        Text(translation('Migrate', context: context)),
+                                      ],
+                                    ),
+                                  ),
+                                );
                               }
                               return items;
                             },
@@ -178,7 +275,6 @@ class UserListWithScrollbarState extends State<UserListWithScrollbar> {
   }
 }
 
-// Dialog to migrate a real user into an existing placeholder user (merge)
 class MigrateDialog extends StatefulWidget {
   final UserEntity user;
   final UserEntity operator;
@@ -213,7 +309,7 @@ class _MigrateDialogState extends State<MigrateDialog> {
         if (_placeholders.isNotEmpty) _selectedPlaceholderId = _placeholders.first.id;
       });
     } catch (e) {
-      if (mounted) showCustomSnackBar(context, translation(context: context, 'Failed to load placeholders: ') + e.toString());
+      if (mounted) showCustomSnackBar(context, translation('Failed to load placeholders: ', context: context) + e.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -221,22 +317,47 @@ class _MigrateDialogState extends State<MigrateDialog> {
 
   Future<void> _confirmMigrate() async {
     if (_selectedPlaceholderId == null) return;
-    // explicit confirmation because migration deletes the placeholder
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(translation(context: context, 'Confirm Migration')),
-        content: Text(
-          translation(
-            context: context,
-            'This action is irreversible. The selected placeholder will be converted into the canonical user record: its email will be replaced with the migrating user\'s email, the placeholder flag will be cleared, and the existing auth-backed user document (the one with the auth UID) will be deleted. Do you want to continue?',
+      builder: (ctx) {
+        final theme = Theme.of(ctx);
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          title: Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.warning_amber_rounded, color: theme.colorScheme.error),
+                const SizedBox(width: 10),
+                Text(
+                  translation('Confirm Migration', context: ctx),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
           ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: Text(translation(context: context, 'Cancel'))),
-          ElevatedButton(onPressed: () => Navigator.of(ctx).pop(true), child: Text(translation(context: context, 'Confirm'))),
-        ],
-      ),
+          content: Text(
+            translation(
+              'This action is irreversible. The selected placeholder will be converted into the canonical user record: its email will be replaced with the migrating user\'s email, the placeholder flag will be cleared, and the existing auth-backed user document (the one with the auth UID) will be deleted. Do you want to continue?',
+              context: ctx,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(translation('Cancel', context: ctx)),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.colorScheme.error,
+                foregroundColor: Colors.white,
+              ),
+              child: Text(translation('Confirm', context: ctx)),
+            ),
+          ],
+        );
+      },
     );
     if (confirmed != true) return;
     setState(() => _saving = true);
@@ -244,8 +365,6 @@ class _MigrateDialogState extends State<MigrateDialog> {
       final placeholderDoc = await FirebaseFirestore.instance.collection('user_list').doc(_selectedPlaceholderId!).get();
       final placeholderData = placeholderDoc.data() ?? {};
 
-      // Instead of updating the real user's doc and deleting placeholder, update the placeholder
-      // doc to include the real user's auth uid and merged fields, then delete the real user's doc
       final placeholderRef = FirebaseFirestore.instance.collection('user_list').doc(placeholderDoc.id);
       await placeholderRef.update({
         'authUid': widget.user.uid,
@@ -261,15 +380,14 @@ class _MigrateDialogState extends State<MigrateDialog> {
         'linkedBy': widget.operator.uid,
       });
 
-      // Delete the real user's old doc (the user.uid doc)
       await FirebaseFirestore.instance.collection('user_list').doc(widget.user.uid).delete();
 
       if (mounted) {
         Navigator.of(context).pop();
-        showCustomSnackBar(context, translation(context: context, 'User migrated successfully.'));
+        showCustomSnackBar(context, translation('User migrated successfully.', context: context));
       }
     } catch (e) {
-      if (mounted) showCustomSnackBar(context, translation(context: context, 'Migration failed: ') + e.toString());
+      if (mounted) showCustomSnackBar(context, translation('Migration failed: ', context: context) + e.toString());
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -277,50 +395,78 @@ class _MigrateDialogState extends State<MigrateDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return AlertDialog(
-      title: Text(translation(context: context, 'Migrate User')),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      title: Center(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.merge_type_rounded, color: theme.colorScheme.primary),
+            const SizedBox(width: 10),
+            Text(
+              translation('Migrate User', context: context),
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ),
       content: _loading
           ? const SizedBox(height: 80, child: Center(child: CircularProgressIndicator()))
           : _placeholders.isEmpty
-              ? Text(translation(context: context, 'No placeholder users found in this place.'))
+              ? Text(translation('No placeholder users found in this place.', context: context))
               : Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(8.0),
+                      padding: const EdgeInsets.all(12.0),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.error.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(6),
+                        color: theme.colorScheme.error.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: theme.colorScheme.error.withValues(alpha: 0.2)),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.warning_amber_rounded, color: Theme.of(context).colorScheme.error),
-                          const SizedBox(width: 8),
+                          Icon(Icons.warning_amber_rounded, color: theme.colorScheme.error),
+                          const SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              translation(context: context, "This action is irreversible. The placeholder user's data will be merged into the selected user and the placeholder will be deleted. Please double-check your selection."),
-                              style: TextStyle(color: Theme.of(context).colorScheme.error),
+                              translation("This action is irreversible. The placeholder user's data will be merged into the selected user and the placeholder will be deleted. Please double-check your selection.", context: context),
+                              style: TextStyle(
+                                color: theme.colorScheme.error,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                  value: _selectedPlaceholderId,
-                  items: _placeholders
-                      .map((d) => DropdownMenuItem(value: d.id, child: Text(d.data()['email'] ?? d.id)))
-                      .toList(),
-                  onChanged: (v) => setState(() => _selectedPlaceholderId = v),
-                  decoration: InputDecoration(labelText: translation(context: context, 'Select placeholder')),
-                ),
+                      value: _selectedPlaceholderId,
+                      items: _placeholders
+                          .map((d) => DropdownMenuItem(value: d.id, child: Text(d.data()['email'] ?? d.id)))
+                          .toList(),
+                      onChanged: (v) => setState(() => _selectedPlaceholderId = v),
+                      decoration: InputDecoration(
+                        labelText: translation('Select placeholder', context: context),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
                   ],
                 ),
       actions: [
-        TextButton(onPressed: _saving ? null : () => Navigator.of(context).pop(), child: Text(translation(context: context, 'Cancel'))),
+        TextButton(onPressed: _saving ? null : () => Navigator.of(context).pop(), child: Text(translation('Cancel', context: context))),
         ElevatedButton(
           onPressed: (_saving || _selectedPlaceholderId == null) ? null : _confirmMigrate,
-          child: _saving ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : Text(translation(context: context, 'Migrate')),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: theme.colorScheme.primary,
+            foregroundColor: theme.colorScheme.onPrimary,
+          ),
+          child: _saving
+              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+              : Text(translation('Migrate', context: context)),
         ),
       ],
     );

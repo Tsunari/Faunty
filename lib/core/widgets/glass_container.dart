@@ -34,12 +34,12 @@ class GlassContainer extends StatelessWidget {
 
     // Harmonious translucent color palette tailored to monochrome theme brightness
     final defaultColor = isDark
-        ? Colors.white.withOpacity(0.06)
-        : Colors.black.withOpacity(0.04);
+        ? Colors.white.withValues(alpha: 0.06)
+        : Colors.white.withValues(alpha: 0.85);
 
     final defaultBorderColor = isDark
-        ? Colors.white.withOpacity(0.12)
-        : Colors.black.withOpacity(0.08);
+        ? Colors.white.withValues(alpha: 0.12)
+        : Colors.black.withValues(alpha: 0.08);
 
     final containerColor = color ?? defaultColor;
     final containerBorderColor = borderColor ?? defaultBorderColor;

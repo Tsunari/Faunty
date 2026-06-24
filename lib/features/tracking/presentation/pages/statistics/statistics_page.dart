@@ -142,7 +142,7 @@ class _StatisticsPageState extends ConsumerState<StatisticsPage> {
       body: _selectedItem.isEmpty || items.isEmpty
           ? Center(child: Text(translation(context: context, 'Create a tracking item to see statistics.')))
           : Padding(
-            padding: const EdgeInsets.only(top: 10.0),
+            padding: const EdgeInsets.fromLTRB(0, 96, 0, 96),
             child: StatisticsWidgets(
                 attendance: attendance,
                 itemId: _selectedItem,

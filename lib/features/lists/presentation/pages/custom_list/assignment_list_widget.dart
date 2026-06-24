@@ -1,7 +1,6 @@
 import 'package:faunty/core/widgets/custom_snackbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
 import 'package:faunty/features/lists/domain/entities/custom_list.dart';
 import 'package:faunty/features/lists/presentation/controllers/custom_list_provider.dart';
@@ -270,6 +269,33 @@ class _AssignmentListWidgetState extends ConsumerState<AssignmentListWidget> {
         }
         return Scaffold(
           body: TableWidget(
+            isCellDirty: (index, left) {
+              final (item, rowIndex) = rowPairs[index];
+              if (!editedItems.containsKey(item.id)) return false;
+              final edit = editedItems[item.id] as Map<String, dynamic>;
+              if (edit.containsKey('_add')) return true;
+              final payload = edit['payload'] as Map<String, dynamic>?;
+              if (payload == null) return false;
+              if (rowIndex == null) {
+                return payload.containsKey(left ? 'left' : 'right');
+              } else {
+                final rows = payload['rows'] as List?;
+                if (rows == null || rowIndex >= rows.length) return false;
+                final originalRows = item.payload['rows'] as List?;
+                if (originalRows == null || rowIndex >= originalRows.length) return true;
+                final cellKey = left ? 'left' : 'right';
+                return rows[rowIndex][cellKey] != originalRows[rowIndex][cellKey];
+              }
+            },
+            isSubsectionDirty: (subsectionIndex) {
+              final item = subsectionIndexMap[subsectionIndex];
+              if (item == null) return false;
+              if (!editedItems.containsKey(item.id)) return false;
+              final edit = editedItems[item.id] as Map<String, dynamic>;
+              if (edit.containsKey('_add')) return true;
+              final payload = edit['payload'] as Map<String, dynamic>?;
+              return payload?.containsKey('title') ?? false;
+            },
             items: tableItems,
             showColumnHeaders: false,
             editMode: editMode,

@@ -33,13 +33,13 @@ class HomeDrawer extends ConsumerWidget {
         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: isDark
-              ? Colors.white.withOpacity(0.03)
-              : Colors.black.withOpacity(0.015),
+              ? Colors.white.withValues(alpha: 0.04)
+              : theme.colorScheme.primary.withValues(alpha: 0.03),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isDark
-                ? Colors.white.withOpacity(0.08)
-                : Colors.black.withOpacity(0.05),
+                ? Colors.white.withValues(alpha: 0.08)
+                : theme.colorScheme.primary.withValues(alpha: 0.08),
             width: 1,
           ),
         ),
@@ -95,8 +95,8 @@ class HomeDrawer extends ConsumerWidget {
                                 'Places',
                               ).toUpperCase(),
                               style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.primary.withOpacity(
-                                  0.6,
+                                color: theme.colorScheme.primary.withValues(
+                                  alpha: 0.6,
                                 ),
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: 1.2,
@@ -145,7 +145,7 @@ class HomeDrawer extends ConsumerWidget {
                       child: Text(
                         translation(context: context, 'App version'),
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.grey,
+                          color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
                         ),
                       ),
                     ),
@@ -255,13 +255,13 @@ class HomeDrawer extends ConsumerWidget {
           padding: const EdgeInsets.all(16.0),
           decoration: BoxDecoration(
             color: isDark
-                ? Colors.white.withOpacity(0.04)
-                : Colors.black.withOpacity(0.02),
+                ? Colors.white.withValues(alpha: 0.04)
+                : theme.colorScheme.primary.withValues(alpha: 0.03),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: isDark
-                  ? Colors.white.withOpacity(0.08)
-                  : Colors.black.withOpacity(0.06),
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : theme.colorScheme.primary.withValues(alpha: 0.08),
               width: 1,
             ),
           ),
@@ -269,7 +269,7 @@ class HomeDrawer extends ConsumerWidget {
             children: [
               CircleAvatar(
                 radius: 28,
-                backgroundColor: theme.colorScheme.primary.withOpacity(0.12),
+                backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.12),
                 child: Text(
                   initials,
                   style: TextStyle(
@@ -297,7 +297,7 @@ class HomeDrawer extends ConsumerWidget {
                     Text(
                       user.email,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.grey,
+                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -309,7 +309,7 @@ class HomeDrawer extends ConsumerWidget {
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withOpacity(0.08),
+                        color: theme.colorScheme.primary.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -326,7 +326,7 @@ class HomeDrawer extends ConsumerWidget {
                       '${translation(context: context, 'Place')}: ${resolvePlaceDisplay(user)}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         fontSize: 11,
-                        color: Colors.grey,
+                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -372,6 +372,7 @@ class HomeDrawer extends ConsumerWidget {
 
     final currentUser = ref.watch(userProvider).asData?.value;
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     final listTiles = <Widget>[];
 
@@ -406,6 +407,9 @@ class HomeDrawer extends ConsumerWidget {
           subtitle: p.description != null
               ? Text(
                   p.description!,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 )
@@ -460,21 +464,28 @@ class HomeDrawer extends ConsumerWidget {
     final result = await showDialog<String?>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(translation(context: context, 'Rename place')),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Center(
+          child: Text(
+            translation(context: ctx, 'Rename place'),
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
         content: TextField(
           controller: controller,
           decoration: InputDecoration(
-            hintText: translation(context: context, 'Place name'),
+            hintText: translation(context: ctx, 'Place name'),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(translation(context: context, 'Cancel')),
+            child: Text(translation(context: ctx, 'Cancel')),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
-            child: Text(translation(context: context, 'Save')),
+            child: Text(translation(context: ctx, 'Save')),
           ),
         ],
       ),
@@ -497,22 +508,29 @@ class HomeDrawer extends ConsumerWidget {
     final ok = await showDialog<bool?>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(translation(context: context, 'Delete place?')),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Center(
+          child: Text(
+            translation(context: ctx, 'Delete place?'),
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
         content: Text(
           translation(
-            context: context,
+            context: ctx,
             'Are you sure you want to delete this place? This action cannot be undone.',
           ),
+          textAlign: TextAlign.center,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(translation(context: context, 'Cancel')),
+            child: Text(translation(context: ctx, 'Cancel')),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(translation(context: context, 'Delete')),
+            child: Text(translation(context: ctx, 'Delete')),
           ),
         ],
       ),
@@ -548,7 +566,7 @@ class HomeDrawer extends ConsumerWidget {
               child: Text(
                 translation(context: context, 'Manage places').toUpperCase(),
                 style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.primary.withOpacity(0.6),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.6),
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.2,
                 ),
@@ -713,8 +731,8 @@ class HomeDrawer extends ConsumerWidget {
                                   '${translation(context: context, 'Registration mode')}: ${place.registrationMode ? translation(context: context, 'On') : translation(context: context, 'Off')}',
                                 ),
                                 backgroundColor: place.registrationMode
-                                    ? theme.colorScheme.primary.withOpacity(
-                                        0.12,
+                                    ? theme.colorScheme.primary.withValues(
+                                        alpha: 0.12,
                                       )
                                     : theme.colorScheme.surface,
                                 shape: RoundedRectangleBorder(
@@ -767,7 +785,7 @@ class HomeDrawer extends ConsumerWidget {
                                       ),
                                       backgroundColor: regOn
                                           ? theme.colorScheme.primary
-                                                .withOpacity(0.12)
+                                                .withValues(alpha: 0.12)
                                           : theme.colorScheme.surface,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(8),
@@ -875,31 +893,36 @@ class HomeDrawer extends ConsumerWidget {
                               final confirm = await showDialog<bool?>(
                                 context: context,
                                 builder: (ctx) => AlertDialog(
-                                  title: Text(
-                                    translation(
-                                      context: context,
-                                      'Change user place',
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                                  title: Center(
+                                    child: Text(
+                                      translation(
+                                        context: ctx,
+                                        'Change user place',
+                                      ),
+                                      style: const TextStyle(fontWeight: FontWeight.bold),
                                     ),
                                   ),
                                   content: Text(
                                     translation(
-                                      context: context,
+                                      context: ctx,
                                       'Do you want to set your current place to "${place.displayName ?? place.name}"?',
                                     ),
+                                    textAlign: TextAlign.center,
                                   ),
                                   actions: [
                                     TextButton(
                                       onPressed: () =>
                                           Navigator.of(ctx).pop(false),
                                       child: Text(
-                                        translation(context: context, 'Cancel'),
+                                        translation(context: ctx, 'Cancel'),
                                       ),
                                     ),
                                     ElevatedButton(
                                       onPressed: () =>
                                           Navigator.of(ctx).pop(true),
                                       child: Text(
-                                        translation(context: context, 'Yes'),
+                                        translation(context: ctx, 'Yes'),
                                       ),
                                     ),
                                   ],
@@ -985,26 +1008,31 @@ class HomeDrawer extends ConsumerWidget {
                               final result = await showDialog<String?>(
                                 context: context,
                                 builder: (ctx) => AlertDialog(
-                                  title: Text(
-                                    translation(
-                                      context: context,
-                                      'Connect Google Maps',
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                                  title: Center(
+                                    child: Text(
+                                      translation(
+                                        context: ctx,
+                                        'Connect Google Maps',
+                                      ),
+                                      style: const TextStyle(fontWeight: FontWeight.bold),
                                     ),
                                   ),
                                   content: TextField(
                                     controller: controller,
                                     decoration: InputDecoration(
                                       hintText: translation(
-                                        context: context,
+                                        context: ctx,
                                         'Paste maps link here (https://...)',
                                       ),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                                     ),
                                   ),
                                   actions: [
                                     TextButton(
                                       onPressed: () => Navigator.of(ctx).pop(),
                                       child: Text(
-                                        translation(context: context, 'Cancel'),
+                                        translation(context: ctx, 'Cancel'),
                                       ),
                                     ),
                                     ElevatedButton(
@@ -1012,7 +1040,7 @@ class HomeDrawer extends ConsumerWidget {
                                         ctx,
                                       ).pop(controller.text.trim()),
                                       child: Text(
-                                        translation(context: context, 'Save'),
+                                        translation(context: ctx, 'Save'),
                                       ),
                                     ),
                                   ],

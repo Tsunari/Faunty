@@ -4,19 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:faunty/core/widgets/custom_app_bar.dart';
 import 'package:faunty/core/utils/pdf_generator/base_pdf_layout.dart';
 
-class TabAppBarConfig {
-  final List<Widget>? actions;
-  final Future<Map<String, List<Map<String, dynamic>>>> Function()? onGeneratePdf;
-  final BasePdfLayout? pdfLayout;
 
-  const TabAppBarConfig({
-    this.actions,
-    this.onGeneratePdf,
-    this.pdfLayout,
-  });
-}
-
-final tabAppBarConfigProvider = StateProvider.family<TabAppBarConfig?, String>((ref, tabId) => null);
 
 class TabMeta {
   final String title;
@@ -112,10 +100,16 @@ class _TabPageState extends ConsumerState<TabPage> with TickerProviderStateMixin
   void _handleTabChange() async {
     if (_tabController == null || _tabController!.indexIsChanging) return;
     final index = _tabController!.index;
-    ref.read(widget.tabIndexProvider.notifier).state = index;
+    
+    // Defer state updates to avoid mutating RenderLayoutBuilder during layout passes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(widget.tabIndexProvider.notifier).state = index;
+      setState(() {});
+    });
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(widget.prefsKey, index);
-    if (mounted) setState(() {});
   }
 
   @override
@@ -145,11 +139,12 @@ class _TabPageState extends ConsumerState<TabPage> with TickerProviderStateMixin
     // Clamp index to ensure we don't index out of bounds in race conditions
     final clampedIndex = activeIndex.clamp(0, widget.tabs.length - 1);
     final activeTab = widget.tabs[clampedIndex];
-    final activeConfig = ref.watch(tabAppBarConfigProvider(activeTab.title));
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: CustomAppBar(
         title: activeTab.title,
+        tabId: activeTab.title,
         titleWidget: SizedBox(
           height: 38,
           child: TabBar(
@@ -158,9 +153,32 @@ class _TabPageState extends ConsumerState<TabPage> with TickerProviderStateMixin
             tabs: [
               for (int i = 0; i < widget.tabs.length; i++)
                 Tab(
-                  icon: Tooltip(
-                    message: widget.tabs[i].title,
-                    child: Icon(widget.tabs[i].icon, size: 20),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(widget.tabs[i].icon, size: 18),
+                      AnimatedSize(
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeInOut,
+                        child: clampedIndex == i
+                            ? Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    widget.tabs[i].title,
+                                    maxLines: 1,
+                                    softWrap: false,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : const SizedBox.shrink(),
+                      ),
+                    ],
                   ),
                 )
             ],
@@ -181,9 +199,6 @@ class _TabPageState extends ConsumerState<TabPage> with TickerProviderStateMixin
             tabAlignment: TabAlignment.center,
           ),
         ),
-        actions: activeConfig?.actions,
-        onGeneratePdf: activeConfig?.onGeneratePdf,
-        pdfLayout: activeConfig?.pdfLayout,
       ),
       body: TabBarView(
         controller: _tabController,

@@ -239,7 +239,7 @@ class _AttendanceViewerState extends ConsumerState<AttendanceViewer> {
               ),
             )
           : Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+              padding: const EdgeInsets.fromLTRB(12, 96, 12, 96),
               child: AttendanceTable(
                 users: users,
                 attendanceItems: itemsMeta,
