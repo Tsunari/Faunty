@@ -1,32 +1,33 @@
-import 'package:faunty/components/role_gate.dart';
+import 'package:faunty/features/auth/presentation/widgets/role_gate.dart';
 import 'package:faunty/firebase_options.dart';
-import 'package:faunty/notifications/notification_manager.dart';
-import 'package:faunty/notifications/one_signal/onesignal_provider.dart';
-import 'package:faunty/notifications/reminder_manager.dart';
-import 'package:faunty/models/user_roles.dart';
-import 'package:faunty/pages/communication/communication_page.dart';
-import 'package:faunty/pages/lists/lists_page.dart';
-import 'package:faunty/pages/tracking/tracking_page.dart';
-import 'package:faunty/state_management/language_provider.dart';
+import 'package:faunty/features/notifications/data/notification_manager.dart';
+import 'package:faunty/features/notifications/data/one_signal/onesignal_provider.dart';
+import 'package:faunty/features/notifications/data/reminder_manager.dart';
+import 'package:faunty/features/auth/domain/entities/user_roles.dart';
+import 'package:faunty/features/communication/presentation/pages/communication_page.dart';
+import 'package:faunty/features/lists/presentation/pages/lists_page.dart';
+import 'package:faunty/features/tracking/presentation/pages/tracking_page.dart';
+import 'package:faunty/core/i18n/language_provider.dart';
 import 'package:flutter/material.dart';
-import 'package:faunty/models/user_entity.dart';
+import 'package:faunty/features/auth/domain/entities/user_entity.dart';
 import 'globals.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'pages/home/home_page.dart';
-import 'pages/login.dart';
-import 'pages/more/more_page.dart';
-import 'components/navigation_bar.dart';
-import 'pages/splash_page.dart';
-import 'pages/welcome/user_welcome_page.dart';
-import 'state_management/user_provider.dart';
-import 'package:faunty/i18n/strings.g.dart';
-import 'package:faunty/tools/translation_helper.dart';
-import 'state_management/theme_provider.dart';
-import 'components/theme_cards_selector.dart';
+import 'package:faunty/features/profile/presentation/pages/home_page.dart';
+import 'package:faunty/features/auth/presentation/pages/login_page.dart';
+import 'package:faunty/features/profile/presentation/pages/more_page.dart';
+import 'package:faunty/features/profile/presentation/widgets/navigation_bar.dart';
+import 'package:faunty/features/auth/presentation/pages/splash_page.dart';
+import 'package:faunty/features/auth/presentation/pages/user_welcome_page.dart';
+import 'package:faunty/features/auth/presentation/controllers/user_provider.dart';
+import 'package:faunty/core/i18n/strings.g.dart';
+import 'package:faunty/core/utils/translation_helper.dart';
+import 'package:faunty/core/theme/theme_provider.dart';
+import 'package:faunty/features/profile/presentation/widgets/theme_cards_selector.dart';
 import 'package:flutter/foundation.dart';
-import 'tools/update_service.dart';
+import 'package:faunty/core/utils/update_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:faunty/core/utils/pwa_install.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -89,6 +90,12 @@ class Faunty extends ConsumerWidget {
           : ThemeData(
               colorScheme: ColorScheme.fromSeed(seedColor: preset.seedColor),
               useMaterial3: true,
+              dialogTheme: DialogThemeData(
+                surfaceTintColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
             ),
       darkTheme: isMonochrome
           ? monochromeThemeDataDark
@@ -98,6 +105,12 @@ class Faunty extends ConsumerWidget {
                 brightness: Brightness.dark,
               ),
               useMaterial3: true,
+              dialogTheme: DialogThemeData(
+                surfaceTintColor: Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
             ),
       themeMode: ref.watch(themeProvider).value == AppThemeMode.dark
           ? ThemeMode.dark
@@ -180,7 +193,13 @@ class _MainPageState extends ConsumerState<MainPage> {
       // Fallback is just an empty box now, because navigation is handled by ref.listen
       fallback: const SizedBox.shrink(),
       child: Scaffold(
-        body: _pages[_selectedIndex],
+        extendBody: true,
+        body: Stack(
+          children: [
+            _pages[_selectedIndex],
+            const PwaInstallBanner(),
+          ],
+        ),
         bottomNavigationBar: NavBar(
           selectedIndex: _selectedIndex,
           onDestinationSelected: _onDestinationSelected,

@@ -57,3 +57,4 @@ node_modules/
 devtools_options.yaml
 .env
 /testproject
+/notes

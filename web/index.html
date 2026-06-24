@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <!--
     If you are serving your web app in a path other than the root, change the
@@ -36,7 +37,7 @@
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <script>
     window.OneSignalDeferred = window.OneSignalDeferred || [];
-    OneSignalDeferred.push(async function(OneSignal) {
+    OneSignalDeferred.push(async function (OneSignal) {
       await OneSignal.init({
         appId: "f2a525de-b733-4e92-9494-dff5eae29756",
         safari_web_id: "web.onesignal.auto.370dd028-ab8a-4720-9087-4e2c917686de",
@@ -44,7 +45,7 @@
       });
     });
   </script>
-  
+
   <!-- <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {
@@ -64,8 +65,8 @@
       deferredPrompt = e;
     });
 
-    function promptInstall(){
-       deferredPrompt.prompt();
+    function promptInstall() {
+      deferredPrompt.prompt();
     }
 
     // Listen for app install event
@@ -77,7 +78,7 @@
     // Track how PWA was launched (either from browser or as PWA)
     function getLaunchMode() {
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-      if(deferredPrompt) hasPrompt();
+      if (deferredPrompt) hasPrompt();
       if (document.referrer.startsWith('android-app://')) {
         appLaunchedAsTWA();
       } else if (navigator.standalone || isStandalone) {
@@ -88,20 +89,49 @@
     }
   </script>
 </head>
+
 <body>
+  <div id="loading-indicator"
+    style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #0b0f12; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 99999; transition: opacity 0.5s ease;">
+    <div
+      style="width: 50px; height: 50px; border: 3px solid rgba(76, 175, 80, 0.1); border-radius: 50%; border-top-color: #4caf50; animation: spin 1s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;">
+    </div>
+    <div
+      style="margin-top: 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 16px; font-weight: 500; color: #ffffff; letter-spacing: 0.8px; opacity: 0.85;">
+      Loading</div>
+  </div>
+  <style>
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+  <script>
+    window.addEventListener('flutter-first-frame', function () {
+      var loader = document.getElementById('loading-indicator');
+      if (loader) {
+        loader.style.opacity = '0';
+        setTimeout(function () {
+          loader.remove();
+        }, 500);
+      }
+    });
+  </script>
   <script src="flutter_bootstrap.js" async>
     // Firebase Cloud Messaging Service Worker Registration
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-      navigator.serviceWorker.register('firebase-messaging-sw.js', {
-        scope: '/firebase-cloud-messaging-push-scope',
-      }).then(function(registration) {
-        console.log('ServiceWorker setup successful with scope:', registration.scope);
-      }).catch(function(error) {
-        console.log('ServiceWorker setup failed:', error);
-      });
+        navigator.serviceWorker.register('firebase-messaging-sw.js', {
+          scope: '/firebase-cloud-messaging-push-scope',
+        }).then(function (registration) {
+          console.log('ServiceWorker setup successful with scope:', registration.scope);
+        }).catch(function (error) {
+          console.log('ServiceWorker setup failed:', error);
+        });
       });
     }
   </script>
 </body>
+
 </html>
