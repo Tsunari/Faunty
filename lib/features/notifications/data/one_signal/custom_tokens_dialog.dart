@@ -36,8 +36,8 @@ class _OneSignalDialogContentState extends ConsumerState<_OneSignalDialogContent
 
   final Map<String, String> _predefinedImages = {
     'None': '',
-    'Logo': 'assets/assets/Logo.png',
-    'Logo Inverse': 'assets/assets/LogoInverse.png',
+    'Logo': 'assets/Logo.png',
+    'Logo Inverse': 'assets/LogoInverse.png',
     'Random (Picsum)': 'https://picsum.photos/200',
   };
 

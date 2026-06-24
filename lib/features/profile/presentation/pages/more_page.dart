@@ -70,8 +70,8 @@ class MorePage extends ConsumerWidget {
                           ),
                         ),
                         child: SizedBox(
-                          height: 80,
-                          width: 80,
+                          height: 90,
+                          width: 90,
                           child: Image(
                             image: AssetImage(
                               theme.brightness == Brightness.light
@@ -79,6 +79,7 @@ class MorePage extends ConsumerWidget {
                                   : 'assets/LogoInverse.png',
                             ),
                             fit: BoxFit.contain,
+                            filterQuality: FilterQuality.high,
                           ),
                         ),
                       ),

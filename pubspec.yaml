@@ -80,15 +80,13 @@ dev_dependencies:
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
-#   flutter_launcher_icons: "^0.14.4" 
+  flutter_launcher_icons: ^0.14.4
 
-# flutter_launcher_icons:
-#   android: true
-#   ios: true
-#   web:
-#     generate: true
-#     image_path: "assets/Logo.png"
-#   image_path: "assets/Logo.png"
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/Logo.png"
+  remove_alpha_ios: true
 
 # The following section is specific to Flutter packages.
 flutter:
@@ -102,6 +100,8 @@ flutter:
   assets:
     - assets/Logo.png
     - assets/LogoInverse.png
+    - assets/Logo_old.png
+    - assets/LogoInverse_old.png
     - .env
 
   # An image asset can refer to one or more resolution-specific "variants", see

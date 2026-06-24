@@ -433,8 +433,9 @@ class _LoginPageState extends ConsumerState<LoginPage> with SingleTickerProvider
                                 Theme.of(context).brightness == Brightness.light
                                 ? 'assets/Logo.png'
                                 : 'assets/LogoInverse.png',
-                                height: 145,
+                                height: 165,
                                 fit: BoxFit.contain,
+                                filterQuality: FilterQuality.high,
                               ),
                               ),
                             )
