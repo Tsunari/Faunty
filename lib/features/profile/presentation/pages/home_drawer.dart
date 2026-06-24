@@ -34,12 +34,12 @@ class HomeDrawer extends ConsumerWidget {
         decoration: BoxDecoration(
           color: isDark
               ? Colors.white.withValues(alpha: 0.04)
-              : theme.colorScheme.primary.withValues(alpha: 0.03),
+              : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isDark
                 ? Colors.white.withValues(alpha: 0.08)
-                : theme.colorScheme.primary.withValues(alpha: 0.08),
+                : Colors.black.withValues(alpha: 0.08),
             width: 1,
           ),
         ),
@@ -256,12 +256,12 @@ class HomeDrawer extends ConsumerWidget {
           decoration: BoxDecoration(
             color: isDark
                 ? Colors.white.withValues(alpha: 0.04)
-                : theme.colorScheme.primary.withValues(alpha: 0.03),
+                : Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: isDark
                   ? Colors.white.withValues(alpha: 0.08)
-                  : theme.colorScheme.primary.withValues(alpha: 0.08),
+                  : Colors.black.withValues(alpha: 0.08),
               width: 1,
             ),
           ),
@@ -386,14 +386,24 @@ class HomeDrawer extends ConsumerWidget {
             horizontal: 16.0,
             vertical: 4.0,
           ),
+          tileColor: isCurrentPlace
+              ? (isDark
+                  ? Colors.white.withValues(alpha: 0.04)
+                  : theme.colorScheme.primary.withValues(alpha: 0.05))
+              : null,
           leading: p.imageUrl != null && p.imageUrl!.isNotEmpty
               ? CircleAvatar(
                   radius: 16,
                   backgroundImage: NetworkImage(p.imageUrl!),
                 )
-              : const CircleAvatar(
+              : CircleAvatar(
                   radius: 16,
-                  child: Icon(Icons.place, size: 16),
+                  backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.08),
+                  child: Icon(
+                    Icons.place_rounded,
+                    size: 16,
+                    color: theme.colorScheme.primary,
+                  ),
                 ),
           title: Text(
             p.displayName ?? p.name,
